@@ -1,0 +1,298 @@
+npm notice run school-erp@1.0.0 dev
+npm notice run vite --host 0.0.0.0
+5:07:12 pm [vite] (client) warning: Duplicate "onClick" attribute in JSX element
+1135|                              <button onClick={() => setFailedModal(rec.failed > 0 ? rec : null) || rec.failed === 0 && showToast('No failed records for this upload.', 'info')}
+1136|                          title="View Report"
+1137|                          onClick={() => setRecords((prev) => prev)} // placeholder for open_window
+   |                          ^
+1138|                          className="p-2 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors"
+1139|                          onClick={() => showToast(`Opening report for: ${rec.title}`, 'info')}>
+
+  Plugin: vite:esbuild
+  File: D:/Kachra/Codex/New/src/components/pages/Fee/Work/ImportExcelFee.jsx
+5:07:12 pm [vite] (client) warning: Duplicate "onClick" attribute in JSX element
+1137|                          onClick={() => setRecords((prev) => prev)} // placeholder for open_window
+1138|                          className="p-2 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors"
+1139|                          onClick={() => showToast(`Opening report for: ${rec.title}`, 'info')}>
+   |                          ^
+1140|                            
+1141|                                <Eye className="w-3.5 h-3.5" />
+
+  Plugin: vite:esbuild
+  File: D:/Kachra/Codex/New/src/components/pages/Fee/Work/ImportExcelFee.jsx
+5:07:13 pm [vite] (client) warning: Duplicate "color" attribute in JSX element
+634|              value={`₹${totals.charges.toLocaleString('en-IN')}`}
+635|              color="orange"
+636|              color="amber" />
+   |              ^
+637|            
+638|              <SummaryCard
+
+  Plugin: vite:esbuild
+  File: D:/Kachra/Codex/New/src/components/pages/Canteen/Report/TuckshopAssignExpenseReport.jsx
+5:51:47 pm [vite] (client) Pre-transform error: Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+  Plugin: vite:import-analysis
+  File: D:/Kachra/Codex/New/src/hooks/useERP.js:1:1
+  1  |  import { useState, useCallback, useEffect } from 'react'
+     |  ^
+  2  |  import { MENU_DATA } from '../data/menuData'
+  3  |  import { resolveMenu } from '../data/menuResolver'
+5:51:47 pm [vite] Internal server error: Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+  Plugin: vite:import-analysis
+  File: D:/Kachra/Codex/New/src/hooks/useERP.js:1:1
+  1  |  import { useState, useCallback, useEffect } from 'react'
+     |  ^
+  2  |  import { MENU_DATA } from '../data/menuData'
+  3  |  import { resolveMenu } from '../data/menuResolver'
+      at TransformPluginContext._formatLog (file:///D:/Kachra/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41)
+      at TransformPluginContext.error (file:///D:/Kachra/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16)
+      at TransformPluginContext.transform (file:///D:/Kachra/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40585:14)
+      at async EnvironmentPluginContainer.transform (file:///D:/Kachra/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18)
+      at async loadAndTransform (file:///D:/Kachra/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27)
+      at async viteTransformMiddleware (file:///D:/Kachra/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:37369:24)
+5:52:31 pm [vite] Internal server error: D:\Kachra\Codex\New\src\components\layout\Topbar.jsx: Unterminated string constant. (12:124)
+
+  10 |     <div className="flex items-center h-full"><div className="flex items-center gap-2.5 px-4 h-full bg-white/[0.08] border-r border-white/[0.12]"><div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center font-bold text-[13px] text-primary-900 cursor-pointer" onClick={goHome}>APS</div><span className="font-bold text-[14.5px] text-white whitespace-nowrap hidden sm:block">{schoolName}</span><span className="font-bold text-[13px] text-white whitespace-nowrap sm:hidden">{schoolName}</span></div></div>
+  11 |     <div className="flex items-center gap-2"><span className="hidden md:block text-[12px] text-white/75 px-2.5 py-1 bg-white/10 rounded-full font-medium border border-white/[0.08]">SESSION: {session}</span>
+> 12 |       <div className="flex items-center gap-2 px-2 py-1 bg-white/10 rounded-full border border-white/[0.08]"><div className="w-[30px] h-[30px] rounded-full bg-gradi
+     |                                                                                                                             ^
+  Plugin: vite:react-babel
+  File: D:/Kachra/Codex/New/src/components/layout/Topbar.jsx:12:124
+  10 |      <div className="flex items-center h-full"><div className="flex items-center gap-2.5 px-4 h-full bg-white/[0.08] border-r border-white/[0.12]"><div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center font-bold text-[13px] text-primary-900 cursor-pointer" onClick={goHome}>APS</div><span className="font-bold text-[14.5px] text-white whitespace-nowrap hidden sm:block">{schoolName}</span><span className="font-bold text-[13px] text-white whitespace-nowrap sm:hidden">{schoolName}</span></div></div>
+  11 |      <div className="flex items-center gap-2"><span className="hidden md:block text-[12px] text-white/75 px-2.5 py-1 bg-white/10 rounded-full font-medium border border-white/[0.08]">SESSION: {session}</span>
+  12 |        <div className="flex items-center gap-2 px-2 py-1 bg-white/10 rounded-full border border-white/[0.08]"><div className="w-[30px] h-[30px] rounded-full bg-gradi
+     |                                                                                                                              ^
+      at constructor (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:365:19)
+      at JSXParserMixin.raise (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:6616:19)
+      at JSXParserMixin.jsxReadString (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4515:20)
+      at JSXParserMixin.getTokenFromCode (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4800:14)
+      at JSXParserMixin.nextToken (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:5799:10)
+      at JSXParserMixin.next (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:5709:10)
+      at JSXParserMixin.eat (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:5713:12)
+      at JSXParserMixin.jsxParseAttribute (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4665:23)
+      at JSXParserMixin.jsxParseOpeningElementAfterName (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4679:28)
+      at JSXParserMixin.jsxParseOpeningElementAt (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4674:17)
+      at JSXParserMixin.jsxParseElementAt (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4698:33)
+      at JSXParserMixin.jsxParseElementAt (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4710:32)
+      at JSXParserMixin.jsxParseElementAt (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4710:32)
+      at JSXParserMixin.jsxParseElementAt (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4710:32)
+      at JSXParserMixin.jsxParseElement (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4761:17)
+      at JSXParserMixin.parseExprAtom (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4771:19)
+      at JSXParserMixin.parseExprSubscripts (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11098:23)
+      at JSXParserMixin.parseUpdate (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11083:21)
+      at JSXParserMixin.parseMaybeUnary (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11063:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10916:61)
+      at JSXParserMixin.parseExprOps (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10921:23)
+      at JSXParserMixin.parseMaybeConditional (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10898:23)
+      at JSXParserMixin.parseMaybeAssign (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10848:21)
+      at JSXParserMixin.parseExpressionBase (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10801:23)
+      at D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10797:39
+      at JSXParserMixin.allowInAnd (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12438:16)
+      at JSXParserMixin.parseExpression (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10797:17)
+      at JSXParserMixin.parseReturnStatement (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13159:28)
+      at JSXParserMixin.parseStatementContent (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12815:21)
+      at JSXParserMixin.parseStatementLike (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12784:17)
+      at JSXParserMixin.parseStatementListItem (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12764:17)
+      at JSXParserMixin.parseBlockOrModuleBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13333:61)
+      at JSXParserMixin.parseBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13326:10)
+      at JSXParserMixin.parseBlock (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13314:10)
+      at JSXParserMixin.parseFunctionBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12117:24)
+      at JSXParserMixin.parseFunctionBodyAndFinish (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12103:10)
+      at D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13462:12
+      at JSXParserMixin.withSmartMixTopicForbiddingContext (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12420:14)
+      at JSXParserMixin.parseFunction (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13461:10)
+      at JSXParserMixin.parseExportDefaultExpression (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13924:19)
+      at JSXParserMixin.parseExport (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13845:25)
+      at JSXParserMixin.parseStatementContent (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12895:27)
+      at JSXParserMixin.parseStatementLike (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12784:17)
+      at JSXParserMixin.parseModuleItem (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12761:17)
+      at JSXParserMixin.parseBlockOrModuleBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13333:36)
+      at JSXParserMixin.parseBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13326:10)
+      at JSXParserMixin.parseProgram (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12639:10)
+      at JSXParserMixin.parseTopLevel (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12629:25)
+      at JSXParserMixin.parse (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:14505:25)
+      at parse (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:14539:38)
+5:59:56 pm [vite] Internal server error: D:\Kachra\Codex\New\src\components\layout\Topbar.jsx: Unterminated string constant. (20:21)
+
+  18 |     <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+  19 |       <span className="hidden md:block text-[12px] text-white/75 px-2.5 py-1 bg-white/10 rounded-full font-medium border border-white/[0.08]">SESSION: {session}</span>
+> 20 |       <div className="flex items-center gap-2 px-2 
+     |                      ^
+  Plugin: vite:react-babel
+  File: D:/Kachra/Codex/New/src/components/layout/Topbar.jsx:20:21
+  18 |      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+  19 |        <span className="hidden md:block text-[12px] text-white/75 px-2.5 py-1 bg-white/10 rounded-full font-medium border border-white/[0.08]">SESSION: {session}</span>
+  20 |        <div className="flex items-center gap-2 px-2 
+     |                       ^
+      at constructor (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:365:19)
+      at JSXParserMixin.raise (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:6616:19)
+      at JSXParserMixin.jsxReadString (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4515:20)
+      at JSXParserMixin.getTokenFromCode (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4800:14)
+      at JSXParserMixin.nextToken (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:5799:10)
+      at JSXParserMixin.next (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:5709:10)
+      at JSXParserMixin.eat (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:5713:12)
+      at JSXParserMixin.jsxParseAttribute (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4665:23)
+      at JSXParserMixin.jsxParseOpeningElementAfterName (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4679:28)
+      at JSXParserMixin.jsxParseOpeningElementAt (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4674:17)
+      at JSXParserMixin.jsxParseElementAt (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4698:33)
+      at JSXParserMixin.jsxParseElementAt (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4710:32)
+      at JSXParserMixin.jsxParseElementAt (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4710:32)
+      at JSXParserMixin.jsxParseElement (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4761:17)
+      at JSXParserMixin.parseExprAtom (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4771:19)
+      at JSXParserMixin.parseExprSubscripts (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11098:23)
+      at JSXParserMixin.parseUpdate (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11083:21)
+      at JSXParserMixin.parseMaybeUnary (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11063:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10916:61)
+      at JSXParserMixin.parseExprOps (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10921:23)
+      at JSXParserMixin.parseMaybeConditional (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10898:23)
+      at JSXParserMixin.parseMaybeAssign (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10848:21)
+      at JSXParserMixin.parseExpressionBase (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10801:23)
+      at D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10797:39
+      at JSXParserMixin.allowInAnd (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12438:16)
+      at JSXParserMixin.parseExpression (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10797:17)
+      at JSXParserMixin.parseReturnStatement (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13159:28)
+      at JSXParserMixin.parseStatementContent (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12815:21)
+      at JSXParserMixin.parseStatementLike (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12784:17)
+      at JSXParserMixin.parseStatementListItem (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12764:17)
+      at JSXParserMixin.parseBlockOrModuleBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13333:61)
+      at JSXParserMixin.parseBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13326:10)
+      at JSXParserMixin.parseBlock (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13314:10)
+      at JSXParserMixin.parseFunctionBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12117:24)
+      at JSXParserMixin.parseFunctionBodyAndFinish (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12103:10)
+      at D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13462:12
+      at JSXParserMixin.withSmartMixTopicForbiddingContext (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12420:14)
+      at JSXParserMixin.parseFunction (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13461:10)
+      at JSXParserMixin.parseExportDefaultExpression (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13924:19)
+      at JSXParserMixin.parseExport (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13845:25)
+      at JSXParserMixin.parseStatementContent (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12895:27)
+      at JSXParserMixin.parseStatementLike (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12784:17)
+      at JSXParserMixin.parseModuleItem (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12761:17)
+      at JSXParserMixin.parseBlockOrModuleBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13333:36)
+      at JSXParserMixin.parseBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13326:10)
+      at JSXParserMixin.parseProgram (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12639:10)
+      at JSXParserMixin.parseTopLevel (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12629:25)
+      at JSXParserMixin.parse (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:14505:25)
+      at parse (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (D:\Kachra\Codex\New\node_modules\@babel\core\lib\parser\index.js:41:34)
+5:59:58 pm [vite] Internal server error: D:\Kachra\Codex\New\src\components\layout\Topbar.jsx: Unexpected token, expected "}" (28:193)
+
+  26 |       <button onClick={onLogout} className="hidden sm:flex flex-shrink-0 w-[34px] h-[34px] rounded-lg items-center justify-center bg-white/10 text-white hover:bg-red-500/80" title="Logout"><LogOut size={17} /></button>
+  27 |       <button onClick={toggleTheme} className="theme-toggle flex-shrink-0 flex items-center" style={{ background: isDark ? 'linear-gradient(135deg,#1e1b4b,#312e81)' : 'linear-gradient(135deg,#bfdbfe,#93c5fd)' }} title="Toggle theme" aria-label="Toggle theme"><div className={cn('theme-toggle-thumb', isDark ? 'theme-toggle-dark' : 'theme-toggle-light')}>{isDark ? <Moon size={12} className="text-indigo-100" /> : <Sun size={12} className="text-amber-900" />}</div></button>
+> 28 |       <button onClick={toggleDrawer} className="md:hidden flex-shrink-0 flex w-[38px] h-[38px] rounded-lg items-center justify-center bg-white/10 text-white" aria-label="Toggle menu">{isDrawerO
+     |                                                                                                                                                                                                  ^
+  Plugin: vite:react-babel
+  File: D:/Kachra/Codex/New/src/components/layout/Topbar.jsx:28:193
+  26 |        <button onClick={onLogout} className="hidden sm:flex flex-shrink-0 w-[34px] h-[34px] rounded-lg items-center justify-center bg-white/10 text-white hover:bg-red-500/80" title="Logout"><LogOut size={17} /></button>
+  27 |        <button onClick={toggleTheme} className="theme-toggle flex-shrink-0 flex items-center" style={{ background: isDark ? 'linear-gradient(135deg,#1e1b4b,#312e81)' : 'linear-gradient(135deg,#bfdbfe,#93c5fd)' }} title="Toggle theme" aria-label="Toggle theme"><div className={cn('theme-toggle-thumb', isDark ? 'theme-toggle-dark' : 'theme-toggle-light')}>{isDark ? <Moon size={12} className="text-indigo-100" /> : <Sun size={12} className="text-amber-900" />}</div></button>
+  28 |        <button onClick={toggleDrawer} className="md:hidden flex-shrink-0 flex w-[38px] h-[38px] rounded-lg items-center justify-center bg-white/10 text-white" aria-label="Toggle menu">{isDrawerO
+     |                                                                                                                                                                                                   ^
+      at constructor (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:365:19)
+      at JSXParserMixin.raise (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:6616:19)
+      at JSXParserMixin.unexpected (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:6636:16)
+      at JSXParserMixin.expect (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:6916:12)
+      at JSXParserMixin.jsxParseExpressionContainer (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4649:10)
+      at JSXParserMixin.jsxParseElementAt (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4723:36)
+      at JSXParserMixin.jsxParseElementAt (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4710:32)
+      at JSXParserMixin.jsxParseElementAt (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4710:32)
+      at JSXParserMixin.jsxParseElement (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4761:17)
+      at JSXParserMixin.parseExprAtom (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4771:19)
+      at JSXParserMixin.parseExprSubscripts (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11098:23)
+      at JSXParserMixin.parseUpdate (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11083:21)
+      at JSXParserMixin.parseMaybeUnary (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11063:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10916:61)
+      at JSXParserMixin.parseExprOps (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10921:23)
+      at JSXParserMixin.parseMaybeConditional (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10898:23)
+      at JSXParserMixin.parseMaybeAssign (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10848:21)
+      at JSXParserMixin.parseExpressionBase (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10801:23)
+      at D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10797:39
+      at JSXParserMixin.allowInAnd (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12438:16)
+      at JSXParserMixin.parseExpression (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10797:17)
+      at JSXParserMixin.parseReturnStatement (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13159:28)
+      at JSXParserMixin.parseStatementContent (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12815:21)
+      at JSXParserMixin.parseStatementLike (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12784:17)
+      at JSXParserMixin.parseStatementListItem (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12764:17)
+      at JSXParserMixin.parseBlockOrModuleBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13333:61)
+      at JSXParserMixin.parseBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13326:10)
+      at JSXParserMixin.parseBlock (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13314:10)
+      at JSXParserMixin.parseFunctionBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12117:24)
+      at JSXParserMixin.parseFunctionBodyAndFinish (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12103:10)
+      at D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13462:12
+      at JSXParserMixin.withSmartMixTopicForbiddingContext (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12420:14)
+      at JSXParserMixin.parseFunction (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13461:10)
+      at JSXParserMixin.parseExportDefaultExpression (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13924:19)
+      at JSXParserMixin.parseExport (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13845:25)
+      at JSXParserMixin.parseStatementContent (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12895:27)
+      at JSXParserMixin.parseStatementLike (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12784:17)
+      at JSXParserMixin.parseModuleItem (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12761:17)
+      at JSXParserMixin.parseBlockOrModuleBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13333:36)
+      at JSXParserMixin.parseBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13326:10)
+      at JSXParserMixin.parseProgram (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12639:10)
+      at JSXParserMixin.parseTopLevel (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12629:25)
+      at JSXParserMixin.parse (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:14505:25)
+      at parse (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (D:\Kachra\Codex\New\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (D:\Kachra\Codex\New\node_modules\@babel\core\lib\transformation\normalize-file.js:51:37)
+      at normalizeFile.next (<anonymous>)
+      at run (D:\Kachra\Codex\New\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+6:11:43 pm [vite] Internal server error: D:\Kachra\Codex\New\src\components\pages\MasterSetting\Work\SessionMaster.jsx: Unexpected token (406:3)
+
+  404 |       showToast(`Session "${newSession.session}" added successfully.`)
+  405 |     }, 700)
+> 406 |   }, [selectedYear, addedYears, showToast])
+      |    ^
+  407 |
+  408 |   // ── Toggle Default (mirrors CheckBox1_CheckedChanged) ─────────────────────
+  409 |   const handleToggleDefault = useCallback((id) => {
+  Plugin: vite:react-babel
+  File: D:/Kachra/Codex/New/src/components/pages/MasterSetting/Work/SessionMaster.jsx:406:3
+  404|        showToast(`Session "${newSession.session}" added successfully.`)
+  405|      }, 700)
+  406|    }, [selectedYear, addedYears, showToast])
+     |     ^
+  407|  
+  408|    // ── Toggle Default (mirrors CheckBox1_CheckedChanged) ─────────────────────
+      at constructor (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:365:19)
+      at JSXParserMixin.raise (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:6616:19)
+      at JSXParserMixin.unexpected (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:6636:16)
+      at JSXParserMixin.parseExprAtom (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11459:22)
+      at JSXParserMixin.parseExprAtom (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:4776:20)
+      at JSXParserMixin.parseExprSubscripts (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11098:23)
+      at JSXParserMixin.parseUpdate (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11083:21)
+      at JSXParserMixin.parseMaybeUnary (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:11063:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10916:61)
+      at JSXParserMixin.parseExprOps (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10921:23)
+      at JSXParserMixin.parseMaybeConditional (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10898:23)
+      at JSXParserMixin.parseMaybeAssign (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10848:21)
+      at JSXParserMixin.parseExpressionBase (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10801:23)
+      at D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10797:39
+      at JSXParserMixin.allowInAnd (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12438:16)
+      at JSXParserMixin.parseExpression (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:10797:17)
+      at JSXParserMixin.parseStatementContent (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12912:23)
+      at JSXParserMixin.parseStatementLike (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12784:17)
+      at JSXParserMixin.parseModuleItem (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12761:17)
+      at JSXParserMixin.parseBlockOrModuleBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13333:36)
+      at JSXParserMixin.parseBlockBody (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:13326:10)
+      at JSXParserMixin.parseProgram (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12639:10)
+      at JSXParserMixin.parseTopLevel (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:12629:25)
+      at JSXParserMixin.parse (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:14505:25)
+      at parse (D:\Kachra\Codex\New\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (D:\Kachra\Codex\New\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (D:\Kachra\Codex\New\node_modules\@babel\core\lib\transformation\normalize-file.js:51:37)
+      at normalizeFile.next (<anonymous>)
+      at run (D:\Kachra\Codex\New\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (D:\Kachra\Codex\New\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (D:\Kachra\Codex\New\node_modules\gensync\index.js:261:32)
+      at D:\Kachra\Codex\New\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (D:\Kachra\Codex\New\node_modules\gensync\index.js:223:11)
+      at D:\Kachra\Codex\New\node_modules\gensync\index.js:189:28
+      at D:\Kachra\Codex\New\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+      at D:\Kachra\Codex\New\node_modules\gensync\index.js:113:33
+      at step (D:\Kachra\Codex\New\node_modules\gensync\index.js:287:14)
+      at D:\Kachra\Codex\New\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (D:\Kachra\Codex\New\node_modules\gensync\index.js:223:11)
+The syntax of the command is incorrect.

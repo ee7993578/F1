@@ -1,0 +1,115 @@
+import { useCallback, useEffect, useState } from 'react'
+import { apiFetch } from '../lib/api'
+
+const asText = value => value == null ? '' : String(value)
+
+export function normalizeStudent(row = {}) {
+  const firstName = asText(row.firstName)
+  const middleName = asText(row.middleName)
+  const lastName = asText(row.lastName)
+  const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ')
+  const status = asText(row.status)
+  const studentId = row.studentId ?? row.id ?? row.uid ?? ''
+  const registrationNo = row.registrationNo ?? row.regNo ?? row.registration_no ?? row.admissionNo ?? ''
+  const className = asText(row.className ?? row.class_name ?? row.class)
+  const sectionName = asText(row.sectionName ?? row.section_name ?? row.section)
+  const fatherName = asText(row.fatherName ?? row.father_name)
+  const name = fullName || asText(row.name ?? row.studentName ?? row.student_name)
+  const statusValue = status || asText(row.StudentStatus ?? row.admissionStatus ?? row.AdmissionStatus)
+  return {
+    ...row,
+    studentId,
+    id: studentId,
+    uid: row.uid ?? studentId,
+    registrationNo,
+    registration_no: registrationNo,
+    admissionNo: registrationNo,
+    admission_no: registrationNo,
+    name,
+    studentName: name,
+    student_name: name,
+    firstName,
+    middleName,
+    lastName,
+    fatherName,
+    father_name: fatherName,
+    mobile: asText(row.mobile || row.phone),
+    phone: asText(row.phone || row.mobile),
+    status: statusValue,
+    StudentStatus: statusValue,
+    admissionStatus: statusValue,
+    className,
+    class_name: className,
+    class: className,
+    sectionName,
+    section_name: sectionName,
+    section: sectionName,
+    session: asText(row.session),
+    dobText: row.dob ? new Date(row.dob).toLocaleDateString('en-IN') : '',
+    studentImage: row.studentImage || null,
+    studentimage: row.studentImage || null,
+    active: statusValue.toLowerCase() === 'registered',
+  }
+}
+
+function normalizeBootstrap(value) {
+  return {
+    ...value,
+    classes: (value?.classes || []).map(item => ({
+      ...item,
+      classId: item.classId ?? item.id,
+      className: item.className ?? item.class_name ?? '',
+    })),
+    sections: value?.sections || [],
+    sessions: value?.sessions || [],
+    students: (value?.students || []).map(normalizeStudent),
+  }
+}
+
+export function useStudents() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    try {
+      const next = normalizeBootstrap(await apiFetch('/students/bootstrap'))
+      setData(next)
+      setError(null)
+      return next
+    } catch (err) {
+      setError(err)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { refresh().catch(() => {}) }, [refresh])
+  return { data, loading, error, refresh }
+}
+
+function paramsOf(params = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') query.set(key, value)
+  })
+  return query.toString()
+}
+
+export async function fetchStudentSearch(params = {}) {
+  const query = paramsOf(params)
+  const rows = await apiFetch('/students/search' + (query ? '?' + query : ''))
+  return Array.isArray(rows) ? rows.map(normalizeStudent) : []
+}
+
+export async function fetchStudentReport(type, params = {}) {
+  const query = paramsOf(params)
+  const rows = await apiFetch('/students/reports/' + encodeURIComponent(type) + (query ? '?' + query : ''))
+  return Array.isArray(rows) ? rows.map(normalizeStudent) : []
+}
+
+export async function fetchStudentDetails(studentId) {
+  return normalizeStudent(await apiFetch('/students/' + encodeURIComponent(studentId)))
+}

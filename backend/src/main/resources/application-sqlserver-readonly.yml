@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: jdbc:sqlserver://103.180.163.70:1433;databaseName=beta_dpsbsr_edufox_net;encrypt=true;trustServerCertificate=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      read-only: true
+app:
+  auth:
+    database-read-only: true
