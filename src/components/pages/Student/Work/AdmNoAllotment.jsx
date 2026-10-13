@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useStudents } from '../../../../hooks/useStudents'
+import { useStudents, fetchStudentReport } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   AlertCircle, Search, CheckCircle2, Trash2, CreditCard,
   ChevronDown, ChevronUp, X, GraduationCap, User, Calendar,
@@ -281,9 +282,10 @@ export default function AdmNoAllotment() {
   const [students,      setStudents]      = useState([])
   const { data: studentData } = useStudents()
   useEffect(() => {
-    if (!studentData?.students) return
-    setStudents(studentData.students.map(row => ({ ...row, uid: row.uid || row.studentId, form_no: row.registrationNo || '', adm_no: row.admissionNo || '', fee_book_no: '', status: row.status || 'Registered' })))
-  }, [studentData])
+    fetchStudentReport('registration').then(rows => {
+      setStudents(rows.map(row => ({ ...row, uid: row.uid || row.studentId, form_no: row.registrationNo || '', adm_no: '', fee_book_no: '', status: row.status || 'Registered' })))
+    }).catch(error => showToast(error.message || 'Unable to load registrations', 'error'))
+  }, [])
   const [selected,      setSelected]      = useState([])
   const [toast,         setToast]         = useState(null)
   const [confirmDel,    setConfirmDel]    = useState(false)
@@ -319,9 +321,22 @@ export default function AdmNoAllotment() {
     setStudents(prev => prev.map(s => s.uid === uid ? { ...s, [field]: value } : s))
 
   // ── Admit ──────────────────────────────────────────────────────────────────
-  const handleAdmit = () => {
-    showToast('Admission update is disabled while the connected database is read-only.', 'error')
-    return
+  const handleAdmit = async () => {
+    const uids = anySelected ? selected : filtered.map(s => s.uid)
+    const invalid = uids.filter(uid => !students.find(x => x.uid === uid)?.adm_no?.trim())
+    if (invalid.length) { showToast('Fill Admission No. for all selected students first', 'error'); return }
+    try {
+      await Promise.all(uids.map(uid => {
+        const student = students.find(x => x.uid === uid)
+        return apiFetch('/students/' + encodeURIComponent(uid) + '/admit', {
+          method: 'POST',
+          body: JSON.stringify({ admissionNo: student.adm_no, feeBookNo: student.fee_book_no, className: student.className, sectionId: student.sectionId, session: student.session || session, admissionDate: new Date().toISOString().slice(0, 10), rollNo: student.rollNo, status: 'Registered' }),
+        })
+      }))
+      setStudents(prev => prev.map(s => uids.includes(s.uid) ? { ...s, status: 'Admitted' } : s))
+      setSelected([])
+      showToast(uids.length + ' student(s) admitted successfully!')
+    } catch (error) { showToast(error.message || 'Admission update failed', 'error') }
   }
   const handleAdmitDisabled = () => {
     const uids = anySelected ? selected : filtered.map(s => s.uid)
@@ -336,9 +351,14 @@ export default function AdmNoAllotment() {
   }
 
   // ── Delete ─────────────────────────────────────────────────────────────────
-  const handleDelete = () => {
-    showToast('Delete is disabled while the connected database is read-only.', 'error')
-    return
+  const handleDelete = async () => {
+    if (!anySelected) { showToast('Select students first', 'error'); return }
+    try {
+      await Promise.all(selected.map(uid => apiFetch('/students/' + encodeURIComponent(uid), { method: 'DELETE' })))
+      setStudents(prev => prev.filter(s => !selected.includes(s.uid)))
+      setSelected([]); setConfirmDel(false)
+      showToast(selected.length + ' record(s) removed')
+    } catch (error) { showToast(error.message || 'Delete failed', 'error') }
   }
   const handleDeleteDisabled = () => {
     if (!anySelected) { showToast('Select students first', 'error'); return }

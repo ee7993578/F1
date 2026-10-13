@@ -143,3 +143,17 @@
 5:43:45 pm [vite] (client) hmr update /src/components/pages/Student/Setup/ExamConfiguration.jsx, /src/index.css
 6:24:43 pm [vite] (client) hmr update /src/components/pages/Student/Work/StudentRegistration.jsx, /src/index.css
 6:24:54 pm [vite] (client) hmr update /src/components/pages/Student/Work/StudentRegistration.jsx, /src/index.css
+6:27:16 pm [vite] (client) hmr update /src/components/pages/Student/Update/UpdateStudentInfo.jsx, /src/index.css
+6:27:27 pm [vite] (client) hmr update /src/components/pages/Student/Update/StudentWithdrawn.jsx, /src/index.css
+6:30:26 pm [vite] (client) hmr update /src/components/pages/Student/Work/AdmNoAllotment.jsx, /src/index.css
+6:34:00 pm [vite] (client) hmr update /src/components/pages/Student/Update/ChangeAdmNo.jsx, /src/index.css
+6:34:00 pm [vite] (client) hmr update /src/components/pages/Student/Update/PromoteDemote.jsx, /src/index.css
+6:34:00 pm [vite] (client) hmr update /src/components/pages/Student/Update/UpdateStudentInfosheet.jsx, /src/index.css
+6:34:12 pm [vite] (client) hmr update /src/components/pages/Student/Update/UploadStudentImage.jsx, /src/index.css
+6:38:03 pm [vite] (client) hmr update /src/components/pages/Student/Setup/HouseMaster.jsx, /src/index.css
+6:38:35 pm [vite] (client) hmr update /src/components/pages/Student/Setup/RegistrationOpen.jsx, /src/index.css
+6:39:36 pm [vite] (client) hmr update /src/components/pages/Student/Setup/AlumniRegistration.jsx, /src/index.css
+6:41:28 pm [vite] (client) hmr update /src/components/pages/Student/Setup/ExamConfiguration.jsx, /src/index.css
+6:41:33 pm [vite] (client) hmr update /src/components/pages/Student/Setup/ExamConfiguration.jsx, /src/index.css
+6:43:32 pm [vite] (client) hmr update /src/components/pages/Student/Work/RegistrationRedirection.jsx, /src/index.css
+6:43:51 pm [vite] (client) hmr update /src/components/pages/Student/Setup/ClassRepresentative.jsx, /src/index.css

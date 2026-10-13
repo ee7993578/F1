@@ -440,6 +440,7 @@ function MobileExamCard({ row, onEdit, onDelete, idx }) {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function ExamConfiguration() {
   const [records, setRecords]         = useState(SEED_DATA)
+  useEffect(() => { apiFetch('/student-settings/exam-configuration').then(setRecords).catch(error => showToast(error.message || 'Unable to load exam configurations', 'error')) }, [])
   const [form, setForm]               = useState(emptyForm())
   const [errors, setErrors]           = useState({})
   const [showForm, setShowForm]       = useState(false)   // desktop panel
@@ -505,15 +506,18 @@ export default function ExamConfiguration() {
   }
 
   // ── Save ─────────────────────────────────────────────────────────────────
-  const handleSave = useCallback(() => {
-    showToast('Exam configuration save is disabled while the connected database is read-only.', 'error')
-  }, [])
+  const handleSave = useCallback(async () => {
+    if (!validate()) return
+    setSaving(true)
+    const body = { ...form, examReportingTime: form.reportingHour + ':' + form.reportingMinute + ' ' + form.reportingMeridiem, examStartTime: form.startHour + ':' + form.startMinute + ' ' + form.startMeridiem, examEndTime: form.endHour + ':' + form.endMinute + ' ' + form.endMeridiem, id: editId }
+    try { const result = await apiFetch(editId ? '/student-settings/exam-configuration/' + editId : '/student-settings/exam-configuration', { method: editId ? 'PUT' : 'POST', body: JSON.stringify(body) }); setRecords(await apiFetch('/student-settings/exam-configuration')); closeForm(); showToast(result.message || 'Exam configuration saved.') } catch (error) { showToast(error.message || 'Exam configuration save failed', 'error') } finally { setSaving(false) }
+  }, [editId, form])
 
   // ── Delete ───────────────────────────────────────────────────────────────
-  const handleDeleteConfirm = () => showToast('Exam configuration delete is disabled while the connected database is read-only.', 'error')
-  const doDelete = () => {
-    showToast('Exam configuration delete is disabled while the connected database is read-only.', 'error')
-    setConfirm(null)
+  const handleDeleteConfirm = (row) => setConfirm({ row })
+  const doDelete = async () => {
+    if (!confirm?.row) return
+    try { const result = await apiFetch('/student-settings/exam-configuration/' + confirm.row.id, { method: 'DELETE' }); setRecords(prev => prev.filter(row => row.id !== confirm.row.id)); showToast(result.message || 'Exam configuration deleted.') } catch (error) { showToast(error.message || 'Exam configuration delete failed', 'error') } finally { setConfirm(null) }
   }
 
   // ── Grid filter ──────────────────────────────────────────────────────────

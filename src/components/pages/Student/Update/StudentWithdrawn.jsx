@@ -6,6 +6,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useStudents, fetchStudentReport } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   Search, Filter, RefreshCw, Eye, Save,
   AlertCircle, X, Check, Loader2, ChevronDown,
@@ -462,7 +463,7 @@ export default function StudentWithdrawn() {
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch(''); setStatusTab('All')
     fetchStudentReport('withdrawn', { session, query: regNo || stuName }).then(result => {
-      const data = result.map((s, i) => ({ id: s.studentId, name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' '), class: s.className || '', adm: s.registrationNo || '', status: String(s.status || '').toLowerCase().includes('withdraw') ? 'Withdrawn' : 'Registered', reason: '', date: '', _idx: i + 1, _dirty: false }))
+      const data = result.map((s, i) => ({ id: s.studentId, uid: s.uid || s.studentId, name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' '), class: s.className || '', adm: s.registrationNo || '', status: String(s.status || '').toLowerCase().includes('withdraw') ? 'Withdrawn' : 'Registered', reason: '', date: '', _idx: i + 1, _dirty: false }))
       setRows(data.filter(r => !cls || r.class === cls));
     }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
   }, [session, cls, regNo, stuName])
@@ -486,14 +487,36 @@ export default function StudentWithdrawn() {
   const onDateChange   = useCallback((id, v) => updateRow(id, { date: v }),   [])
 
   // ── Save single row ───────────────────────────────────────────────────────
-  const onSaveRow = useCallback((id) => {
-    showToast('Withdrawal update is disabled while the connected database is read-only.', 'error')
-    return
-  }, [])
+  const onSaveRow = useCallback(async (id) => {
+    const row = rows.find(item => item.id === id)
+    if (!row) return
+    if (row.status === 'Withdrawn' && !row.reason.trim()) { showToast('Withdrawal reason is required.', 'error'); return }
+    setSavingId(id)
+    try {
+      await apiFetch('/students/' + encodeURIComponent(row.uid || row.id), {
+        method: 'PUT',
+        body: JSON.stringify({ status: row.status, remark: row.reason }),
+      })
+      setRows(previous => previous.map(item => item.id === id ? { ...item, _dirty: false } : item))
+      showToast(row.name + ' updated successfully.')
+    } catch (error) {
+      showToast(error.message || 'Withdrawal update failed', 'error')
+    } finally { setSavingId(null) }
+  }, [rows])
   // ── Save all dirty ────────────────────────────────────────────────────────
-  const handleSaveAll = () => {
-    showToast('Withdrawal update is disabled while the connected database is read-only.', 'error')
-    return
+  const handleSaveAll = async () => {
+    const dirtyRows = rows.filter(r => r._dirty)
+    if (dirtyRows.length === 0) { showToast('No changes to save.', 'error'); return }
+    const invalid = dirtyRows.find(r => r.status === 'Withdrawn' && !r.reason.trim())
+    if (invalid) { showToast('Withdrawal reason is required for ' + invalid.name, 'error'); return }
+    setSavingAll(true)
+    try {
+      await Promise.all(dirtyRows.map(row => apiFetch('/students/' + encodeURIComponent(row.uid || row.id), { method: 'PUT', body: JSON.stringify({ status: row.status, remark: row.reason }) })))
+      setRows(previous => previous.map(row => ({ ...row, _dirty: false })))
+      showToast(dirtyRows.length + ' record' + (dirtyRows.length > 1 ? 's' : '') + ' saved successfully.')
+    } catch (error) {
+      showToast(error.message || 'Withdrawal update failed', 'error')
+    } finally { setSavingAll(false) }
   }
   const handleSaveAllDisabled = () => {
     const dirtyRows = rows.filter(r => r._dirty)

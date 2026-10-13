@@ -6,6 +6,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { useStudents, fetchStudentSearch, fetchStudentDetails } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   ChevronDown, Search, Save, RefreshCw, Loader2, Check,
   AlertCircle, X, User, Users, Building2, FileText,
@@ -261,9 +262,15 @@ export default function UpdateStudentInfosheet() {
     return Object.keys(e).length === 0
   }
 
-  const handleUpdate = () => {
-    showToast('Student update is disabled while the connected database is read-only.', 'error')
-    return
+  const handleUpdate = async () => {
+    if (!validate()) { showToast('Fix validation errors first.', 'error'); return }
+    if (!form.studentId) { showToast('Select a student record first.', 'error'); return }
+    const dob = form.dobYear && form.dobMonth && form.dobDay ? form.dobYear + '-' + String(form.dobMonth).padStart(2, '0') + '-' + String(form.dobDay).padStart(2, '0') : undefined
+    setSaving(true)
+    try {
+      await apiFetch('/students/' + encodeURIComponent(form.studentId), { method: 'PUT', body: JSON.stringify({ registrationNo: form.regNo, firstName: form.firstName, middleName: form.midName, lastName: form.lastName, dob, gender: form.gender, bloodGroup: form.blood, category: form.category, quota: form.quota, fatherName: form.fName, motherName: form.mName, address: form.address, mobile: form.fMobile, studentAadhar: form.aadhar, religion: form.religion, session: form.session, className: form.class_ }) })
+      setShowSuccessScreen(true)
+    } catch (error) { showToast(error.message || 'Student update failed', 'error') } finally { setSaving(false) }
   }
   const handleUpdateDisabled = () => {
     if (!validate()) {

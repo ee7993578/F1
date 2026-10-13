@@ -19,7 +19,8 @@
  *  - Full validation matching ASPX logic
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { apiFetch } from '../../../../lib/api'
 import {
   Plus, X, Check, AlertCircle, Loader2, ChevronDown,
   Edit2, RefreshCw, Filter, SlidersHorizontal,
@@ -517,6 +518,7 @@ function FilterDrawer({ open, onClose, gridSession, setGridSession }) {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function RegistrationOpen() {
   const [gridData,     setGridData]     = useState(INITIAL_GRID_DATA)
+  useEffect(() => { apiFetch('/student-settings/registration-open').then(setGridData).catch(error => showToast(error.message || 'Unable to load registration settings', 'error')) }, [])
   const [showForm,     setShowForm]     = useState(false)
   const [form,         setForm]         = useState(emptyForm())
   const [editId,       setEditId]       = useState(null)
@@ -559,9 +561,13 @@ export default function RegistrationOpen() {
   }, [])
 
   // ── Save ──────────────────────────────────────────────────────────────────
-  const handleSave = useCallback(() => {
-    showToast('Registration settings save is disabled while the connected database is read-only.', 'error')
-  }, [])
+  const handleSave = useCallback(async () => {
+    setFormLoading(true)
+    try {
+      const result = await apiFetch(editId ? '/student-settings/registration-open/' + editId : '/student-settings/registration-open', { method: editId ? 'PUT' : 'POST', body: JSON.stringify({ ...form, id: editId }) })
+      const next = await apiFetch('/student-settings/registration-open'); setGridData(next); handleCancel(); showToast(result.message || 'Registration settings saved.')
+    } catch (error) { showToast(error.message || 'Registration settings save failed', 'error') } finally { setFormLoading(false) }
+  }, [editId, form])
 
   const handleCancel = () => {
     setShowForm(false)

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useStudents } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   ArrowRight, ArrowLeft, ArrowLeftRight, Users, GraduationCap,
   Check, X, Search, RefreshCw, ChevronDown, AlertCircle,
@@ -420,9 +421,16 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
   }
 
   // ── Save / Change ──────────────────────────────────────────────────────────
-  const handleChange = () => {
-    addToast('Promotion/section change is disabled while the connected database is read-only.', 'error')
-    return
+  const handleChange = async () => {
+    if (!validate()) return
+    const selected = [...leftSelected].map(id => leftStudents.find(s => s.id === id)).filter(Boolean)
+    if (!selected.length) { addToast('Select at least one student from source.', 'error'); return }
+    setSaving(true)
+    try {
+      await Promise.all(selected.map(student => apiFetch('/students/' + encodeURIComponent(student.uid || student.id), { method: 'PUT', body: JSON.stringify({ className: rightClass, session: rightSession }) })))
+      addToast((mode === 'promote' ? 'Promotion' : 'Section change') + ' saved for ' + selected.length + ' student(s).')
+      setLeftStudents(p => p.filter(s => !leftSelected.has(s.id))); setLeftSelected(new Set())
+    } catch (error) { addToast(error.message || 'Student movement failed', 'error') } finally { setSaving(false) }
   }
   const handleChangeDisabled = () => {
     if (!validate()) return

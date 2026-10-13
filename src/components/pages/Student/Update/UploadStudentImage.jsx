@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { fetchStudentSearch } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   Eye, Search, RotateCcw, Camera, Check,
   X, SlidersHorizontal, ImagePlus,
@@ -209,10 +210,17 @@ export default function UploadStudentImage({ title = 'Upload Student Image' }) {
   }
 
   // ── Single upload ────────────────────────────────────────────────────────
-  const handleUpload = useCallback((uid, file) => {
-    addToast('Photo upload is disabled while the connected database is read-only.', 'error')
-    return
-  }, [addToast])
+  const handleUpload = useCallback(async (uid, file) => {
+    if (!file) return
+    setUploadingId(uid)
+    try {
+      const imageData = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file) })
+      await apiFetch('/students/' + encodeURIComponent(uid) + '/image', { method: 'PUT', body: JSON.stringify({ imageData, type: 'student' }) })
+      setPhotoMap(prev => ({ ...prev, [uid]: URL.createObjectURL(file) }))
+      const student = students.find(s => s.uid === uid)
+      addToast('Photo saved for ' + (student?.name || 'student') + '!')
+    } catch (error) { addToast(error.message || 'Photo upload failed', 'error') } finally { setUploadingId(null) }
+  }, [addToast, students])
   const handleUploadDisabled = useCallback((uid, file) => {
     setUploadingId(uid)
     const url = URL.createObjectURL(file)

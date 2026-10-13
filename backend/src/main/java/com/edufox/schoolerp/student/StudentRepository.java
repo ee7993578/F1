@@ -79,6 +79,9 @@ public class StudentRepository {
                                             Integer classId, Integer sectionId, String status,
                                             String session, Integer month) {
         String normalized = type == null ? "student-list" : type.trim().toLowerCase();
+        if (normalized.equals("registration") || normalized.equals("registration-details")) {
+            return registrationSearch(schoolId, query, classId, status, session);
+        }
         if (normalized.equals("strength") || normalized.equals("classwise-strength")
             || normalized.equals("all-student-strength")) {
             return strength(schoolId, classId, sectionId, status, session);
@@ -107,6 +110,41 @@ public class StudentRepository {
         }
 
         sql.append(" ORDER BY COALESCE(so.first_name,''), COALESCE(so.last_name,''), sm.stu_id");
+        return jdbc.queryForList(sql.toString(), args.toArray());
+    }
+
+    private List<Map<String, Object>> registrationSearch(String schoolId, String query, Integer classId, String status, String session) {
+        StringBuilder sql = new StringBuilder("""
+            SELECT TOP (1000)
+                   sr.row_id AS studentId, sr.uid AS uid,
+                   sr.form_no AS registrationNo, sr.class_id AS classId,
+                   NULL AS sectionId, sr.session AS session, sr.status AS status,
+                   COALESCE(c.class_name,'') AS className, '' AS sectionName,
+                   COALESCE(so.first_name, sr.first_name, '') AS firstName,
+                   COALESCE(so.mid_name, sr.mid_name, '') AS middleName,
+                   COALESCE(so.last_name, sr.last_name, '') AS lastName,
+                   COALESCE(so.father_name, sr.father_name, '') AS fatherName,
+                   COALESCE(so.dob, sr.dob) AS dob,
+                   COALESCE(so.gender, sr.gender) AS gender,
+                   COALESCE(so.mobile, sr.mobile) AS mobile,
+                   COALESCE(so.phone, sr.phone) AS phone,
+                   COALESCE(so.studentimage, sr.studentimage) AS studentImage
+            FROM student_reg sr
+            LEFT JOIN student_other_info so ON so.uid=sr.uid AND so.school_id=sr.school_id
+            LEFT JOIN class_name c ON c.id=sr.class_id AND c.school_id=sr.school_id
+            WHERE sr.school_id=?
+            """);
+        List<Object> args = new ArrayList<>();
+        args.add(schoolId);
+        if (query != null && !query.isBlank()) {
+            String value = "%" + query.trim() + "%";
+            sql.append(" AND (sr.form_no LIKE ? OR sr.first_name LIKE ? OR sr.last_name LIKE ? OR sr.mobile LIKE ?)");
+            Collections.addAll(args, value, value, value, value);
+        }
+        if (classId != null) { sql.append(" AND sr.class_id=?"); args.add(classId); }
+        if (status != null && !status.isBlank()) { sql.append(" AND LOWER(sr.status)=LOWER(?)"); args.add(status); }
+        if (session != null && !session.isBlank()) { sql.append(" AND sr.session=?"); args.add(session); }
+        sql.append(" ORDER BY sr.row_id DESC");
         return jdbc.queryForList(sql.toString(), args.toArray());
     }
 

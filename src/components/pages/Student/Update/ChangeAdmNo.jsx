@@ -6,6 +6,7 @@
 
 import { useState, useMemo } from 'react'
 import { fetchStudentSearch } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   ChevronDown, Search, Hash, CheckSquare, Square,
   AlertCircle, Save, RefreshCw, X, Loader2,
@@ -208,9 +209,16 @@ export default function ChangeAdmNo() {
   }
 
   // ── save ──────────────────────────────────────────────────────────────────
-  const handleSave = () => {
-    showToast('Admission number update is disabled while the connected database is read-only.', 'error')
-    return
+  const handleSave = async () => {
+    if (checkedIds.length === 0) { showToast('Check at least one student to save.', 'error'); return }
+    const empty = rows.filter(r => checkedIds.includes(r.uid) && !r.registration_no.trim())
+    if (empty.length) { showToast('Admission No. cannot be empty.', 'error'); return }
+    setSaving(true)
+    try {
+      await Promise.all(rows.filter(r => checkedIds.includes(r.uid)).map(r => apiFetch('/students/' + encodeURIComponent(r.uid), { method: 'PUT', body: JSON.stringify({ registrationNo: r.registration_no }) })))
+      setRows(p => p.map(r => ({ ...r, _origAdm: r.registration_no }))); setCheckedIds([])
+      showToast(checkedIds.length + ' record' + (checkedIds.length > 1 ? 's' : '') + ' saved successfully.')
+    } catch (error) { showToast(error.message || 'Admission number update failed', 'error') } finally { setSaving(false) }
   }
   const handleSaveDisabled = () => {
     if (checkedIds.length === 0) {

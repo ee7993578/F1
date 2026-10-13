@@ -13,7 +13,8 @@
  *  - Empty state, search/filter, confirmation modal for delete
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { apiFetch } from '../../../../lib/api'
 import {
   Home, Users, ChevronDown, AlertCircle, Check, X,
   Loader2, Edit2, Trash2, Plus, RefreshCw, Search,
@@ -394,6 +395,7 @@ export default function HouseMaster() {
 
   // ── Records ────────────────────────────────────────────────────────────────
   const [houses, setHouses] = useState(INITIAL_HOUSES)
+  useEffect(() => { apiFetch('/student-settings/houses').then(setHouses).catch(error => showToast(error.message || 'Unable to load houses', 'error')) }, [])
   const nextId = useRef(INITIAL_HOUSES.length + 1)
 
   // ── UI state ───────────────────────────────────────────────────────────────
@@ -431,9 +433,16 @@ export default function HouseMaster() {
   }, [])
 
   // ── Submit (Add / Update) ──────────────────────────────────────────────────
-  const handleSubmit = useCallback(() => {
-    showToast('House save is disabled while the connected database is read-only.', 'error')
-  }, [])
+  const handleSubmit = useCallback(async () => {
+    if (!validate()) return
+    setSubmitting(true)
+    try {
+      const body = { ...formData, inchargeId: Number(formData.inchargeId), color: 'blue' }
+      const result = await apiFetch(editingId ? '/student-settings/houses/' + editingId : '/student-settings/houses', { method: editingId ? 'PUT' : 'POST', body: JSON.stringify({ ...body, id: editingId }) })
+      const next = await apiFetch('/student-settings/houses')
+      setHouses(next); resetForm(); showToast(result.message || 'House saved successfully.')
+    } catch (error) { showToast(error.message || 'House save failed', 'error') } finally { setSubmitting(false) }
+  }, [editingId, formData, resetForm])
 
   // ── Edit ───────────────────────────────────────────────────────────────────
   const handleEdit = useCallback((house) => {
@@ -450,10 +459,10 @@ export default function HouseMaster() {
   }, [])
 
   // ── Delete ─────────────────────────────────────────────────────────────────
-  const handleDeleteConfirm = useCallback(() => {
-    showToast('House delete is disabled while the connected database is read-only.', 'error')
-    setDeleteTarget(null)
-  }, [])
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteTarget) return
+    try { await apiFetch('/student-settings/houses/' + deleteTarget.id, { method: 'DELETE' }); setHouses(prev => prev.filter(h => h.id !== deleteTarget.id)); showToast('House deleted successfully.') } catch (error) { showToast(error.message || 'House delete failed', 'error') } finally { setDeleteTarget(null) }
+  }, [deleteTarget])
 
   // ── Filtered list ──────────────────────────────────────────────────────────
   const filtered = useMemo(() => {

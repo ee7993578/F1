@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useStudents } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   Search, RefreshCw, Check, AlertCircle, X, ChevronDown,
   User, Phone, MapPin, BookOpen, Users, Camera,
@@ -632,19 +633,17 @@ export default function StudentRegistration() {
     setErrors({})
   }
 
-  const handleSave = () => {
-    // Final validation on all required steps
+  const handleSave = async () => {
     let allErrors = {}
-    for (let i = 1; i <= 2; i++) {
-      const e = validateStep(i)
-      allErrors = { ...allErrors, ...e }
-    }
-    if (Object.keys(allErrors).length) {
-      setErrors(allErrors)
-      setCurrentStep(1)
-      return
-    }
-    showToast('Registration save is disabled while the connected database is read-only.')
+    for (let i = 1; i <= 2; i++) { const e = validateStep(i); allErrors = { ...allErrors, ...e } }
+    if (Object.keys(allErrors).length) { setErrors(allErrors); setCurrentStep(1); return }
+    const dobParts = (form.dob || '').split('-')
+    const session = liveStudentData?.sessions?.[0]?.session || '2026 - 2027'
+    try {
+      const result = await apiFetch('/students/registration', { method: 'POST', body: JSON.stringify({ formNo: form.admissionNo, className: form.admissionClass, session, studType: form.newOldStudent, mop: 'Cash', regFee: '0', regDate: form.admissionDate, firstName: form.firstName, middleName: form.middleName, lastName: form.lastName, dobDay: dobParts[2] || '', dobMonth: dobParts[1] || '', dobYear: dobParts[0] || '', gender: form.gender, blood: form.bloodGroup, religion: form.religion, category: form.category, quota: form.rteStudent === 'Yes' ? 'RTE' : '', address: [form.houseNo, form.streetArea, form.city, form.state, form.pincode].filter(Boolean).join(', '), aadhar: form.aadharNo, fName: form.fatherName, fOcc: form.fatherOccupation, fMobile: form.fatherPhone, fEmail: form.fatherEmail, fAadhar: form.fatherAadhar, mName: form.motherName, mOcc: form.motherOccupation, mMobile: form.motherPhone, mEmail: form.motherEmail, mAadhar: form.motherAadhar, prevSchool: form.previousSchool, remark: form.remarks }) })
+      showToast(result.message || 'Registration saved successfully.')
+      setForm({ ...INITIAL_FORM }); setCurrentStep(1); setCompletedSteps([])
+    } catch (error) { showToast(error.message || 'Registration save failed') }
   }
 
   const handleReset = () => {

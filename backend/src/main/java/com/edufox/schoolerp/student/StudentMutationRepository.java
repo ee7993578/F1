@@ -36,6 +36,7 @@ public class StudentMutationRepository {
         add(regSet, regArgs, "religion", request.religion());
         add(regSet, regArgs, "status", request.status());
         add(regSet, regArgs, "session", request.session());
+        add(regSet, regArgs, "remark", request.remark());
         if (!regSet.isEmpty()) {
             regArgs.add(uid); regArgs.add(schoolId);
             jdbc.update("UPDATE student_reg SET " + String.join(", ", regSet) + " WHERE uid=? AND school_id=?", regArgs.toArray());

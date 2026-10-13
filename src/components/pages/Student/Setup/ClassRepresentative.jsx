@@ -267,13 +267,16 @@ function MobileCard({ row, repValue, onRepChange, saving, students = [] }) {
 export default function ClassRepresentative() {
   // representatives state: { class_id -> student_id (string) }
   const { data: studentData, loading: studentLoading } = useStudents()
-  const classes = (studentData?.classes || []).map(item => ({ ...item, class_id: item.class_id ?? item.classId ?? item.id, class_name: item.class_name ?? item.className ?? '' }))
+  const [repData, setRepData] = useState(null)
+  const classes = (repData?.classes || studentData?.classes || []).map(item => ({ ...item, class_id: item.class_id ?? item.classId ?? item.id, class_name: item.class_name ?? item.className ?? '', representativeId: item.representativeId }))
+  const faculty = repData?.faculty || []
   const studentsByClass = useMemo(() => (studentData?.students || []).reduce((acc, student) => {
     const key = String(student.classId ?? student.class_id ?? '')
     if (key) (acc[key] ||= []).push({ id: student.studentId ?? student.id, name: student.name })
     return acc
   }, {}), [studentData])
   const currentSession = studentData?.sessions?.[0]?.session || '—'
+  useEffect(() => { if (currentSession && currentSession !== '—') apiFetch('/student-settings/class-representatives?session=' + encodeURIComponent(currentSession)).then(data => { setRepData(data); setReps(Object.fromEntries((data.classes || []).filter(row => row.representativeId != null).map(row => [row.classId, String(row.representativeId)]))) }).catch(error => showToast(error.message || 'Unable to load representatives', 'error')) }, [currentSession])
   const [reps, setReps] = useState({})
 
   const [saving,  setSaving]  = useState(false)
@@ -291,13 +294,18 @@ export default function ClassRepresentative() {
 
   // Reset all
   const handleReset = () => {
-    setReps({})
-    showToast('Selections cleared. Database is read-only, so no representative was saved.', 'error')
+    setReps(Object.fromEntries((repData?.classes || []).filter(row => row.representativeId != null).map(row => [row.classId, String(row.representativeId)])))
+    showToast('Selections reset.')
   }
 
   // Submit
-  const handleSubmit = () => {
-    showToast('Class representative save is disabled while the connected database is read-only.', 'error')
+  const handleSubmit = async () => {
+    setSaving(true)
+    try {
+      const assignments = Object.entries(reps).filter(([, facultyId]) => facultyId).map(([classId, facultyId]) => ({ classId: Number(classId), facultyId: Number(facultyId) }))
+      const result = await apiFetch('/student-settings/class-representatives', { method: 'POST', body: JSON.stringify({ session: currentSession, assignments }) })
+      const data = await apiFetch('/student-settings/class-representatives?session=' + encodeURIComponent(currentSession)); setRepData(data); showToast(result.message || 'Class representatives saved.')
+    } catch (error) { showToast(error.message || 'Representative save failed', 'error') } finally { setSaving(false) }
   }
 
   // Stats
@@ -383,7 +391,7 @@ export default function ClassRepresentative() {
         <div className="flex items-center gap-2 px-5 py-2 border-b border-slate-100 dark:border-[rgba(99,102,241,0.07)] bg-blue-50/20 dark:bg-blue-500/[0.03]">
           <Info className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
           <p className="text-[12px] text-blue-700 dark:text-blue-400">
-            Select one student per class to assign as class representative. Click <strong>Define Class Representative</strong> to save.
+            Select one faculty representative per class to assign as class representative. Click <strong>Define Class Representative</strong> to save.
           </p>
         </div>
 
@@ -409,7 +417,7 @@ export default function ClassRepresentative() {
                   repValue={reps[cls.class_id] || ''}
                   onRepChange={handleRepChange}
                   saving={saving}
-                  students={studentsByClass[String(cls.class_id)] || []}
+                  students={faculty}
                 />
               ))}
             </tbody>
@@ -429,7 +437,7 @@ export default function ClassRepresentative() {
               repValue={reps[cls.class_id] || ''}
               onRepChange={handleRepChange}
               saving={saving}
-              students={studentsByClass[String(cls.class_id)] || []}
+              students={faculty}
             />
           ))}
         </div>

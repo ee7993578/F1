@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   Search, Save, RotateCcw, ChevronDown, AlertCircle,
   Check, X, Edit3, User, Users, GraduationCap,
@@ -598,9 +599,39 @@ export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
     setRecords([]); setHasViewed(false); setTableSearch(''); setPage(1)
   }
 
-  const handleSave = (updated) => {
-    addToast('Student update is disabled while the connected database is read-only.', 'error')
-    return
+  const handleSave = async (updated) => {
+    try {
+      await apiFetch('/students/' + encodeURIComponent(updated.uid), {
+        method: 'PUT',
+        body: JSON.stringify({
+          registrationNo: updated.admNo,
+          firstName: updated.firstName,
+          middleName: updated.midName,
+          lastName: updated.lastName,
+          dob: updated.dob,
+          gender: updated.gender,
+          bloodGroup: updated.bloodgroup,
+          category: updated.category,
+          quota: updated.quota,
+          fatherName: updated.fatherName,
+          motherName: updated.motherName,
+          address: updated.address,
+          phone: updated.phone,
+          mobile: updated.mobile,
+          studentAadhar: updated.aadhar,
+          religion: updated.religion,
+          status: updated.status,
+          className: updated.className,
+          session: updated.session,
+          sectionId: updated.sectionId,
+        }),
+      })
+      setRecords(prev => prev.map(s => s.uid === updated.uid ? updated : s))
+      setEditStudent(null)
+      addToast(updated.firstName + ' ' + updated.lastName + "'s record updated successfully!")
+    } catch (error) {
+      addToast(error.message || 'Student update failed', 'error')
+    }
   }
   const handleSaveDisabled = (updated) => {
     setRecords(prev => prev.map(s => s.uid === updated.uid ? updated : s))

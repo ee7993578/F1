@@ -546,6 +546,7 @@ function RegistrationForm({ onSubmit, loading }) {
 // ─── MAIN PAGE COMPONENT ──────────────────────────────────────────────────────
 export default function AlumniRegistration() {
   const [alumni,     setAlumni]     = useState(INITIAL_ALUMNI)
+  useEffect(() => { apiFetch('/student-settings/alumni').then(setAlumni).catch(error => showToast(error.message || 'Unable to load alumni', 'error')) }, [])
   const [submitting, setSubmitting] = useState(false)
   const [exporting,  setExporting]  = useState(false)
   const [search,     setSearch]     = useState('')
@@ -557,8 +558,12 @@ export default function AlumniRegistration() {
   }
 
   // ── Submit new alumni ─────────────────────────────────────────────────────
-  const handleSubmit = useCallback(() => {
-    showToast('Alumni registration save is disabled while the connected database is read-only.', 'error')
+  const handleSubmit = useCallback(async (form) => {
+    setSubmitting(true)
+    try {
+      const result = await apiFetch('/student-settings/alumni', { method: 'POST', body: JSON.stringify({ fullName: form.FullName, studentId: form.StudentId, batch: form.Batch, dob: form.DOB, qualification: form.Qualification, currentStatus: form.CurrentStatus, emailAddress: form.EmailAddress, phoneNumber: form.PhoneNumber, gender: form.Gender, address: form.PermanentAddress, alumniPhoto: form.Photo?.name || '' }) })
+      const next = await apiFetch('/student-settings/alumni'); setAlumni(next); showToast(result.message || 'Alumni registered successfully.')
+    } catch (error) { showToast(error.message || 'Alumni registration failed', 'error') } finally { setSubmitting(false) }
   }, [])
 
   // ── Excel Export placeholder ──────────────────────────────────────────────
