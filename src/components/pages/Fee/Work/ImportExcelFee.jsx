@@ -1113,11 +1113,9 @@ export default function ImportExcelFee() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => setFailedModal(rec.failed > 0 ? rec : null) || (rec.failed === 0 && showToast('No failed records for this upload.', 'info'))}
+                            <button onClick={() => { setFailedModal(rec.failed > 0 ? rec : null); if (rec.failed === 0) showToast('No failed records for this upload.', 'info'); else showToast(`Opening report for: ${rec.title}`, 'info') }}
                               title="View Report"
-                              onClick={() => setRecords(prev => prev)} // placeholder for open_window
                               className="p-2 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors"
-                              onClick={() => showToast(`Opening report for: ${rec.title}`, 'info')}
                             >
                               <Eye className="w-3.5 h-3.5" />
                             </button>

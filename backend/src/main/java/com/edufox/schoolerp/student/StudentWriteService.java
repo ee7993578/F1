@@ -1,5 +1,6 @@
 package com.edufox.schoolerp.student;
 
+import com.edufox.schoolerp.config.DatabaseWriteGuard;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class StudentWriteService {
     private final StudentWriteRepository repository;
+    private final DatabaseWriteGuard writeGuard;
 
     @Transactional
     public StudentWriteDtos.WriteResponse register(
@@ -15,6 +17,7 @@ public class StudentWriteService {
             String staffUid,
             StudentWriteDtos.RegistrationRequest request
     ) {
+        writeGuard.requireWritable();
         return repository.register(schoolId, staffUid, request);
     }
 }

@@ -1,6 +1,7 @@
 import { MENU_DATA } from './menuData'
 
 const key = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+
 const moduleAliases = {
   examination: 'examMaster',
   fees: 'fee',
@@ -11,11 +12,23 @@ const moduleAliases = {
   expense: 'canteen',
   tuckshop: 'canteen',
 }
+
 const moduleIdAliases = {
   1: 'examMaster', 4: 'fee', 5: 'transport', 10: 'library', 11: 'timetable',
   14: 'certificates', 16: 'communication', 19: 'attendance', 24: 'leave',
   28: 'canteen', 31: 'website', 32: 'masterSetting', 6: 'hostel',
 }
+
+const field = (value, ...names) => {
+  for (const name of names) {
+    if (value && value[name] !== undefined && value[name] !== null) return value[name]
+  }
+  return ''
+}
+
+const pagePath = (page) => field(page, 'url', 'pageUrl', 'PageUrl', 'pageurl', 'path', 'href')
+const pageName = (page) => field(page, 'pageKey', 'pageName', 'PageName', 'page_name', 'name')
+const pageFileKey = (page) => key(pageName(page) || String(pagePath(page)).split(/[/?#]/).pop()?.replace(/\.aspx$/i, ''))
 
 const findStaticModule = (module) => {
   const preferredId = moduleIdAliases[module.moduleId] || moduleAliases[key(module.label)]
@@ -23,45 +36,95 @@ const findStaticModule = (module) => {
     || MENU_DATA.find((item) => key(item.label) === key(module.label))
 }
 
-const findStaticGroup = (staticModule, group) => {
-  if (!staticModule) return null
-  return staticModule.groups.find((item) => key(item.label) === key(group.label))
-    || staticModule.groups.find((item) => key(item.label) === 'work' && key(group.label) === 'transaction')
-    || staticModule.groups.find((item) => key(item.label) === 'setup' && key(group.label) === 'setting')
+const groupAlias = (value) => {
+  const normalized = key(value)
+  if (normalized === 'transaction' || normalized === 'transactions' || normalized === 'work') return 'work'
+  if (normalized === 'setting' || normalized === 'settings' || normalized === 'setup') return 'setup'
+  if (normalized === 'report' || normalized === 'reports') return 'report'
+  if (normalized === 'update' || normalized === 'updates') return 'update'
+  return normalized
 }
 
-const pageFileKey = (page) => key(page.pageKey || page.url?.split(/[/?#]/).pop()?.replace(/\.aspx$/i, ''))
-const findStaticPage = (staticModule, staticGroup, page) => {
-  const candidates = [
-    ...(staticGroup?.pages || []),
-    ...(staticModule?.groups || []).flatMap((group) => group.pages || []),
-    ...MENU_DATA.flatMap((module) => module.groups.flatMap((group) => group.pages || [])),
-  ]
-  const pageKey = pageFileKey(page)
-  return candidates.find((item) => key(item.id) === pageKey)
-    || candidates.find((item) => key(item.label) === key(page.label))
+const findStaticGroup = (staticModule, group) => {
+  if (!staticModule) return null
+  const wanted = groupAlias(field(group, 'label', 'name', 'groupName'))
+  return staticModule.groups.find((item) => groupAlias(item.label) === wanted)
+    || staticModule.groups.find((item) => groupAlias(item.id) === wanted)
 }
+
+const allStaticPages = (staticModule, staticGroup) => [
+  ...(staticGroup?.pages || []),
+  ...(staticModule?.groups || []).flatMap((group) => group.pages || []),
+  ...MENU_DATA.flatMap((module) => module.groups.flatMap((group) => group.pages || [])),
+]
+
+const findStaticPage = (staticModule, staticGroup, page) => {
+  const candidates = allStaticPages(staticModule, staticGroup)
+  const pageKey = pageFileKey(page)
+  const labelKey = key(field(page, 'label', 'title', 'text', 'pageName', 'PageName'))
+  return candidates.find((item) => key(item.id) === pageKey)
+    || candidates.find((item) => key(item.label) === pageKey)
+    || candidates.find((item) => labelKey && key(item.label) === labelKey)
+}
+
+const staticGroupForPage = (staticModule, staticPage) => {
+  if (!staticModule || !staticPage) return null
+  return staticModule.groups.find((group) => (group.pages || []).some((page) => page.id === staticPage.id))
+}
+
+const isReportPath = (page) => /(?:^|[\\/])reports?(?:[\\/]|$)/i.test(String(pagePath(page)))
+
+const inferStaticGroup = (staticModule, sourceGroup, page, staticPage) => {
+  // Page identity/path wins over the old database group label. The legacy menu
+  // sometimes puts Setup pages in a Transaction/Work row.
+  return staticGroupForPage(staticModule, staticPage)
+    || (isReportPath(page) && staticModule?.groups.find((group) => groupAlias(group.label) === 'report'))
+    || findStaticGroup(staticModule, sourceGroup)
+}
+
+const pageIdentity = (page) => page.id || page.pageId || page.page_id || pageFileKey(page)
 
 export function resolveMenu(serverMenu) {
   const modules = (serverMenu?.modules || []).map((module) => {
     const staticModule = findStaticModule(module)
-    const groups = (module.groups || []).map((group) => {
-      const staticGroup = findStaticGroup(staticModule, group)
-      const pages = (group.pages || []).map((page) => {
-        const staticPage = findStaticPage(staticModule, staticGroup, page)
-        return {
+    const buckets = new Map()
+
+    for (const sourceGroup of module.groups || []) {
+      for (const page of sourceGroup.pages || []) {
+        const staticPage = findStaticPage(staticModule, findStaticGroup(staticModule, sourceGroup), page)
+        const staticGroup = inferStaticGroup(staticModule, sourceGroup, page, staticPage)
+        const groupId = staticGroup?.id || ('db-group-' + module.moduleId + '-' + (sourceGroup.id || sourceGroup.groupId || groupAlias(sourceGroup.label)))
+        let bucket = buckets.get(groupId)
+        if (!bucket) {
+          bucket = {
+            ...sourceGroup,
+            id: groupId,
+            label: staticGroup?.label || sourceGroup.label || 'Group',
+            icon: sourceGroup.icon || staticGroup?.icon || 'Folder',
+            pages: [],
+          }
+          buckets.set(groupId, bucket)
+        }
+
+        const resolvedPage = {
           ...page,
-          id: staticPage?.id || page.id || ('db-page-' + page.pageId),
+          id: staticPage?.id || page.id || ('db-page-' + pageIdentity(page)),
           label: page.label || staticPage?.label || 'Page',
         }
-      })
-      return {
-        ...group,
-        id: staticGroup?.id || ('db-group-' + module.moduleId + '-' + group.id),
-        icon: group.icon || staticGroup?.icon || 'Folder',
-        pages,
+        if (!bucket.pages.some((item) => item.id === resolvedPage.id)) bucket.pages.push(resolvedPage)
       }
+    }
+
+    const groups = [...buckets.values()]
+    groups.sort((a, b) => {
+      const ai = staticModule?.groups.findIndex((group) => group.id === a.id) ?? -1
+      const bi = staticModule?.groups.findIndex((group) => group.id === b.id) ?? -1
+      if (ai < 0 && bi < 0) return 0
+      if (ai < 0) return 1
+      if (bi < 0) return -1
+      return ai - bi
     })
+
     return {
       ...module,
       id: staticModule?.id || ('db-module-' + module.moduleId),

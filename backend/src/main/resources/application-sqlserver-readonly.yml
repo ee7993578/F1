@@ -9,3 +9,5 @@ spring:
 app:
   auth:
     database-read-only: true
+  master-settings:
+    write-enabled: false

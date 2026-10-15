@@ -339,7 +339,14 @@ import LeaveStaffApproval from './Leave/Work/LeaveStaffApproval'
  * Future: add more dedicated pages here as you build them.
  */
 export default function PageRenderer({ moduleData, currentGroup, currentPage }) {
-  if (!currentPage || !currentGroup || !moduleData) return null
+  if (!moduleData || !currentGroup || !currentPage) {
+    return (
+      <div className="page-animate rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+        <h2 className="font-display text-lg font-semibold">Page mapping unavailable</h2>
+        <p className="mt-1 text-sm">The selected legacy menu page is not mapped to a new frontend page yet. Please refresh the menu and try again.</p>
+      </div>
+    )
+  }
 
   const pageId      = currentPage.id
   const pageLabel   = currentPage.label

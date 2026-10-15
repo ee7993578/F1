@@ -27,6 +27,7 @@ import {
   ClipboardList, Bell, ArrowLeft, Info,
   BadgeCheck, Clock, Filter, ChevronUp
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── DUMMY DATA ───────────────────────────────────────────────────────────────
 
@@ -790,24 +791,22 @@ export default function DefineConcession() {
 
     if (val.length >= 3) {
       setAdmLoading(true)
-      setTimeout(() => {
-        const found = STUDENT_DB[val]
+      apiFetch('/fees/students/search?' + new URLSearchParams({ session, query: val })).then(rows => {
+        const source = (rows || [])[0]
+        const found = source && { ...source, stuId: source.id || source.studentId, name: source.name || source.studentName, admNo: source.admNo || source.registrationNo }
         if (found) {
           setStudent(found)
-          // Deep clone installments so they're mutable
-          const feeDb = FEE_DATA_MAP[feeType] || REGULAR_FEE_DATA
-          const raw = feeDb[found.stuId] || []
-          setInstallments(raw.map(inst => ({
-            ...inst,
-            heads: inst.heads.map(h => ({ ...h })),
-          })))
+          Promise.all([apiFetch('/fees/students/' + found.stuId + '/dues?session=' + encodeURIComponent(session)), apiFetch('/fees/concessions/student/' + found.stuId + '?session=' + encodeURIComponent(session))]).then(([dues, concessions]) => {
+            const grouped = (dues.current || []).reduce((acc, row) => { const key = row.installmentNo || 1; if (!acc[key]) acc[key] = { installment_no: key, label: row.installmentName || '', heads: [] }; const c = (concessions || []).find(x => Number(x.installmentNo) === Number(key) && Number(x.feeHeadId) === Number(row.feeHeadId)); acc[key].heads.push({ fee_head_id: row.feeHeadId, fee_head: row.headName || 'Fee Head', type: c?.type || 'Fix', concession_val: c?.type === 'Per' ? c.percentage : c?.charge || 0 }); return acc }, {})
+            setInstallments(Object.values(grouped))
+          })
         } else {
           setErrors(p => ({ ...p, admNo: 'Student not found' }))
         }
         setAdmLoading(false)
-      }, 600)
+      }).catch(error => { setErrors(p => ({ ...p, admNo: error.message || 'Student lookup failed' })); setAdmLoading(false) })
     }
-  }, [feeType])
+  }, [feeType, session])
 
   // When fee type changes, reload installments if student is loaded
   useEffect(() => {
@@ -857,11 +856,8 @@ export default function DefineConcession() {
     }
 
     setSubmitting(true)
-    setTimeout(() => {
-      setSubmitting(false)
-      setSubmitted(true)
-      showToast('Fee concession saved successfully!')
-    }, 1200)
+    const requests = installments.flatMap(inst => inst.heads.filter(h => parseFloat(h.concession_val) > 0).map(head => apiFetch('/fees/concessions', { method: 'POST', body: JSON.stringify({ session, studentId: student.stuId || student.id, installmentNo: inst.installment_no, feeHeadId: head.fee_head_id, feeTypeId: feeType === 'Transport' ? 6 : feeType === 'Hostel' ? 7 : 1, type: head.type || 'Fix', value: head.concession_val, remark }) })))
+    Promise.all(requests).then(() => { setSubmitted(true); showToast('Fee concession saved successfully!') }).catch(error => showToast(error.message || 'Fee concession save failed.', 'error')).finally(() => setSubmitting(false))
   }, [session, admNo, student, installments, showToast])
 
   const handleReset = useCallback(() => {

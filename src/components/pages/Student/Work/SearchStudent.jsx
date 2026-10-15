@@ -244,8 +244,8 @@ function MobileCard({ student, onView }) {
 export default function SearchStudent({ title = 'Search Students' }) {
   const [session,    setSession]    = useState('')
   const { data: studentData } = useStudents()
-  const sessionOptions = studentData?.sessions?.map(s => s.session).filter(Boolean) || SESSIONS
-  const classOptions = studentData?.classes?.map(c => ({ id: c.classId, name: c.className })).filter(c => c.name) || CLASSES.slice(1).map(name => ({ id: '', name }))
+  const sessionOptions = studentData?.sessions?.map(s => s.session).filter(Boolean) || []
+  const classOptions = studentData?.classes?.map(c => ({ id: c.classId, name: c.className })).filter(c => c.name) || []
   const [cls,        setCls]        = useState('')
   const [nameSearch, setNameSearch] = useState('')
   const [searchInput,setSearchInput]= useState('')

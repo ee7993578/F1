@@ -1,17 +1,17 @@
 import { LayoutDashboard, Settings, Menu, X, Sun, Moon, LogOut } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import SchoolBrand from './SchoolBrand'
 
 export default function Topbar({ isDrawerOpen, toggleDrawer, goHome, isDark, toggleTheme, user, menuMeta, onLogout }) {
   const displayName = user?.username || 'User'
   const initials = displayName.split(' ').filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase() || 'U'
-  const schoolName = user?.schoolName || menuMeta?.schoolName || 'APS INTERNATIONAL SCHOOL'
+  const schoolName = user?.schoolName || menuMeta?.schoolName || 'School ERP'
   const session = menuMeta?.session || '2026-2027'
 
   return <header className="relative flex-shrink-0 h-[58px] bg-gradient-to-r from-primary-950 via-primary-900 to-[#1e2d6b] dark:from-[#0d1117] dark:via-[#151929] dark:to-[#0d1117] flex items-center justify-between pl-0 pr-2 sm:pr-3 sticky top-0 z-[200] topbar-shimmer" style={{ boxShadow: isDark ? '0 2px 20px rgba(0,0,0,0.6)' : '0 2px 12px rgba(30,58,138,0.3)' }}>
     <div className="flex items-center h-full min-w-0 flex-1 overflow-hidden">
-      <div className="flex items-center gap-2 px-3 sm:px-4 h-full min-w-0 max-w-full bg-white/[0.08] border-r border-white/[0.12]">
-        <div className="w-9 h-9 flex-shrink-0 bg-white rounded-lg flex items-center justify-center font-bold text-[13px] text-primary-900 cursor-pointer" onClick={goHome}>APS</div>
-        <span className="font-bold text-[14.5px] text-white whitespace-nowrap overflow-hidden text-ellipsis min-w-0 max-w-[calc(100vw-155px)] sm:max-w-[42vw]">{schoolName}</span>
+      <div className="flex items-center px-3 sm:px-4 h-full min-w-0 max-w-full bg-white/[0.08] border-r border-white/[0.12]">
+        <SchoolBrand schoolName={schoolName} logoPath={user?.logoPath} onClick={goHome} className="max-w-[calc(100vw-155px)] sm:max-w-[42vw]" />
       </div>
     </div>
 

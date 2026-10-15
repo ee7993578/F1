@@ -6,6 +6,9 @@ export async function apiFetch(path, options = {}) {
   if (token) headers.Authorization = `Bearer ${token}`
   const response = await fetch(`${API_BASE}${path}`, { ...options, headers })
   const body = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(body.message || 'Request failed')
+  if (!response.ok) {
+    const message = body.message || body.error || body.detail || `Request failed (${response.status})`
+    throw new Error(message)
+  }
   return body
 }

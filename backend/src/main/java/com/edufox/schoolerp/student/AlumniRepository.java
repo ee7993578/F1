@@ -28,7 +28,7 @@ public class AlumniRepository {
             INSERT INTO Alumni
               (FullName,PhoneNumber,EmailAddress,Qualification,CurrentStatus,DOB,StudentId,Batch,
                AlumniPhoto,Address,Gender,school_id,status)
-            VALUES (?,?,?,?,?,TRY_CONVERT(date,?,23),?,?,?,?,?,?,?,'Active')
+            VALUES (?,?,?,?,?,TRY_CONVERT(date,?,23),?,?,?,?,?,?,'Active')
             """, text(r.fullName()), text(r.phoneNumber()), text(r.emailAddress()), text(r.qualification()),
             text(r.currentStatus()), text(r.dob()), text(r.studentId()), text(r.batch()),
             text(r.alumniPhoto()), text(r.address()), text(r.gender()), schoolId);

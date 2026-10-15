@@ -15,7 +15,8 @@
  *  7. Save
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { apiFetch } from '../../../../lib/api'
 import {
   ChevronDown, AlertCircle, X, Check, Loader2,
   SlidersHorizontal, Save, RefreshCw, Eye,
@@ -445,6 +446,21 @@ export default function DefineConcessionValue() {
     setTimeout(() => setToast(null), 3500)
   }
 
+  useEffect(() => {
+    if (!session || !concessionGroup) return
+    apiFetch('/fees/concession-details?' + new URLSearchParams({ session, groupCode: concessionGroup }))
+      .then(rows => {
+        const grouped = (rows || []).reduce((acc, row) => {
+          const key = row.installmentNo || 1
+          if (!acc[key]) acc[key] = { installment_no: key, label: row.label || '', heads: [] }
+          acc[key].heads.push({ fee_head_id: row.feeHeadId, fee_head: row.feeHead || 'Fee Head', con_type: row.type || 'Fix', con_value: row.value || '', id: row.id })
+          return acc
+        }, {})
+        if (Object.keys(grouped).length) setGridData(Object.values(grouped))
+      })
+      .catch(error => showToast(error.message || 'Concession values could not be loaded.', 'error'))
+  }, [session, concessionGroup])
+
   // ── Fee type change → reset grid ─────────────────────────────────────────
   const handleFeeTypeChange = (val) => {
     setFeeType(val)
@@ -472,27 +488,18 @@ export default function DefineConcessionValue() {
     setLoading(true)
     setGridShown(false)
 
-    // Simulate API fetch
-    setTimeout(() => {
-      const src = feeType === 'transport' ? TRANSPORT_INSTALLMENT_DATA : REGULAR_INSTALLMENT_DATA
-      const fresh = cloneInstallments(src)
-
-      // If transport with a global value, pre-fill all heads
-      if (feeType === 'transport' && transportValue) {
-        fresh.forEach((inst) => {
-          inst.heads.forEach((h) => {
-            h.con_type  = transportConType
-            h.con_value = transportValue
-          })
-        })
-      }
-
-      setGridData(fresh)
-      setShownMeta({ feeType, session, concessionGroup })
-      setGridShown(true)
-      setLoading(false)
-      showToast('Concession grid loaded. Edit values and save.')
-    }, 700)
+    apiFetch('/fees/concession-details?' + new URLSearchParams({ session, groupCode: concessionGroup }))
+      .then(rows => {
+        const grouped = (rows || []).reduce((acc, row) => {
+          const key = row.installmentNo || 1
+          if (!acc[key]) acc[key] = { installment_no: key, label: row.label || '', heads: [] }
+          acc[key].heads.push({ fee_head_id: row.feeHeadId, fee_head: row.feeHead || 'Fee Head', con_type: row.type || transportConType, con_value: row.value || (feeType === 'transport' ? transportValue : ''), id: row.id })
+          return acc
+        }, {})
+        setGridData(Object.values(grouped)); setShownMeta({ feeType, session, concessionGroup }); setGridShown(true); showToast('Concession grid loaded. Edit values and save.')
+      })
+      .catch(error => showToast(error.message || 'Concession grid could not be loaded.', 'error'))
+      .finally(() => setLoading(false))
   }, [feeType, session, concessionGroup, transportValue, transportConType])
 
   // ── Grid cell updates ─────────────────────────────────────────────────────
@@ -533,11 +540,8 @@ export default function DefineConcessionValue() {
       return
     }
     setSaving(true)
-    setTimeout(() => {
-      setSaving(false)
-      showToast('Concession values saved successfully!')
-      // TODO: POST to API
-    }, 900)
+    const requests = gridData.flatMap(inst => inst.heads.map(head => apiFetch(head.id ? '/fees/concession-details/' + head.id : '/fees/concession-details', { method: head.id ? 'PUT' : 'POST', body: JSON.stringify({ session: shownMeta.session, groupCode: shownMeta.concessionGroup, installmentNo: inst.installment_no, feeHeadId: head.fee_head_id, type: head.con_type, value: head.con_value }) })))
+    Promise.all(requests).then(() => showToast('Concession values saved successfully!')).catch(error => showToast(error.message || 'Concession values could not be saved.', 'error')).finally(() => setSaving(false))
   }
 
   // ── Reset ─────────────────────────────────────────────────────────────────

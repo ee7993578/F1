@@ -26,6 +26,7 @@ import {
   BarChart3, Wallet, ArrowUpRight, Info, ChevronUp,
   ListFilter, Download, Printer
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC / DUMMY DATA ──────────────────────────────────────────────────────
 
@@ -695,8 +696,22 @@ export default function DailyCollectionReport() {
     setLoading(true)
     setTableSearch('')
 
-    setTimeout(() => {
-      let data = COLLECTION_DATA[filters.session] || []
+    apiFetch('/fees/reports/collection?' + new URLSearchParams({ session: filters.session, from: filters.fromDate, to: filters.toDate, mop: filters.payMode, admissionNo: filters.admNo }))
+    .then(result => {
+      let data = (result || []).map((r, index) => ({
+        sno: index + 1,
+        admNo: r.admNo || r.admissionNo || '',
+        name: r.name || r.studentName || '',
+        class: r.className || '',
+        section: r.sectionName || '',
+        feeType: r.feeType || '',
+        payMode: r.payMode || r.mop || '',
+        depositBy: r.depositBy || '',
+        amount: Number(r.amount || 0),
+        receiptNo: r.receiptNo || '',
+        date: r.paymentDate || r.paymentdate || '',
+        status: r.status || 'Paid',
+      }))
 
       // Apply filters
       if (filters.feeType)   data = data.filter(r => r.feeType.toLowerCase().includes(filters.feeType))
@@ -716,7 +731,8 @@ export default function DailyCollectionReport() {
       setShownLabel(parts.join(' · '))
 
       showToast(`${data.length} records loaded.`)
-    }, 700)
+    })
+    .catch(error => { setRows([]); setShown(true); setLoading(false); showToast(error.message || 'Could not load collection report.', 'error') })
   }, [filters])
 
   const handleReset = () => {

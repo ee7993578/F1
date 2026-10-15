@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { X, ChevronRight, ChevronDown } from 'lucide-react'
 import { ICON_MAP } from './iconMap'
 import { cn } from '../../lib/utils'
+import SchoolBrand from './SchoolBrand'
 
 export default function MobileDrawer({ menuData,
+  schoolName, logoPath,
   isOpen, onClose,
   activeModule, activeGroup, activePage,
   onModuleClick, onPageClick,
@@ -49,17 +51,7 @@ export default function MobileDrawer({ menuData,
         <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-white/[0.06] flex-shrink-0"
           style={{ background: 'rgba(0,0,0,0.2)' }}
         >
-          <div className="w-8 h-8 rounded-[7px] flex items-center justify-center font-display text-[12px] font-bold text-white flex-shrink-0"
-            style={{
-              background: 'linear-gradient(135deg, #6366f1, #3b82f6)',
-              boxShadow: '0 0 12px rgba(99,102,241,0.5)',
-            }}
-          >
-            APS
-          </div>
-          <span className="font-display text-[13.5px] font-bold text-white flex-1">
-            APS International
-          </span>
+          <SchoolBrand schoolName={schoolName || 'School ERP'} logoPath={logoPath} markClassName="w-8 h-8" className="flex-1" />
           <button
             onClick={onClose}
             className="w-[30px] h-[30px] flex items-center justify-center rounded-md bg-white/10 text-white hover:bg-white/20 transition-colors"

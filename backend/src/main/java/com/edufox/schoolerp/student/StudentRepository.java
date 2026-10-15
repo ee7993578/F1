@@ -21,6 +21,7 @@ public class StudentRepository {
         result.put("classes", classes(schoolId));
         result.put("sections", sections(schoolId));
         result.put("sessions", sessions(schoolId));
+        result.put("houses", houses(schoolId));
         result.put("students", search(schoolId, null, null, null, null, null));
         result.put("summary", summary(schoolId, null));
         return result;
@@ -55,6 +56,15 @@ public class StudentRepository {
             """, schoolId);
     }
 
+    public List<Map<String, Object>> houses(String schoolId) {
+        return jdbc.queryForList("""
+            SELECT House_id AS houseId, H_Name AS houseName
+            FROM HouseMaster
+            WHERE school_id=? AND status=1
+            ORDER BY id
+            """, schoolId);
+    }
+
     public List<Map<String, Object>> search(String schoolId, String query, Integer classId,
                                             Integer sectionId, String status, String session) {
         StringBuilder sql = new StringBuilder(baseSelect());
@@ -79,7 +89,8 @@ public class StudentRepository {
                                             Integer classId, Integer sectionId, String status,
                                             String session, Integer month) {
         String normalized = type == null ? "student-list" : type.trim().toLowerCase();
-        if (normalized.equals("registration") || normalized.equals("registration-details")) {
+        if (normalized.equals("registration") || normalized.equals("registration-details")
+            || normalized.equals("new-student")) {
             return registrationSearch(schoolId, query, classId, status, session);
         }
         if (normalized.equals("strength") || normalized.equals("classwise-strength")
@@ -119,6 +130,8 @@ public class StudentRepository {
                    sr.row_id AS studentId, sr.uid AS uid,
                    sr.form_no AS registrationNo, sr.class_id AS classId,
                    NULL AS sectionId, sr.session AS session, sr.status AS status,
+                   sr.Registration_date AS registrationDate, sr.receipt_no AS receiptNo,
+                   sr.mop AS mop, COALESCE(so.Registration_NO,'') AS admissionNo,
                    COALESCE(c.class_name,'') AS className, '' AS sectionName,
                    COALESCE(so.first_name, sr.first_name, '') AS firstName,
                    COALESCE(so.mid_name, sr.mid_name, '') AS middleName,
@@ -136,7 +149,10 @@ public class StudentRepository {
             """);
         List<Object> args = new ArrayList<>();
         args.add(schoolId);
-        if (query != null && !query.isBlank()) {
+        if (query != null && !query.isBlank() && query.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            sql.append(" AND CONVERT(varchar(10), sr.Registration_date, 23)=?");
+            args.add(query.trim());
+        } else if (query != null && !query.isBlank()) {
             String value = "%" + query.trim() + "%";
             sql.append(" AND (sr.form_no LIKE ? OR sr.first_name LIKE ? OR sr.last_name LIKE ? OR sr.mobile LIKE ?)");
             Collections.addAll(args, value, value, value, value);
@@ -153,10 +169,14 @@ public class StudentRepository {
         StringBuilder sql = new StringBuilder("""
             SELECT sm.class_id AS classId, COALESCE(c.class_name,'') AS className,
                    sm.sec_id AS sectionId, COALESCE(sc.section,'') AS sectionName,
+                   SUM(CASE WHEN LOWER(COALESCE(sm.stutype,'')) IN ('new','new admission','transfer','1') THEN 1 ELSE 0 END) AS newAdmission,
+                   SUM(CASE WHEN LOWER(COALESCE(sm.stutype,'')) IN ('old','regular','2') THEN 1 ELSE 0 END) AS oldAdmission,
+                   SUM(CASE WHEN LOWER(COALESCE(sr.quota,''))='rte' THEN 1 ELSE 0 END) AS rte,
                    COUNT(*) AS studentCount
             FROM TB_StudentMaster sm
             LEFT JOIN class_name c ON c.id=sm.class_id AND c.school_id=sm.school_id
             LEFT JOIN TB_Class sc ON sc.sec_id=sm.sec_id AND sc.school_id=sm.school_id
+            LEFT JOIN student_reg sr ON sr.uid=sm.uid AND sr.school_id=sm.school_id
             WHERE sm.school_id=?
             """);
         List<Object> args = new ArrayList<>();
@@ -187,6 +207,10 @@ public class StudentRepository {
                    sm.stu_id AS studentId, sm.uid AS uid,
                    sm.registration_no AS registrationNo, sm.class_id AS classId,
                    sm.sec_id AS sectionId, sm.session AS session, sm.status AS status,
+                   sm.stutype AS studentType, sm.House_id AS houseId,
+                   so.Student_id AS studentLoginId, so.Password AS studentPwd,
+                   so.Parent_id AS parentId, so.Parent_password AS parentPwd,
+                   COALESCE(h.H_Name,'') AS house, COALESCE(h.H_Name,'') AS houseName,
                    COALESCE(c.class_name,'') AS className, COALESCE(sc.section,'') AS sectionName,
                    COALESCE(so.first_name,'') AS firstName,
                    COALESCE(so.mid_name,'') AS middleName,
@@ -201,6 +225,8 @@ public class StudentRepository {
               ON c.id=sm.class_id AND c.school_id=sm.school_id
             LEFT JOIN TB_Class sc
               ON sc.sec_id=sm.sec_id AND sc.school_id=sm.school_id
+            LEFT JOIN HouseMaster h
+              ON h.House_id=sm.House_id AND h.school_id=sm.school_id
             WHERE sm.school_id=?
             """;
     }
@@ -212,10 +238,11 @@ public class StudentRepository {
                 AND (sm.registration_no LIKE ?
                      OR CAST(sm.stu_id AS varchar(50)) LIKE ?
                      OR so.first_name LIKE ? OR so.last_name LIKE ?
-                     OR so.father_name LIKE ? OR so.mobile LIKE ?)
+                     OR so.father_name LIKE ? OR so.mobile LIKE ?
+                     OR c.class_name LIKE ? OR sc.section LIKE ?)
                 """);
             String value = "%" + query.trim() + "%";
-            Collections.addAll(args, value, value, value, value, value, value);
+            Collections.addAll(args, value, value, value, value, value, value, value, value);
         }
         if (classId != null) { sql.append(" AND sm.class_id=?"); args.add(classId); }
         if (sectionId != null) { sql.append(" AND sm.sec_id=?"); args.add(sectionId); }

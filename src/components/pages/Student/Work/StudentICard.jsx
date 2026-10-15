@@ -141,8 +141,8 @@ function ICard({ student, cls, section, session }) {
 export default function StudentICard() {
   const [session, setSession]     = useState('')
   const { data: studentData } = useStudents()
-  const liveClasses = studentData?.classes?.map(c => c.className).filter(Boolean) || CLASSES
-  const liveSessions = studentData?.sessions?.map(s => s.session).filter(Boolean) || SESSIONS
+  const liveClasses = studentData?.classes?.map(c => c.className).filter(Boolean) || []
+  const liveSessions = studentData?.sessions?.map(s => s.session).filter(Boolean) || []
   const [cls, setCls]             = useState('')
   const [section, setSection]     = useState('')
   const [allStudents, setAllStudents] = useState([])
@@ -151,7 +151,7 @@ export default function StudentICard() {
   const [errors, setErrors]       = useState({})
   const [preview, setPreview]     = useState(false) // show I-card grid
  
-  const sections = cls ? (studentData?.sections?.filter(s => s.className === cls).map(s => s.sectionName) || SECTIONS_BY_CLASS[cls] || []) : []
+  const sections = cls ? (studentData?.sections?.filter(s => s.className === cls).map(s => s.sectionName) || []) : []
  
   // ── handlers ──────────────────────────────────────────────────────────────
   const handleClassChange = (val) => {

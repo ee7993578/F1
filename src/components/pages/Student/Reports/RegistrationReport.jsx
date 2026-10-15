@@ -29,57 +29,11 @@ import {
 
 // ─── STATIC / DUMMY DATA ──────────────────────────────────────────────────────
 
-const SESSIONS = ['2022-23', '2023-24', '2024-25', '2025-26']
-
 const STATUS_OPTIONS = [
   { value: '0',          label: 'Select All' },
   { value: 'Registered', label: 'Confirmed'  },
   { value: 'Admitted',   label: 'Not Confirmed' },
 ]
-
-const CLASS_LIST = [
-  'Nursery', 'LKG', 'UKG',
-  'Class I', 'Class II', 'Class III', 'Class IV', 'Class V',
-  'Class VI', 'Class VII', 'Class VIII',
-  'Class IX', 'Class X', 'Class XI', 'Class XII',
-]
-
-// Generate realistic dummy records
-const generateRecords = (session) => {
-  const names = [
-    'Aarav Sharma','Priya Verma','Rohan Gupta','Sneha Singh','Aditya Kumar',
-    'Pooja Mishra','Vikram Patel','Anjali Yadav','Rahul Tiwari','Kavya Joshi',
-    'Aryan Dubey','Divya Nair','Karan Mehta','Simran Kaur','Deepak Rao',
-    'Neha Pandey','Mohit Srivastava','Ritika Saxena','Amit Chauhan','Sunita Devi',
-    'Lakshmi Iyer','Tarun Bajaj','Geeta Kumari','Suresh Pillai','Meena Rawat',
-    'Harsh Agarwal','Swati Bose','Naveen Reddy','Ritu Sharma','Pankaj Jain',
-    'Ananya Bhatt','Saurabh Singh','Kritika Mahajan','Vivek Shukla','Priti Das',
-    'Rishab Goel','Mansi Gupta','Tushar Negi','Pallavi Sinha','Rajesh Dhawan',
-  ]
-  const statuses = ['Registered', 'Admitted']
-  const records = []
-  const yr = session?.split('-')[0] ?? '2024'
-
-  for (let i = 0; i < 38; i++) {
-    const cls = CLASS_LIST[i % CLASS_LIST.length]
-    const day = String((i % 28) + 1).padStart(2, '0')
-    const month = String((i % 10) + 1).padStart(2, '0')
-    records.push({
-      id:               i + 1,
-      form_no:          `FRM${yr}${String(1000 + i).slice(1)}`,
-      class_name:       cls,
-      name:             names[i % names.length],
-      status:           statuses[i % 2],
-      Registration_date:`${day} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'][i % 10]} ${yr}`,
-      registration_no:  `REG${yr}${String(2000 + i).slice(1)}`,
-    })
-  }
-  return records
-}
-
-const ALL_DATA = Object.fromEntries(
-  SESSIONS.map(s => [s, generateRecords(s)])
-)
 
 // ─── CLASS COLOR HELPER ───────────────────────────────────────────────────────
 const CLASS_COLORS = [
@@ -556,7 +510,7 @@ function ReprintModal({ row, onClose }) {
 export default function RegistrationReport() {
   const [session,    setSession    ] = useState('')
   const { data: studentData } = useStudents()
-  const sessionOptions = studentData?.sessions?.map(s => s.session).filter(Boolean) || SESSIONS
+  const sessionOptions = studentData?.sessions?.map(s => s.session).filter(Boolean) || []
   const [regDate,    setRegDate]    = useState('')
   const [status,     setStatus]     = useState('0')
   const [rows,       setRows]       = useState([])
@@ -674,7 +628,7 @@ export default function RegistrationReport() {
                 placeholder="-- Select --"
                 error={errors.session}
               >
-                {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {sessionOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </NativeSelect>
             </Field>
 

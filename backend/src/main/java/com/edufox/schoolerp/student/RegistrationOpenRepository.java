@@ -56,7 +56,7 @@ public class RegistrationOpenRepository {
                 INSERT INTO registration_openclose
                   (class_id,open_date,close_date,min_age_month,min_age_year,max_age_month,max_age_year,
                    session,school_id,created_by,status,feeAmount,StudentType)
-                VALUES (?,TRY_CONVERT(datetime,?,23),TRY_CONVERT(datetime,?,23),?,?,?,?,?,?,?, ?,?,?,?)
+                VALUES (?,TRY_CONVERT(datetime,?,23),TRY_CONVERT(datetime,?,23),?,?,?,?,?,?,?, ?,?,?)
                 """, text(r.classId()), text(r.openDate()), text(r.closeDate()), text(r.minAgeMonth()), text(r.minAgeYear()),
                 text(r.maxAgeMonth()), text(r.maxAgeYear()), text(r.session()), schoolId, staffUid, active, text(r.feeAmount()), text(r.studentType()));
             Integer id=jdbc.queryForObject("SELECT TOP 1 id FROM registration_openclose WHERE school_id=? ORDER BY id DESC",Integer.class,schoolId);

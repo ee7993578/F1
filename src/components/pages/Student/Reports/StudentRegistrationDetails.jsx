@@ -388,7 +388,7 @@ function FilterDrawer({ open, onClose, session, setSession, selectedClass, setSe
           </Field>
           <Field label="Class">
             <NativeSelect value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-              {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+              {(studentData?.classes || []).map(c => <option key={c.classId} value={c.className}>{c.className}</option>)}
             </NativeSelect>
           </Field>
           <Field label="Registration Date">
@@ -541,14 +541,14 @@ export default function StudentRegistrationDetails() {
                 placeholder="-- Select Session --"
                 error={errors.session}
               >
-                {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {sessionOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </NativeSelect>
             </Field>
 
             {/* Class */}
             <Field label="Class">
               <NativeSelect value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-                {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                {(studentData?.classes || []).map(c => <option key={c.classId} value={c.className}>{c.className}</option>)}
               </NativeSelect>
             </Field>
 

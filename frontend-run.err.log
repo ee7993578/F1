@@ -1,0 +1,32 @@
+npm notice run school-erp@1.0.0 dev
+npm notice run vite --host 127.0.0.1 --port 5173
+4:58:29 pm [vite] (client) warning: Duplicate "color" attribute in JSX element
+634|              value={`₹${totals.charges.toLocaleString('en-IN')}`}
+635|              color="orange"
+636|              color="amber" />
+   |              ^
+637|            
+638|              <SummaryCard
+
+  Plugin: vite:esbuild
+  File: D:/Kachra/Codex/New/src/components/pages/Canteen/Report/TuckshopAssignExpenseReport.jsx
+4:58:30 pm [vite] (client) warning: Duplicate "onClick" attribute in JSX element
+1135|                              <button onClick={() => setFailedModal(rec.failed > 0 ? rec : null) || rec.failed === 0 && showToast('No failed records for this upload.', 'info')}
+1136|                          title="View Report"
+1137|                          onClick={() => setRecords((prev) => prev)} // placeholder for open_window
+   |                          ^
+1138|                          className="p-2 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors"
+1139|                          onClick={() => showToast(`Opening report for: ${rec.title}`, 'info')}>
+
+  Plugin: vite:esbuild
+  File: D:/Kachra/Codex/New/src/components/pages/Fee/Work/ImportExcelFee.jsx
+4:58:30 pm [vite] (client) warning: Duplicate "onClick" attribute in JSX element
+1137|                          onClick={() => setRecords((prev) => prev)} // placeholder for open_window
+1138|                          className="p-2 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors"
+1139|                          onClick={() => showToast(`Opening report for: ${rec.title}`, 'info')}>
+   |                          ^
+1140|                            
+1141|                                <Eye className="w-3.5 h-3.5" />
+
+  Plugin: vite:esbuild
+  File: D:/Kachra/Codex/New/src/components/pages/Fee/Work/ImportExcelFee.jsx

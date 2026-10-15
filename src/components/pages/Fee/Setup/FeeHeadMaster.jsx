@@ -14,7 +14,8 @@
  *  - Loading / empty states
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { apiFetch } from '../../../../lib/api'
 import {
   ChevronDown, AlertCircle, X, Check, Loader2,
   Plus, Edit2, Save, RefreshCw, Search, Filter,
@@ -529,7 +530,7 @@ function MobileCard({ rec, idx, onEdit }) {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function FeeHeadMaster() {
-  const [records, setRecords]       = useState(INITIAL_RECORDS)
+  const [records, setRecords]       = useState([])
   const [form,    setForm]          = useState(EMPTY_FORM)
   const [errors,  setErrors]        = useState({})
   const [loading, setLoading]       = useState(false)
@@ -542,6 +543,15 @@ export default function FeeHeadMaster() {
   const [mobileFilter, setMobileFilter] = useState(false) // mobile filter sheet
   const [activeTab, setActiveTab]   = useState('list')  // mobile tabs: 'form' | 'list'
   const nextId = useRef(INITIAL_RECORDS.length + 1)
+
+  useEffect(() => {
+    apiFetch('/fees/heads').then(rows => setRecords((rows || []).map(r => ({
+      id: r.id, session: r.session || '', fee_head: r.name || '', fee_code: r.feeCode || '',
+      fee_type_id: r.feeTypeId, fee_type: r.feeType || '', order: r.sortOrder || 0,
+      is_optional: Boolean(r.isOptional), status: Number(r.status ?? 1),
+      status_label: Number(r.status ?? 1) === 1 ? 'Active' : 'In-Active',
+    })))).catch(error => showToast(error.message || 'Fee heads could not be loaded.', 'error'))
+  }, [])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -566,7 +576,10 @@ export default function FeeHeadMaster() {
     if (!validate()) return
     setLoading(true)
 
-    setTimeout(() => {
+    apiFetch(editId ? `/fees/heads/${editId}` : '/fees/heads', {
+      method: editId ? 'PUT' : 'POST',
+      body: JSON.stringify({ session: form.session, name: form.fee_head.trim(), feeCode: form.fee_code.trim(), feeTypeId: Number(form.fee_type_id), sortOrder: Number(form.order), status: Number(form.status), isOptional: form.is_optional }),
+    }).then(() => {
       const feeTypeObj = FEE_TYPES.find(t => String(t.id) === String(form.fee_type_id))
       if (editId) {
         setRecords(prev => prev.map(r =>
@@ -608,7 +621,7 @@ export default function FeeHeadMaster() {
       setLoading(false)
       setSheetOpen(false)
       setActiveTab('list')
-    }, 600)
+    }).catch(error => { setLoading(false); showToast(error.message || 'Fee head save failed.', 'error') })
   }, [form, editId])
 
   // ── Edit ──────────────────────────────────────────────────────────────────

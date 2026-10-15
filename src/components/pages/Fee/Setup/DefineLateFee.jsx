@@ -15,7 +15,8 @@
  *  - Desktop: dense ERP table per installment
  */
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import { apiFetch } from '../../../../lib/api'
 import {
   ChevronDown, ChevronUp, Plus, Trash2, Save,
   AlertCircle, Check, X, Loader2, RefreshCw,
@@ -427,6 +428,22 @@ export default function DefineLateFee() {
     setTimeout(() => setToast(null), 3200)
   }
 
+  useEffect(() => {
+    if (!session) return
+    const feeTypeId = feeType === 'transport' ? 6 : feeType === 'hostel' ? 7 : 0
+    apiFetch('/fees/late-fees?' + new URLSearchParams({ session, feeTypeId }))
+      .then(rows => {
+        const grouped = {}
+        ;(rows || []).forEach(row => {
+          const key = row.installmentNo || 1
+          if (!grouped[key]) grouped[key] = []
+          grouped[key].push({ id: row.id, late_fee_id: row.id, from_date: row.fromDate || '', to_date: row.toDate || '', charge: row.charge ?? '', mode: row.mode || 'Fix' })
+        })
+        if (Object.keys(grouped).length) setSlabsMap(prev => ({ ...prev, ...grouped }))
+      })
+      .catch(error => showToast(error.message || 'Late fee data could not be loaded.', 'error'))
+  }, [session, feeType])
+
   // When fee type changes, rebuild installments
   const handleFeeTypeChange = useCallback((ft) => {
     setFeeType(ft)
@@ -478,10 +495,14 @@ export default function DefineLateFee() {
     if (Object.keys(err).length) { setErrors(err); showToast('Please fill required fields.', 'error'); return }
     setErrors({})
     setSubmitting(true)
-    setTimeout(() => {
-      setSubmitting(false)
-      showToast('Late fee slabs saved successfully!')
-    }, 1200)
+    const feeTypeId = feeType === 'transport' ? 6 : feeType === 'hostel' ? 7 : 0
+    const requests = Object.entries(slabsMap).flatMap(([installmentNo, slabs]) => slabs.filter(x => x.from_date && x.to_date && x.charge).map(slab =>
+      apiFetch(slab.late_fee_id && Number(slab.late_fee_id) > 0 ? '/fees/late-fees/' + slab.late_fee_id : '/fees/late-fees', {
+        method: slab.late_fee_id && Number(slab.late_fee_id) > 0 ? 'PUT' : 'POST',
+        body: JSON.stringify({ session, feeTypeId, installmentNo: Number(installmentNo), fromDate: slab.from_date, toDate: slab.to_date, mode: activeLFT?.label || 'Fix', charge: Number(slab.charge), status: 1 }),
+      })
+    ))
+    Promise.all(requests).then(() => showToast('Late fee slabs saved successfully!')).catch(error => showToast(error.message || 'Late fee save failed.', 'error')).finally(() => setSubmitting(false))
   }
 
   const installments = INSTALLMENTS[feeType] || []

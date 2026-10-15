@@ -15,7 +15,8 @@
  * Desktop: dense ERP grid layout
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { apiFetch } from '../../../../lib/api'
 import {
   Search, ChevronDown, ChevronUp, ChevronRight,
   RefreshCw, Eye, Printer, Pencil, Trash2,
@@ -377,9 +378,9 @@ function StudentHeader({ student }) {
 
 // ─── TAB 1: DEPOSIT FEE ──────────────────────────────────────────────────────
 
-function DepositFeeTab({ student, showToast }) {
-  const [prevDues, setPrevDues] = useState(PREV_DUES)
-  const [currDues, setCurrDues] = useState(DUMMY_DUES)
+function DepositFeeTab({ student, showToast, feeData }) {
+  const [prevDues, setPrevDues] = useState([])
+  const [currDues, setCurrDues] = useState([])
   const [payDate, setPayDate]   = useState('')
   const [mopRows, setMopRows]   = useState([
     { id: 1, mop: 'Cash', chqNo: '', chqDate: '', bank: '', amount: '', useAmount: '', isLast: true }
@@ -388,6 +389,13 @@ function DepositFeeTab({ student, showToast }) {
   const [adjAmt,  setAdjAmt]    = useState(0)
   const [step,    setStep]      = useState(1) // mobile step 1=select dues, 2=payment
   const [deposited, setDeposited] = useState(false)
+
+  useEffect(() => {
+    setPrevDues((feeData?.previous || []).map(row => ({ ...row, latefee: Number(row.lateFee || 0), waiveOff: false, selected: false, source: 'previous' })))
+    setCurrDues((feeData?.current || []).map(row => ({ ...row, fee_charges: Number(row.headAmount || row.payable || 0), con_charge: Number(row.concession || 0), receive_amount: Number(row.receiveAmount || 0), latefee: Number(row.lateFee || 0), balance: Number(row.balance || row.dueAmount || 0), waiveOff: false, selected: false, source: 'current' })))
+    setDeposited(false)
+    setStep(1)
+  }, [feeData, student])
 
   // select / deselect
   const togglePrev = useCallback((id) => {
@@ -419,8 +427,8 @@ function DepositFeeTab({ student, showToast }) {
   const handleDeposit = () => {
     if (!payDate) { showToast('Payment date is required!', 'error'); return }
     if (netPayable === 0) { showToast('No amount to deposit. Select installments.', 'error'); return }
-    setDeposited(true)
-    showToast(`Fee deposited! ₹${netPayable.toLocaleString('en-IN')} received.`, 'success')
+    const dues = [...prevDues, ...currDues].filter(row => row.selected).map(row => ({ id: row.id, source: row.source, amount: Number(row.balance || 0) + (row.waiveOff ? 0 : Number(row.latefee || 0)) }))
+    apiFetch('/fees/deposit', { method: 'POST', body: JSON.stringify({ studentId: student.id || student.studentId, session: student.session, paymentDate: payDate, mop: mopRows[0]?.mop || 'Cash', transactionNo: mopRows[0]?.chqNo || '', bankId: mopRows[0]?.bank || '', dues }) }).then(result => { setDeposited(true); showToast(`Fee deposited successfully. Receipt ${result.receiptNo || ''}`, 'success') }).catch(error => showToast(error.message || 'Fee deposit failed', 'error'))
   }
 
   const addMopRow = () => {
@@ -776,8 +784,26 @@ function DepositFeeTab({ student, showToast }) {
 
 // ─── TAB 2: FEE SUMMARY ──────────────────────────────────────────────────────
 
-function FeeSummaryTab() {
-  const [sessions, setSessions] = useState(FEE_SUMMARY)
+function FeeSummaryTab({ rows = [] }) {
+  const [sessions, setSessions] = useState([])
+
+  useEffect(() => {
+    const grouped = rows.reduce((acc, row) => {
+      const session = row.session || row.financialYear || row.sessionName || 'Current'
+      const item = {
+        installment_no: row.installmentNo ?? row.installment_no ?? row.instNo ?? '',
+        headName: row.headName || row.feeHead || row.fee_head || row.feeHeadName || 'Fee',
+        head_amount: Number(row.headAmount ?? row.head_amount ?? row.amount ?? 0),
+        concession: Number(row.concession ?? 0),
+        receive_amount: Number(row.receiveAmount ?? row.receive_amount ?? row.received ?? 0),
+        balance: Number(row.balance ?? row.dueAmount ?? 0),
+      }
+      if (!acc[session]) acc[session] = []
+      acc[session].push(item)
+      return acc
+    }, {})
+    setSessions(Object.entries(grouped).map(([session, heads]) => ({ session, heads, expanded: true })))
+  }, [rows])
 
   const toggle = (i) => setSessions(s => s.map((x, idx) => idx === i ? { ...x, expanded: !x.expanded } : x))
 
@@ -891,8 +917,31 @@ function FeeSummaryTab() {
 
 // ─── TAB 3: PREVIOUS TXN ─────────────────────────────────────────────────────
 
-function PreviousTxnTab({ showToast }) {
-  const [sessions, setSessions] = useState(PREV_TRANSACTIONS)
+function PreviousTxnTab({ showToast, rows = [] }) {
+  const [sessions, setSessions] = useState([])
+
+  useEffect(() => {
+    const grouped = rows.reduce((acc, row) => {
+      const session = row.session || row.financialYear || row.sessionName || 'Current'
+      const item = {
+        receipt_no: row.receiptNo || row.receipt_no || row.receipt || '',
+        paymentdate: row.paymentDate || row.paymentdate || row.payDate || '',
+        inst_no: row.installmentNo ?? row.installment_no ?? row.instNo ?? '',
+        mop: row.mop || row.payMode || row.pay_mode || '',
+        transaction_no: row.transactionNo || row.transaction_no || '',
+        transaction_date: row.transactionDate || row.transaction_date || '',
+        inst_amount: Number(row.installmentAmount ?? row.instAmount ?? row.amount ?? 0),
+        late_fee: Number(row.lateFee ?? row.late_fee ?? 0),
+        extra_amount: Number(row.extraAmount ?? row.extra_amount ?? 0),
+        amount: Number(row.amount ?? row.transactionAmount ?? 0),
+        status: String(row.status || 'active').toLowerCase(),
+      }
+      if (!acc[session]) acc[session] = []
+      acc[session].push(item)
+      return acc
+    }, {})
+    setSessions(Object.entries(grouped).map(([session, txns]) => ({ session, txns, expanded: true })))
+  }, [rows])
 
   const toggle = (i) => setSessions(s => s.map((x, idx) => idx === i ? { ...x, expanded: !x.expanded } : x))
 
@@ -1284,29 +1333,38 @@ export default function DepositFee() {
   const [toast,      setToast]      = useState(null)
   const [loading,    setLoading]    = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
+  const [bootstrap, setBootstrap] = useState({ sessions: [], classes: [], feeTypes: [] })
+  const [studentOptions, setStudentOptions] = useState([])
+  const [feeData, setFeeData] = useState(null)
+  const [summaryRows, setSummaryRows] = useState([])
+  const [transactionRows, setTransactionRows] = useState([])
+
+  useEffect(() => {
+    apiFetch('/fees/bootstrap').then(data => { setBootstrap(data); setSession(data.session || data.sessions?.[0]?.value || '') }).catch(error => showToast(error.message || 'Fee setup could not be loaded', 'error'))
+  }, [])
 
   const showToast = useCallback((msg, type = 'success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
   }, [])
 
-  const handleLoadStudent = useCallback(() => {
+  const handleLoadStudent = useCallback(async () => {
     if (!session) { showToast('Please select session.', 'error'); return }
     if (!classId && !admNo) { showToast('Select class or enter admission no.', 'error'); return }
     setLoading(true)
-    setTimeout(() => {
-      const s = admNo
-        ? STUDENTS.find(s => s.admNo.toLowerCase() === admNo.toLowerCase())
-        : STUDENTS.find(s => s.id === studentId) || STUDENTS[0]
-      if (s) { setStudent(s); showToast(`Loaded: ${s.name}`) }
-      else showToast('Student not found.', 'error')
-      setLoading(false)
-    }, 600)
+    try {
+      const rows = await apiFetch('/fees/students/search?' + new URLSearchParams({ session, query: admNo || '', classId: classId || '' }))
+      setStudentOptions(rows)
+      const found = studentId ? rows.find(row => String(row.id || row.studentId) === String(studentId)) : rows[0]
+      if (!found) { showToast('Student not found.', 'error'); return }
+      const mapped = { ...found, id: found.id || found.studentId, admNo: found.admNo || found.registrationNo, name: found.name || found.studentName, class: found.classLabel || `${found.className || ''} ${found.sectionName || ''}`, father: found.father || found.fatherName || '', admDate: found.admDate || '' }
+      setStudent(mapped)
+      const [dues, summary, transactions] = await Promise.all([apiFetch(`/fees/students/${mapped.id}/dues?session=${encodeURIComponent(session)}`), apiFetch(`/fees/students/${mapped.id}/summary`), apiFetch(`/fees/students/${mapped.id}/transactions`)])
+      setFeeData(dues); setSummaryRows(summary); setTransactionRows(transactions); showToast(`Loaded: ${mapped.name}`)
+    } catch (error) { showToast(error.message || 'Student fee data could not be loaded', 'error') } finally { setLoading(false) }
   }, [session, classId, admNo, studentId, showToast])
 
-  const filteredStudents = useMemo(() =>
-    classId ? STUDENTS.filter(s => s.class.includes(CLASSES.find(c => c.id === classId)?.name || '')) : STUDENTS
-  , [classId])
+  const filteredStudents = useMemo(() => studentOptions, [studentOptions])
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0f1117]">
@@ -1346,14 +1404,14 @@ export default function DepositFee() {
               <div>
                 <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mb-1">Session <span className="text-rose-500">*</span></p>
                 <NativeSelect value={session} onChange={e => setSession(e.target.value)} placeholder="-- Session --">
-                  {SESSIONS.map(s => <option key={s}>{s}</option>)}
+                  {bootstrap.sessions.map(s => <option key={s.value} value={s.value}>{s.label || s.value}</option>)}
                 </NativeSelect>
               </div>
               {/* Fee Type */}
               <div>
                 <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mb-1">Fee Type</p>
                 <NativeSelect value={feeType} onChange={e => setFeeType(e.target.value)} placeholder="-- Fee Type --">
-                  {FEE_TYPES.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  {bootstrap.feeTypes.map(f => <option key={f.id} value={f.id}>{f.name || f.label}</option>)}
                 </NativeSelect>
               </div>
               {/* Adm No */}
@@ -1373,14 +1431,14 @@ export default function DepositFee() {
               <div>
                 <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mb-1">Class</p>
                 <NativeSelect value={classId} onChange={e => setClassId(e.target.value)} placeholder="-- Class --">
-                  {CLASSES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {bootstrap.classes.map(c => <option key={c.id} value={c.id}>{c.label || c.className}</option>)}
                 </NativeSelect>
               </div>
               {/* Student */}
               <div>
                 <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mb-1">Student</p>
                 <NativeSelect value={studentId} onChange={e => setStudentId(e.target.value)} placeholder="-- Student --">
-                  {filteredStudents.map(s => <option key={s.id} value={s.id}>{s.name} ({s.admNo})</option>)}
+                  {filteredStudents.map(s => <option key={s.id || s.studentId} value={s.id || s.studentId}>{s.name || s.studentName} ({s.admNo || s.registrationNo})</option>)}
                 </NativeSelect>
               </div>
               {/* Load button */}
@@ -1469,9 +1527,9 @@ export default function DepositFee() {
 
             {/* Tab Content */}
             <div>
-              {activeTab === 0 && <DepositFeeTab     student={student} showToast={showToast} />}
-              {activeTab === 1 && <FeeSummaryTab     />}
-              {activeTab === 2 && <PreviousTxnTab    showToast={showToast} />}
+              {activeTab === 0 && <DepositFeeTab     student={student} feeData={feeData} showToast={showToast} />}
+              {activeTab === 1 && <FeeSummaryTab     rows={summaryRows} />}
+              {activeTab === 2 && <PreviousTxnTab    rows={transactionRows} showToast={showToast} />}
               {activeTab === 3 && <DepositMiscFeeTab showToast={showToast} />}
               {activeTab === 4 && <AssignOptionalFeeTab showToast={showToast} />}
             </div>

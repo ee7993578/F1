@@ -288,21 +288,21 @@ function Step1({ form, set, errors }) {
 }
 
 /** Step 2 – Academic Details */
-function Step2({ form, set, errors }) {
+function Step2({ form, set, errors, liveClasses, liveSections, liveHouses }) {
   return (
     <div className="space-y-4">
       <SectionHeader icon={BookOpen} title="Academic & Admission Details" color="violet" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <FormSelect label="Admission Class" value={form.admissionClass} onChange={e=>set('admissionClass',e.target.value)} options={CLASSES} placeholder="-- Select Class --" error={errors.admissionClass} required />
-        <FormSelect label="Section" value={form.section} onChange={e=>set('section',e.target.value)} options={SECTIONS} placeholder="-- Select --" error={errors.section} required />
+        <FormSelect label="Admission Class" value={form.admissionClass} onChange={e=>set('admissionClass',e.target.value)} options={liveClasses} placeholder="-- Select Class --" error={errors.admissionClass} required />
+        <FormSelect label="Section" value={form.section} onChange={e=>set('section',e.target.value)} options={liveSections} placeholder="-- Select --" error={errors.section} required />
         <FormInput label="Roll Number" value={form.rollNo} onChange={e=>set('rollNo',e.target.value)} placeholder="Auto / Manual" icon={Hash} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <FormInput label="Admission Number" value={form.admissionNo} onChange={e=>set('admissionNo',e.target.value)} placeholder="ADM-2024-XXX" hint="Leave blank to auto-generate" />
         <FormInput label="Admission Date" value={form.admissionDate} onChange={e=>set('admissionDate',e.target.value)} type="date" icon={Calendar} required error={errors.admissionDate} />
-        <FormSelect label="House Group" value={form.houseGroup} onChange={e=>set('houseGroup',e.target.value)} options={HOUSE_GROUPS} placeholder="-- Select --" />
+        <FormSelect label="House Group" value={form.houseGroup} onChange={e=>set('houseGroup',e.target.value)} options={liveHouses} placeholder="-- Select --" />
       </div>
 
       <SectionHeader icon={GraduationCap} title="Previous School Details" color="emerald" />
@@ -582,6 +582,9 @@ function StepIndicator({ steps, currentStep, completedSteps, onStepClick }) {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function StudentRegistration() {
   const { data: liveStudentData } = useStudents()
+  const liveClasses = (liveStudentData?.classes || []).map(item => item.className).filter(Boolean)
+  const liveSections = (liveStudentData?.sections || []).map(item => item.sectionName).filter(Boolean).filter((item, index, all) => all.indexOf(item) === index)
+  const liveHouses = (liveStudentData?.houses || []).map(item => item.houseName).filter(Boolean)
   const liveExistingStudents = useMemo(() => (liveStudentData?.students || []).map(row => ({ id: row.registrationNo || String(row.studentId), name: row.name, class: row.className || '', section: row.sectionName || '', status: row.status || '' })), [liveStudentData])
   const [currentStep, setCurrentStep] = useState(1)
   const [completedSteps, setCompletedSteps] = useState([])
@@ -638,7 +641,8 @@ export default function StudentRegistration() {
     for (let i = 1; i <= 2; i++) { const e = validateStep(i); allErrors = { ...allErrors, ...e } }
     if (Object.keys(allErrors).length) { setErrors(allErrors); setCurrentStep(1); return }
     const dobParts = (form.dob || '').split('-')
-    const session = liveStudentData?.sessions?.[0]?.session || '2026 - 2027'
+    const session = liveStudentData?.sessions?.find(item => String(item.status).toLowerCase() === 'default')?.session || liveStudentData?.sessions?.[0]?.session
+    if (!session) { showToast('No academic session is configured.'); return }
     try {
       const result = await apiFetch('/students/registration', { method: 'POST', body: JSON.stringify({ formNo: form.admissionNo, className: form.admissionClass, session, studType: form.newOldStudent, mop: 'Cash', regFee: '0', regDate: form.admissionDate, firstName: form.firstName, middleName: form.middleName, lastName: form.lastName, dobDay: dobParts[2] || '', dobMonth: dobParts[1] || '', dobYear: dobParts[0] || '', gender: form.gender, blood: form.bloodGroup, religion: form.religion, category: form.category, quota: form.rteStudent === 'Yes' ? 'RTE' : '', address: [form.houseNo, form.streetArea, form.city, form.state, form.pincode].filter(Boolean).join(', '), aadhar: form.aadharNo, fName: form.fatherName, fOcc: form.fatherOccupation, fMobile: form.fatherPhone, fEmail: form.fatherEmail, fAadhar: form.fatherAadhar, mName: form.motherName, mOcc: form.motherOccupation, mMobile: form.motherPhone, mEmail: form.motherEmail, mAadhar: form.motherAadhar, prevSchool: form.previousSchool, remark: form.remarks }) })
       showToast(result.message || 'Registration saved successfully.')
@@ -664,7 +668,7 @@ export default function StudentRegistration() {
   const renderStep = () => {
     switch (currentStep) {
       case 1: return <Step1 form={form} set={set} errors={errors} />
-      case 2: return <Step2 form={form} set={set} errors={errors} />
+      case 2: return <Step2 form={form} set={set} errors={errors} liveClasses={liveClasses} liveSections={liveSections} liveHouses={liveHouses} />
       case 3: return <Step3 form={form} set={set} />
       case 4: return <Step4 form={form} set={set} />
       case 5: return <Step5 form={form} set={set} />

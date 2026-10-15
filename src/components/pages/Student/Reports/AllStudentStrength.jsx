@@ -27,121 +27,6 @@ import {
 } from 'lucide-react'
 
 // ─── STATIC / DUMMY DATA ───────────────────────────────────────────────────────
-const SESSIONS = ['2022-23', '2023-24', '2024-25', '2025-26']
-
-const SCHOOL_INFO = {
-  name: 'Saraswati Vidya Mandir Senior Secondary School',
-  address: 'Civil Lines, Dehradun, Uttarakhand – 248001',
-}
-
-// Section-wise strength data (new_admission, old_admission, RTE, Total)
-const STRENGTH_DATA = {
-  '2022-23': [
-    { class: 'Nursery',   Section: 'A', new_admission: 28, old_admission: 0,  RTE: 4,  Total: 32  },
-    { class: 'Nursery',   Section: 'B', new_admission: 24, old_admission: 0,  RTE: 3,  Total: 27  },
-    { class: 'LKG',       Section: 'A', new_admission: 20, old_admission: 10, RTE: 3,  Total: 33  },
-    { class: 'LKG',       Section: 'B', new_admission: 18, old_admission: 12, RTE: 2,  Total: 32  },
-    { class: 'UKG',       Section: 'A', new_admission: 14, old_admission: 16, RTE: 3,  Total: 33  },
-    { class: 'UKG',       Section: 'B', new_admission: 12, old_admission: 16, RTE: 2,  Total: 30  },
-    { class: 'Class I',   Section: 'A', new_admission: 10, old_admission: 28, RTE: 5,  Total: 43  },
-    { class: 'Class I',   Section: 'B', new_admission: 8,  old_admission: 30, RTE: 4,  Total: 42  },
-    { class: 'Class II',  Section: 'A', new_admission: 6,  old_admission: 34, RTE: 5,  Total: 45  },
-    { class: 'Class II',  Section: 'B', new_admission: 6,  old_admission: 32, RTE: 4,  Total: 42  },
-    { class: 'Class III', Section: 'A', new_admission: 4,  old_admission: 32, RTE: 4,  Total: 40  },
-    { class: 'Class IV',  Section: 'A', new_admission: 4,  old_admission: 30, RTE: 3,  Total: 37  },
-    { class: 'Class V',   Section: 'A', new_admission: 6,  old_admission: 30, RTE: 4,  Total: 40  },
-    { class: 'Class VI',  Section: 'A', new_admission: 10, old_admission: 34, RTE: 5,  Total: 49  },
-    { class: 'Class VI',  Section: 'B', new_admission: 10, old_admission: 28, RTE: 4,  Total: 42  },
-    { class: 'Class VII', Section: 'A', new_admission: 8,  old_admission: 34, RTE: 4,  Total: 46  },
-    { class: 'Class VIII',Section: 'A', new_admission: 4,  old_admission: 32, RTE: 3,  Total: 39  },
-    { class: 'Class IX',  Section: 'A', new_admission: 10, old_admission: 28, RTE: 3,  Total: 41  },
-    { class: 'Class IX',  Section: 'B', new_admission: 8,  old_admission: 26, RTE: 3,  Total: 37  },
-    { class: 'Class X',   Section: 'A', new_admission: 4,  old_admission: 36, RTE: 2,  Total: 42  },
-    { class: 'Class XI',  Section: 'A', new_admission: 50, old_admission: 0,  RTE: 0,  Total: 50  },
-    { class: 'Class XI',  Section: 'B', new_admission: 46, old_admission: 0,  RTE: 0,  Total: 46  },
-    { class: 'Class XII', Section: 'A', new_admission: 0,  old_admission: 48, RTE: 0,  Total: 48  },
-    { class: 'Class XII', Section: 'B', new_admission: 0,  old_admission: 44, RTE: 0,  Total: 44  },
-  ],
-  '2023-24': [
-    { class: 'Nursery',   Section: 'A', new_admission: 30, old_admission: 0,  RTE: 5,  Total: 35  },
-    { class: 'Nursery',   Section: 'B', new_admission: 26, old_admission: 0,  RTE: 4,  Total: 30  },
-    { class: 'LKG',       Section: 'A', new_admission: 22, old_admission: 12, RTE: 4,  Total: 38  },
-    { class: 'LKG',       Section: 'B', new_admission: 20, old_admission: 14, RTE: 3,  Total: 37  },
-    { class: 'UKG',       Section: 'A', new_admission: 16, old_admission: 18, RTE: 3,  Total: 37  },
-    { class: 'UKG',       Section: 'B', new_admission: 14, old_admission: 18, RTE: 3,  Total: 35  },
-    { class: 'Class I',   Section: 'A', new_admission: 12, old_admission: 30, RTE: 5,  Total: 47  },
-    { class: 'Class I',   Section: 'B', new_admission: 10, old_admission: 32, RTE: 4,  Total: 46  },
-    { class: 'Class II',  Section: 'A', new_admission: 8,  old_admission: 36, RTE: 5,  Total: 49  },
-    { class: 'Class II',  Section: 'B', new_admission: 8,  old_admission: 34, RTE: 5,  Total: 47  },
-    { class: 'Class III', Section: 'A', new_admission: 6,  old_admission: 34, RTE: 4,  Total: 44  },
-    { class: 'Class IV',  Section: 'A', new_admission: 5,  old_admission: 32, RTE: 3,  Total: 40  },
-    { class: 'Class V',   Section: 'A', new_admission: 8,  old_admission: 32, RTE: 4,  Total: 44  },
-    { class: 'Class VI',  Section: 'A', new_admission: 14, old_admission: 36, RTE: 6,  Total: 56  },
-    { class: 'Class VI',  Section: 'B', new_admission: 12, old_admission: 32, RTE: 5,  Total: 49  },
-    { class: 'Class VII', Section: 'A', new_admission: 10, old_admission: 36, RTE: 5,  Total: 51  },
-    { class: 'Class VIII',Section: 'A', new_admission: 5,  old_admission: 34, RTE: 4,  Total: 43  },
-    { class: 'Class IX',  Section: 'A', new_admission: 12, old_admission: 30, RTE: 4,  Total: 46  },
-    { class: 'Class IX',  Section: 'B', new_admission: 10, old_admission: 28, RTE: 4,  Total: 42  },
-    { class: 'Class X',   Section: 'A', new_admission: 5,  old_admission: 38, RTE: 3,  Total: 46  },
-    { class: 'Class XI',  Section: 'A', new_admission: 54, old_admission: 0,  RTE: 0,  Total: 54  },
-    { class: 'Class XI',  Section: 'B', new_admission: 50, old_admission: 0,  RTE: 0,  Total: 50  },
-    { class: 'Class XII', Section: 'A', new_admission: 0,  old_admission: 52, RTE: 0,  Total: 52  },
-    { class: 'Class XII', Section: 'B', new_admission: 0,  old_admission: 48, RTE: 0,  Total: 48  },
-  ],
-  '2024-25': [
-    { class: 'Nursery',   Section: 'A', new_admission: 32, old_admission: 0,  RTE: 5,  Total: 37  },
-    { class: 'Nursery',   Section: 'B', new_admission: 28, old_admission: 0,  RTE: 4,  Total: 32  },
-    { class: 'LKG',       Section: 'A', new_admission: 24, old_admission: 14, RTE: 4,  Total: 42  },
-    { class: 'LKG',       Section: 'B', new_admission: 22, old_admission: 16, RTE: 3,  Total: 41  },
-    { class: 'UKG',       Section: 'A', new_admission: 18, old_admission: 20, RTE: 4,  Total: 42  },
-    { class: 'UKG',       Section: 'B', new_admission: 16, old_admission: 20, RTE: 3,  Total: 39  },
-    { class: 'Class I',   Section: 'A', new_admission: 14, old_admission: 32, RTE: 6,  Total: 52  },
-    { class: 'Class I',   Section: 'B', new_admission: 12, old_admission: 34, RTE: 5,  Total: 51  },
-    { class: 'Class II',  Section: 'A', new_admission: 10, old_admission: 38, RTE: 6,  Total: 54  },
-    { class: 'Class II',  Section: 'B', new_admission: 10, old_admission: 36, RTE: 5,  Total: 51  },
-    { class: 'Class III', Section: 'A', new_admission: 8,  old_admission: 36, RTE: 5,  Total: 49  },
-    { class: 'Class IV',  Section: 'A', new_admission: 6,  old_admission: 34, RTE: 4,  Total: 44  },
-    { class: 'Class V',   Section: 'A', new_admission: 10, old_admission: 34, RTE: 5,  Total: 49  },
-    { class: 'Class VI',  Section: 'A', new_admission: 16, old_admission: 38, RTE: 7,  Total: 61  },
-    { class: 'Class VI',  Section: 'B', new_admission: 14, old_admission: 34, RTE: 6,  Total: 54  },
-    { class: 'Class VII', Section: 'A', new_admission: 12, old_admission: 38, RTE: 6,  Total: 56  },
-    { class: 'Class VIII',Section: 'A', new_admission: 6,  old_admission: 36, RTE: 5,  Total: 47  },
-    { class: 'Class IX',  Section: 'A', new_admission: 14, old_admission: 32, RTE: 5,  Total: 51  },
-    { class: 'Class IX',  Section: 'B', new_admission: 12, old_admission: 30, RTE: 5,  Total: 47  },
-    { class: 'Class X',   Section: 'A', new_admission: 6,  old_admission: 40, RTE: 4,  Total: 50  },
-    { class: 'Class XI',  Section: 'A', new_admission: 58, old_admission: 0,  RTE: 0,  Total: 58  },
-    { class: 'Class XI',  Section: 'B', new_admission: 54, old_admission: 0,  RTE: 0,  Total: 54  },
-    { class: 'Class XII', Section: 'A', new_admission: 0,  old_admission: 56, RTE: 0,  Total: 56  },
-    { class: 'Class XII', Section: 'B', new_admission: 0,  old_admission: 52, RTE: 0,  Total: 52  },
-  ],
-  '2025-26': [
-    { class: 'Nursery',   Section: 'A', new_admission: 35, old_admission: 0,  RTE: 6,  Total: 41  },
-    { class: 'Nursery',   Section: 'B', new_admission: 30, old_admission: 0,  RTE: 5,  Total: 35  },
-    { class: 'LKG',       Section: 'A', new_admission: 26, old_admission: 16, RTE: 5,  Total: 47  },
-    { class: 'LKG',       Section: 'B', new_admission: 24, old_admission: 18, RTE: 4,  Total: 46  },
-    { class: 'UKG',       Section: 'A', new_admission: 20, old_admission: 22, RTE: 5,  Total: 47  },
-    { class: 'UKG',       Section: 'B', new_admission: 18, old_admission: 22, RTE: 4,  Total: 44  },
-    { class: 'Class I',   Section: 'A', new_admission: 16, old_admission: 34, RTE: 7,  Total: 57  },
-    { class: 'Class I',   Section: 'B', new_admission: 14, old_admission: 36, RTE: 6,  Total: 56  },
-    { class: 'Class II',  Section: 'A', new_admission: 12, old_admission: 40, RTE: 7,  Total: 59  },
-    { class: 'Class II',  Section: 'B', new_admission: 12, old_admission: 38, RTE: 6,  Total: 56  },
-    { class: 'Class III', Section: 'A', new_admission: 10, old_admission: 38, RTE: 6,  Total: 54  },
-    { class: 'Class IV',  Section: 'A', new_admission: 8,  old_admission: 36, RTE: 5,  Total: 49  },
-    { class: 'Class V',   Section: 'A', new_admission: 12, old_admission: 36, RTE: 6,  Total: 54  },
-    { class: 'Class VI',  Section: 'A', new_admission: 18, old_admission: 40, RTE: 8,  Total: 66  },
-    { class: 'Class VI',  Section: 'B', new_admission: 16, old_admission: 36, RTE: 7,  Total: 59  },
-    { class: 'Class VII', Section: 'A', new_admission: 14, old_admission: 40, RTE: 7,  Total: 61  },
-    { class: 'Class VIII',Section: 'A', new_admission: 8,  old_admission: 38, RTE: 6,  Total: 52  },
-    { class: 'Class IX',  Section: 'A', new_admission: 16, old_admission: 34, RTE: 6,  Total: 56  },
-    { class: 'Class IX',  Section: 'B', new_admission: 14, old_admission: 32, RTE: 6,  Total: 52  },
-    { class: 'Class X',   Section: 'A', new_admission: 8,  old_admission: 42, RTE: 5,  Total: 55  },
-    { class: 'Class XI',  Section: 'A', new_admission: 62, old_admission: 0,  RTE: 0,  Total: 62  },
-    { class: 'Class XI',  Section: 'B', new_admission: 58, old_admission: 0,  RTE: 0,  Total: 58  },
-    { class: 'Class XII', Section: 'A', new_admission: 0,  old_admission: 60, RTE: 0,  Total: 60  },
-    { class: 'Class XII', Section: 'B', new_admission: 0,  old_admission: 56, RTE: 0,  Total: 56  },
-  ],
-}
-
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const CLASS_COLORS = [
   { fg: '#1d4ed8', bg: '#dbeafe' },
@@ -502,6 +387,8 @@ function FilterDrawer({ open, onClose, session, setSession, onShow, loading, err
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function AllStudentStrength() {
+  const { data: studentData } = useStudents()
+  const sessionOptions = studentData?.sessions?.map(item => item.session).filter(Boolean) || []
   const [session,    setSession]    = useState('')
   const [rows,       setRows]       = useState([])
   const [loading,    setLoading]    = useState(false)
@@ -525,7 +412,7 @@ export default function AllStudentStrength() {
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch('')
     fetchStudentReport('classwise-strength', { session }).then(rows => {
-      const data = rows.map(s => ({ class: s.className || '', Section: s.sectionName || '', new_admission: 0, old_admission: 0, RTE: 0, Total: Number(s.studentCount || 0) }))
+      const data = rows.map(s => ({ class: s.className || '', Section: s.sectionName || '', new_admission: Number(s.newAdmission || 0), old_admission: Number(s.oldAdmission || 0), RTE: Number(s.rte || 0), Total: Number(s.studentCount || 0) }))
       setRows(data); setShownSession(session); setShown(true); showToast('Loaded ' + data.length + ' class/section records for session ' + session + '.')
     }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
   }, [session])
@@ -610,7 +497,7 @@ export default function AllStudentStrength() {
                 placeholder="-- Select Session --"
                 error={errors.session}
               >
-                {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {sessionOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </NativeSelect>
             </Field>
 

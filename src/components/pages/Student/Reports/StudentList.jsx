@@ -358,7 +358,7 @@ function FilterDrawer({ open, onClose, session, setSession, type, setType, onSho
 export default function StudentList() {
   const [session,      setSession      ] = useState('')
   const { data: studentData } = useStudents()
-  const sessionOptions = studentData?.sessions?.map(s => s.session).filter(Boolean) || SESSIONS
+  const sessionOptions = studentData?.sessions?.map(s => s.session).filter(Boolean) || []
   const [type,         setType]         = useState('')
   const [rows,         setRows]         = useState([])
   const [loading,      setLoading]      = useState(false)
@@ -474,7 +474,7 @@ export default function StudentList() {
                 placeholder="-- Select Session --"
                 error={errors.session}
               >
-                {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {sessionOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </NativeSelect>
             </Field>
 

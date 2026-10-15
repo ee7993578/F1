@@ -21,6 +21,7 @@ import {
   ChevronRight, MoreVertical, CheckSquare, Square,
   ArrowRight, Filter, Info, Trash2
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── DUMMY DATA ───────────────────────────────────────────────────────────────
 const SESSIONS_LIST = ['2022-23', '2023-24', '2024-25', '2025-26']
@@ -532,6 +533,13 @@ export default function DefineConcessionGroup() {
     setTimeout(() => setToast(null), 3500)
   }
 
+  useEffect(() => {
+    if (!session) return
+    apiFetch('/fees/concession-groups?session=' + encodeURIComponent(session))
+      .then(rows => setGroups((rows || []).map(r => ({ ...r, Group_name: r.name || r.Group_name || '', main_group_name: r.mainGroupName || '', main_group_id: r.mainGroupId, is_late_fee_applicable: Boolean(r.lateFeeApplicable) }))))
+      .catch(error => showToast(error.message || 'Concession groups could not be loaded.', 'error'))
+  }, [session])
+
   // ── Validate & Submit ──────────────────────────────────────────────────────
   const handleSubmit = useCallback(() => {
     const err = {}
@@ -542,7 +550,7 @@ export default function DefineConcessionGroup() {
     setErrors({})
     setSubmitting(true)
 
-    setTimeout(() => {
+    apiFetch('/fees/concession-groups', { method: 'POST', body: JSON.stringify({ session, mainGroupId: Number(mainGroup), name: groupName.trim(), lateFeeApplicable: lateFee }) }).then(() => {
       const mgObj  = mainGroups.find(g => g.id === parseInt(mainGroup))
       const newRow = {
         id:                  Date.now(),
@@ -558,7 +566,7 @@ export default function DefineConcessionGroup() {
       setLateFee(true)
       setSubmitting(false)
       showToast('Concession group added successfully!')
-    }, 700)
+    }).catch(error => { setSubmitting(false); showToast(error.message || 'Concession group save failed.', 'error') })
   }, [session, mainGroup, groupName, lateFee, mainGroups, groups.length])
 
   // ── Add Main Group ─────────────────────────────────────────────────────────

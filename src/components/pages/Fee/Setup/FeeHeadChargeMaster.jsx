@@ -30,6 +30,7 @@ import {
   MapPin, Calendar, ToggleLeft, ToggleRight,
   PlusCircle, Settings2
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
 
@@ -589,28 +590,23 @@ export default function FeeHeadChargeMaster() {
     setErrors({})
     setLoading(true)
 
-    setTimeout(() => {
-      const charges = BASE_CHARGES[selectedClass] || {}
-      const key = feeStudType === 'new' ? 'new' : 'old'
-      const rows = FEE_HEADS.map((h, i) => ({
-        ...h,
-        fee_charges: (charges[key] || [])[i] ?? 0,
-        btn: true,
-      }))
+    apiFetch('/fees/charges?' + new URLSearchParams({ session, classId: selectedClass })).then(data => {
+      const rows = (data || []).map(r => ({ id: r.id, fee_head_id: r.feeHeadId, fee_type_id: r.feeTypeId, fee_charges: Number(r.charges || 0), class_id: r.classId, btn: true }))
       setFeeRows(rows)
-      setFeeChart(generateFeeChart(selectedClass, feeStudType === 'new'))
+      setFeeChart([])
       setShownInfo({ session, class: selectedClass, type: schoolType })
       setShown(true)
       setLoading(false)
       showToast(`Fee data loaded for ${selectedClass} — Session ${session}`)
-    }, 700)
+    }).catch(error => { setFeeRows([]); setLoading(false); showToast(error.message || 'Fee charges could not be loaded.', 'error') })
   }, [session, schoolType, selectedClass, feeStudType])
 
   // ── Update single row charge ───────────────────────────────────────────────
   const handleUpdate = useCallback((id, val) => {
     setFeeRows(prev => prev.map(r => r.fee_head_id === id ? { ...r, fee_charges: val } : r))
-    showToast('Charge updated successfully.')
-  }, [])
+    const row = feeRows.find(r => r.fee_head_id === id)
+    if (row?.id) apiFetch('/fees/charges/' + row.id, { method: 'PUT', body: JSON.stringify({ session: shownInfo.session, feeHeadId: row.fee_head_id, feeTypeId: row.fee_type_id, charges: Number(val), classId: row.class_id, status: 1 }) }).then(() => showToast('Charge updated successfully.')).catch(error => showToast(error.message || 'Charge update failed.', 'error'))
+  }, [feeRows, shownInfo.session])
 
   // ── Save All ──────────────────────────────────────────────────────────────
   const handleSaveAll = () => {

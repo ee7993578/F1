@@ -18,10 +18,10 @@ function ERPApp() {
     <MenuBar menuData={menuData} activeModule={activeModule} onModuleClick={setModule} />
     <div className="flex flex-1 overflow-hidden"><Sidebar moduleData={moduleData} activeGroup={activeGroup} activePage={activePage} onGroupClick={setGroup} onPageClick={setPage} />
       <div className="flex flex-col flex-1 overflow-hidden"><Breadcrumb moduleLabel={moduleLabel} groupLabel={groupLabel} pageLabel={pageLabel} onHome={goHome} />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-100 dark:bg-[#0f1117] p-4 md:p-5 transition-colors duration-300">{isDashboard ? <Dashboard onPageClick={setPage} /> : <PageRenderer moduleData={moduleData} currentGroup={currentGroup} currentPage={currentPage} />}</main>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-100 dark:bg-[#0f1117] p-4 md:p-5 transition-colors duration-300">{isDashboard ? <Dashboard onPageClick={setPage} user={user} menuMeta={menuMeta} /> : <PageRenderer moduleData={moduleData} currentGroup={currentGroup} currentPage={currentPage} />}</main>
       </div>
     </div>
-    <MobileDrawer menuData={menuData} isOpen={isDrawerOpen} onClose={closeDrawer} activeModule={activeModule} activeGroup={activeGroup} activePage={activePage} onModuleClick={setModule} onPageClick={setPage} />
+    <MobileDrawer menuData={menuData} schoolName={user?.schoolName || menuMeta?.schoolName} logoPath={user?.logoPath} isOpen={isDrawerOpen} onClose={closeDrawer} activeModule={activeModule} activeGroup={activeGroup} activePage={activePage} onModuleClick={setModule} onPageClick={setPage} />
   </div>
 }
 export default function App() { const { user, loading } = useAuth(); if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-500">Loading...</div>; return user ? <ERPApp /> : <Login /> }

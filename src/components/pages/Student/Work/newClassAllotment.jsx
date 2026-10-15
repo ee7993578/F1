@@ -1,40 +1,11 @@
 import { useState, useMemo } from 'react'
+import { apiFetch } from '../../../../lib/api'
 import { useStudents } from '../../../../hooks/useStudents'
 import {
   ArrowRight, ArrowLeft, ChevronDown, Search,
   CheckSquare, Square, Users, GraduationCap,
   RefreshCw, Check, AlertCircle, X, MoveRight
 } from 'lucide-react'
-
-// ─── DUMMY DATA ───────────────────────────────────────────────────────────────
-const CLASSES_SECTIONS = [
-  { id: 'nur-a',   label: 'Nursery – A' },
-  { id: 'nur-b',   label: 'Nursery – B' },
-  { id: 'lkg-a',   label: 'LKG – A' },
-  { id: 'lkg-b',   label: 'LKG – B' },
-  { id: 'ukg-a',   label: 'UKG – A' },
-  { id: 'ukg-b',   label: 'UKG – B' },
-  { id: 'i-a',     label: 'Class I – A' },
-  { id: 'i-b',     label: 'Class I – B' },
-  { id: 'ii-a',    label: 'Class II – A' },
-  { id: 'ii-b',    label: 'Class II – B' },
-  { id: 'iii-a',   label: 'Class III – A' },
-  { id: 'iii-b',   label: 'Class III – B' },
-  { id: 'iv-a',    label: 'Class IV – A' },
-  { id: 'iv-b',    label: 'Class IV – B' },
-  { id: 'v-a',     label: 'Class V – A' },
-  { id: 'v-b',     label: 'Class V – B' },
-  { id: 'vi-a',    label: 'Class VI – A' },
-  { id: 'vi-b',    label: 'Class VI – B' },
-  { id: 'vii-a',   label: 'Class VII – A' },
-  { id: 'vii-b',   label: 'Class VII – B' },
-  { id: 'viii-a',  label: 'Class VIII – A' },
-  { id: 'viii-b',  label: 'Class VIII – B' },
-  { id: 'ix-a',    label: 'Class IX – A' },
-  { id: 'ix-b',    label: 'Class IX – B' },
-  { id: 'x-a',     label: 'Class X – A' },
-  { id: 'x-b',     label: 'Class X – B' },
-]
 
 // ─── TINY REUSABLE COMPONENTS ─────────────────────────────────────────────────
 function NativeSelect({ value, onChange, children, className = '', placeholder }) {
@@ -80,6 +51,7 @@ function StudentPanel({
   title,
   accentColor,       // 'blue' | 'violet'
   classId,
+  classOptions,
   onClassChange,
   students,
   selectedIds,
@@ -113,7 +85,7 @@ function StudentPanel({
         </div>
         {/* Class Selector */}
         <NativeSelect value={classId} onChange={e => onClassChange(e.target.value)} placeholder="-- Select Class / Section --">
-          {CLASSES_SECTIONS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+          {classOptions.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
         </NativeSelect>
       </div>
 
@@ -307,9 +279,16 @@ function SuccessToast({ message, onClose }) {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function NewClassAllotment() {
   const { data: liveStudentData } = useStudents()
+  const classSectionOptions = useMemo(() => (liveStudentData?.sections || []).map(row => ({
+    id: String(row.sectionId),
+    classId: row.classId,
+    className: row.className || '',
+    sectionName: row.sectionName || '',
+    label: [row.className, row.sectionName].filter(Boolean).join(' – '),
+  })), [liveStudentData])
   const liveStudentsForClass = classId => {
-    const label = CLASSES_SECTIONS.find(c => c.id === classId)?.label?.split(' – ')[0]
-    return (liveStudentData?.students || []).filter(row => !label || row.className === label || row.class_name === label).map(row => ({ ...row, id: row.studentId, name: row.name, adm: row.registrationNo || '', roll: row.rollNo || '' }))
+    const option = classSectionOptions.find(item => item.id === String(classId))
+    return (liveStudentData?.students || []).filter(row => !option || (String(row.classId) === String(option.classId) && String(row.sectionId) === String(option.id))).map(row => ({ ...row, id: row.uid || row.studentId, name: row.name, adm: row.registrationNo || '', roll: row.rollNo || '' }))
   }
   // Source panel state
   const [srcClass, setSrcClass]           = useState('')
@@ -326,6 +305,7 @@ export default function NewClassAllotment() {
   // UI state
   const [errors, setErrors]               = useState({})
   const [toast, setToast]                 = useState(null)
+  const currentSession = liveStudentData?.sessions?.find(item => String(item.status).toLowerCase() === 'default')?.session || liveStudentData?.sessions?.[0]?.session || ''
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const showToast = (msg) => {
@@ -376,7 +356,7 @@ export default function NewClassAllotment() {
     setSrcStudents(p => p.filter(s => !srcSelected.includes(s.id)))
     setSrcSelected([])
     setTgtStudents(p => [...p, ...moving])
-    showToast(`${moving.length} student${moving.length > 1 ? 's' : ''} moved to ${CLASSES_SECTIONS.find(c => c.id === tgtClass)?.label}`)
+    showToast(`${moving.length} student${moving.length > 1 ? 's' : ''} moved to ${classSectionOptions.find(c => c.id === tgtClass)?.label || 'target section'}`)
   }
 
   // Move selected from target → source (move back)
@@ -391,15 +371,21 @@ export default function NewClassAllotment() {
   }
 
   // Validate + Save
-  const handleSave = () => {
+  const handleSave = async () => {
     const err = {}
     if (!srcClass) err.srcClass = 'Select source class'
     if (!tgtClass) err.tgtClass = 'Select target class'
     if (srcClass && tgtClass && srcClass === tgtClass) err.tgtClass = 'Source & target cannot be same'
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({})
-    const moved = tgtStudents.length - (tgtClass ? liveStudentsForClass(tgtClass).length : 0)
-    showToast(`Allotment saved! ${tgtStudents.length} students now in ${CLASSES_SECTIONS.find(c => c.id === tgtClass)?.label}`)
+    if (!currentSession) { setErrors({ session: 'No academic session is configured' }); return }
+    const originalTargetIds = new Set(liveStudentsForClass(tgtClass).map(student => String(student.id)))
+    const movedUids = tgtStudents.filter(student => !originalTargetIds.has(String(student.id))).map(student => String(student.uid || student.id))
+    if (!movedUids.length) { showToast('No students were moved'); return }
+    try {
+      const result = await apiFetch('/students/class-allotment', { method: 'PUT', body: JSON.stringify({ sectionId: Number(tgtClass), session: currentSession, studentUids: movedUids }) })
+      showToast(result.message || 'Class allotment saved')
+    } catch (error) { showToast(error.message || 'Class allotment failed'); }
   }
 
   const handleReset = () => {
@@ -482,6 +468,7 @@ export default function NewClassAllotment() {
                 title="Source Class"
                 accentColor="blue"
                 classId={srcClass}
+                classOptions={classSectionOptions}
                 onClassChange={handleSrcClassChange}
                 students={srcFiltered}
                 selectedIds={srcSelected}
@@ -522,6 +509,7 @@ export default function NewClassAllotment() {
                 title="Target Class"
                 accentColor="violet"
                 classId={tgtClass}
+                classOptions={classSectionOptions}
                 onClassChange={handleTgtClassChange}
                 students={tgtFiltered}
                 selectedIds={tgtSelected}
@@ -568,7 +556,7 @@ export default function NewClassAllotment() {
         <div className="rounded-2xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-500/[0.05] px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-2">
           <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
           <p className="text-[13px] text-emerald-800 dark:text-emerald-300 font-medium flex-1">
-            <strong>{tgtStudents.length}</strong> student{tgtStudents.length > 1 ? 's' : ''} currently in <strong>{CLASSES_SECTIONS.find(c => c.id === tgtClass)?.label}</strong>. Click <em>Change</em> to confirm and save.
+            <strong>{tgtStudents.length}</strong> student{tgtStudents.length > 1 ? 's' : ''} currently in <strong>{classSectionOptions.find(c => c.id === tgtClass)?.label}</strong>. Click <em>Change</em> to confirm and save.
           </p>
         </div>
       )}

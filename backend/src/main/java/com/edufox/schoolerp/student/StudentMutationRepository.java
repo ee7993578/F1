@@ -36,7 +36,6 @@ public class StudentMutationRepository {
         add(regSet, regArgs, "religion", request.religion());
         add(regSet, regArgs, "status", request.status());
         add(regSet, regArgs, "session", request.session());
-        add(regSet, regArgs, "remark", request.remark());
         if (!regSet.isEmpty()) {
             regArgs.add(uid); regArgs.add(schoolId);
             jdbc.update("UPDATE student_reg SET " + String.join(", ", regSet) + " WHERE uid=? AND school_id=?", regArgs.toArray());
@@ -70,6 +69,11 @@ public class StudentMutationRepository {
         add(masterSet, masterArgs, "registration_no", request.registrationNo());
         add(masterSet, masterArgs, "status", request.status());
         add(masterSet, masterArgs, "session", request.session());
+        if (request.status() != null) {
+            masterSet.add("Withdrawn_date=CASE WHEN ? <> 'Registered' THEN GETDATE() ELSE NULL END");
+            masterArgs.add(request.status().trim());
+        }
+        add(masterSet, masterArgs, "Withdrawn_reason", request.remark());
         if (request.sectionId() != null) { masterSet.add("sec_id=?"); masterArgs.add(request.sectionId()); }
         if (request.className() != null && !request.className().isBlank()) {
             Integer classId = findClassId(schoolId, request.className());

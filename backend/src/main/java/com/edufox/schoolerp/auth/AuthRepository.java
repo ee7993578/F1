@@ -37,9 +37,13 @@ public class AuthRepository {
         Map<String, Object> row = jdbc.queryForMap(("""
             SELECT f.school_id, sm.schoolname, sm.campusid,
                    CONCAT(COALESCE(f.first_name,''),' ',COALESCE(f.mid_name,''),' ',COALESCE(f.last_name,'')) AS username,
-                   f.staff_u_id, f.image_path, sm.logo_path,
+                   f.staff_u_id, f.image_path,
+                   CASE WHEN COALESCE(sm.logo_path,'')='' THEN ''
+                        WHEN LOWER(sm.logo_path) LIKE 'http%%' THEN sm.logo_path
+                        ELSE COALESCE(sm.web_address,'') + sm.logo_path END AS logo_path,
                    COALESCE(c.colorScheme,'') AS colorScheme,
-                   COALESCE(c.otp_based,0) AS otp_based
+                   COALESCE(c.otp_based,0) AS otp_based,
+                   COALESCE(f.otp_bases_access,0) AS otp_bases_access
             FROM TB_FacultyMaster f
             JOIN schoolmaster sm ON sm.school_id=f.school_id AND sm.status=1
             LEFT JOIN configuration c ON c.school_id=f.school_id
@@ -48,7 +52,9 @@ public class AuthRepository {
 
         String schoolId = value(row, "school_id");
         String staffUid = value(row, "staff_u_id");
-        boolean otpRequired = "1".equals(value(row, "otp_based"));
+        // The legacy procedure requires both switches before asking for OTP.
+        boolean otpRequired = "1".equals(value(row, "otp_based"))
+            && "1".equals(value(row, "otp_bases_access"));
         return new AuthUser(schoolId, value(row, "schoolname"), value(row, "campusid"),
             cleanName(value(row, "username")), staffUid, value(row, "image_path"),
             value(row, "logo_path"), value(row, "colorScheme"), "F",
@@ -64,7 +70,10 @@ public class AuthRepository {
         Map<String, Object> row = jdbc.queryForMap(("""
             SELECT f.school_id, sm.schoolname, sm.campusid,
                    CONCAT(COALESCE(f.First_name,''),' ',COALESCE(f.Mid_name,''),' ',COALESCE(f.Last_name,'')) AS username,
-                   s.stu_id AS staff_u_id, f.studentimage AS image_path, sm.logo_path,
+                   s.stu_id AS staff_u_id, f.studentimage AS image_path,
+                   CASE WHEN COALESCE(sm.logo_path,'')='' THEN ''
+                        WHEN LOWER(sm.logo_path) LIKE 'http%%' THEN sm.logo_path
+                        ELSE COALESCE(sm.web_address,'') + sm.logo_path END AS logo_path,
                    COALESCE(c.colorScheme,'') AS colorScheme
             FROM student_other_info f
             JOIN TB_StudentMaster s ON s.registration_no=f.registration_no AND s.school_id=f.school_id

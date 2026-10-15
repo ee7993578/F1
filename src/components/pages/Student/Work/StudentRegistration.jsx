@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useStudents } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
 import { ChevronDown, Upload, Camera, AlertCircle, Save, Printer, X, Check, GraduationCap, User, Users, CreditCard, Heart, FileText, Building2, Sparkles } from 'lucide-react'
@@ -203,10 +203,10 @@ function CollapsibleCard({ icon: Icon, title, badge, accent = 'blue', open, onTo
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function StudentRegistration({ title = 'Student Registration' }) {
   const { data: studentData } = useStudents()
-  const liveClasses = studentData?.classes?.map(c => c.className).filter(Boolean) || CLASSES
-  const liveSessions = studentData?.sessions?.map(s => s.session).filter(Boolean) || SESSIONS
+  const liveClasses = studentData?.classes?.map(c => c.className).filter(Boolean) || []
+  const liveSessions = studentData?.sessions?.map(s => s.session).filter(Boolean) || []
   const [form, setForm] = useState({
-    formNo: '', class_: '', session: '2025-26', studType: 'Regular',
+    formNo: '', class_: '', session: '', studType: 'Regular',
     mop: 'Cash', regFee: '500', regDate: new Date().toISOString().split('T')[0],
     firstName: '', middleName: '', lastName: '',
     dobDay: '', dobMonth: '', dobYear: '',
@@ -225,7 +225,9 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
   const [showClassPicker, setShowClassPicker] = useState(false)
   // Accordion: only one section open at a time; section 1 open by default
   const [openSection, setOpenSection]         = useState(1)
+  const configuredSession = liveSessions.find((_, index) => String(studentData?.sessions?.[index]?.status).toLowerCase() === 'default') || liveSessions[0] || ''
   const toggle = (n) => setOpenSection(prev => prev === n ? null : n)
+  useEffect(() => { if (configuredSession && !form.session) setV('session', configuredSession) }, [configuredSession])
 
   const set  = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
   const setV = (k, v) => setForm(p => ({ ...p, [k]: v }))

@@ -1,117 +1,121 @@
-import { Users, UserCheck, DollarSign, CheckSquare } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Users, UserCheck, DollarSign, CheckSquare, Loader2, RefreshCw } from 'lucide-react'
+import { apiFetch } from '../../lib/api'
 import StatCard from '../ui/StatCard'
 import { Card, CardHeader, CardTitle, CardBody } from '../ui/Card'
-import Button from '../ui/Button'
-
-const STATS = [
-  { icon: Users,      value: '1,284', label: 'Total Students',        color: 'blue' },
-  { icon: UserCheck,  value: '86',    label: 'Teaching Staff',         color: 'green' },
-  { icon: DollarSign, value: '₹4.2L', label: 'Fee Collected Today',    color: 'orange' },
-  { icon: CheckSquare,value: '94.2%', label: 'Avg Attendance',         color: 'purple' },
-]
+import SchoolBrand from '../layout/SchoolBrand'
 
 const QUICK_LINKS = [
-  { label: 'Marks Entry',   mod: 'exam-master',    grp: 'marks-entry',       page: 'define-marks-new' },
-  { label: 'Fee Collection',mod: 'fee',             grp: 'fee-collection',    page: 'collect-fee' },
-  { label: 'Attendance',    mod: 'reports',         grp: 'attendance-reports',page: 'daily-attendance' },
-  { label: 'Send SMS',      mod: 'communication',   grp: 'messaging',         page: 'send-sms' },
-  { label: 'Report Cards',  mod: 'reports',         grp: 'academic-reports',  page: 'report-card-prim' },
-  { label: 'Certificates',  mod: 'certificates',    grp: 'gen-certs',         page: 'bonafide' },
+  { label: 'Marks Entry', mod: 'exam-master', grp: 'marks-entry', page: 'define-marks-new' },
+  { label: 'Fee Collection', mod: 'fee', grp: 'fee-collection', page: 'collect-fee' },
+  { label: 'Attendance', mod: 'reports', grp: 'attendance-reports', page: 'daily-attendance' },
+  { label: 'Send SMS', mod: 'communication', grp: 'messaging', page: 'send-sms' },
+  { label: 'Report Cards', mod: 'reports', grp: 'academic-reports', page: 'report-card-prim' },
+  { label: 'Certificates', mod: 'certificates', grp: 'gen-certs', page: 'bonafide' },
 ]
 
-const ACTIVITY = [
-  { color: '#3b82f6', text: 'Fee collected for Class X-A — ₹12,400',    time: '2 min ago' },
-  { color: '#10b981', text: 'Attendance marked for Class IX-B',           time: '15 min ago' },
-  { color: '#f59e0b', text: 'New admission registered: Aryan Kumar',      time: '42 min ago' },
-  { color: '#8b5cf6', text: 'Report card generated for Class VIII',       time: '1 hr ago' },
-  { color: '#ef4444', text: 'Pending fee reminder sent to 24 parents',    time: '2 hrs ago' },
-]
+const number = (value) => {
+  if (value && typeof value === 'object') return number(value.value ?? value.total ?? 0)
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
 
-export default function Dashboard({ onPageClick }) {
+const firstNumber = (value) => Array.isArray(value) ? number(value[0]) : number(value)
+const formatNumber = (value) => number(value).toLocaleString('en-IN')
+const formatMoney = (value) => `₹${number(value).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+
+function dashboardType(user) {
+  if (user?.typeStatus === 'F' && user?.dashboard === '27') return 'management'
+  return 'academic'
+}
+
+export default function Dashboard({ onPageClick, user, menuMeta }) {
+  const [data, setData] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const type = useMemo(() => dashboardType(user), [user])
+
+  const load = async () => {
+    setLoading(true)
+    setError('')
+    const types = [...new Set([type, 'fees', 'attendance', 'management'])]
+    const responses = await Promise.allSettled(types.map((item) => apiFetch(`/dashboard/${item}`)))
+    const next = {}
+    responses.forEach((response, index) => {
+      if (response.status === 'fulfilled') next[types[index]] = response.value
+    })
+    if (!Object.keys(next).length) setError('Dashboard data could not be loaded.')
+    setData(next)
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [type])
+
+  const academic = data.academic || data.management || {}
+  const management = data.management || {}
+  const fee = data.fees || {}
+  const attendance = data.attendance || {}
+  const summary = academic.summary || {}
+  const feeSummary = fee.summary || management.fees || {}
+  const attendanceSummary = attendance.summary || {}
+  const present = number(attendanceSummary.present)
+  const absent = number(attendanceSummary.absent)
+  const attendanceRate = present + absent ? `${((present / (present + absent)) * 100).toFixed(1)}%` : '—'
+  const schoolName = user?.schoolName || menuMeta?.schoolName || 'School ERP'
+  const session = academic.session || management.session || menuMeta?.session || '—'
+  const activity = (academic.admissions || []).slice(-5).reverse()
+
+  const stats = [
+    { icon: Users, value: formatNumber(summary.total), label: 'Total Students', color: 'blue' },
+    { icon: UserCheck, value: formatNumber(firstNumber(management.faculty)), label: 'Teaching Staff', color: 'green' },
+    { icon: DollarSign, value: formatMoney(feeSummary.received), label: 'Fee Collected', color: 'orange' },
+    { icon: CheckSquare, value: attendanceRate, label: 'Attendance', color: 'purple' },
+  ]
+
   return (
     <div className="page-animate space-y-4">
-      {/* Welcome banner */}
-      <div className="relative rounded-[14px] p-6 text-white overflow-hidden welcome-card"
-        style={{
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 40%, #1e40af 70%, #1d4ed8 100%)',
-          boxShadow: '0 8px 32px rgba(30,58,138,0.35), inset 0 1px 0 rgba(255,255,255,0.1)',
-        }}
-      >
-        {/* Decorative blobs */}
-        <div className="absolute right-[-40px] top-[-40px] w-48 h-48 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.25), transparent 70%)' }}
-        />
-        <div className="absolute right-[60px] bottom-[-60px] w-36 h-36 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.2), transparent 70%)' }}
-        />
-        <div className="absolute left-[-20px] bottom-[-20px] w-32 h-32 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.15), transparent 70%)' }}
-        />
+      <div className="relative rounded-[14px] p-6 text-white overflow-hidden welcome-card bg-gradient-to-br from-blue-900 via-indigo-900 to-blue-700">
+        <div className="absolute right-[-40px] top-[-40px] w-48 h-48 rounded-full bg-indigo-400/20" />
         <div className="relative z-10">
-          <h2 className="font-display text-[20px] font-bold mb-1">Welcome back, Sudheer Babu! 👋</h2>
-          <p className="text-[13px] text-white/80">APS International School — Manage your school effortlessly.</p>
-          <p className="mt-3 text-[12px] text-white/60">📅 Academic Session: 2026–2027 &nbsp;|&nbsp; Last Login: 13 May 2026, 1:29 PM</p>
+          <div className="flex items-center gap-3 mb-2">
+            <SchoolBrand schoolName={schoolName} logoPath={user?.logoPath} markClassName="w-11 h-11" />
+          </div>
+          <h2 className="font-display text-[20px] font-bold mb-1">Welcome back, {user?.username || 'User'}!</h2>
+          <p className="text-[13px] text-white/80">Manage your school using live records from the current session.</p>
+          <p className="mt-3 text-[12px] text-white/60">Academic Session: {session}</p>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {STATS.map(s => <StatCard key={s.label} {...s} />)}
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      <div className="flex items-center justify-end gap-2 text-xs text-slate-500">
+        {loading && <><Loader2 size={14} className="animate-spin" /> Loading dashboard...</>}
+        <button onClick={load} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 hover:bg-white" title="Refresh dashboard"><RefreshCw size={13} /> Refresh</button>
       </div>
 
-      {/* Quick links + Activity */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {stats.map((stat) => <StatCard key={stat.label} {...stat} />)}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Quick links */}
         <Card>
           <CardHeader><CardTitle>Quick Access</CardTitle></CardHeader>
           <CardBody>
             <div className="grid grid-cols-3 gap-2.5">
-              {QUICK_LINKS.map(link => (
-                <button
-                  key={link.label}
-                  onClick={() => onPageClick(link.mod, link.grp, link.page)}
-                  className="flex flex-col items-center gap-2 py-3.5 px-2 bg-slate-50 dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-indigo-500/[0.08] border border-slate-200 dark:border-[rgba(99,102,241,0.1)] hover:border-blue-200 dark:hover:border-indigo-500/30 rounded-[10px] transition-all duration-200 hover:-translate-y-0.5 group"
-                  style={{
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
-                  }}
-                >
-                  <div className="w-9 h-9 rounded-[9px] flex items-center justify-center group-hover:scale-110 transition-transform duration-200"
-                    style={{
-                      background: 'linear-gradient(135deg, #1e3a8a, #4f46e5)',
-                      boxShadow: '0 3px 8px rgba(30,58,138,0.3)',
-                    }}
-                  >
-                    <span className="text-white text-[11px] font-bold">
-                      {link.label.charAt(0)}
-                    </span>
-                  </div>
-                  <span className="text-[11.5px] font-medium text-slate-600 dark:text-slate-300 text-center leading-tight">{link.label}</span>
-                </button>
-              ))}
+              {QUICK_LINKS.map((link) => <button key={link.label} onClick={() => onPageClick(link.mod, link.grp, link.page)} className="flex flex-col items-center gap-2 py-3.5 px-2 bg-slate-50 dark:bg-white/[0.03] hover:bg-blue-50 border border-slate-200 dark:border-[rgba(99,102,241,0.1)] rounded-[10px] transition-all">
+                <div className="w-9 h-9 rounded-[9px] flex items-center justify-center bg-gradient-to-br from-blue-900 to-indigo-600"><span className="text-white text-[11px] font-bold">{link.label.charAt(0)}</span></div>
+                <span className="text-[11.5px] font-medium text-slate-600 dark:text-slate-300 text-center leading-tight">{link.label}</span>
+              </button>)}
             </div>
           </CardBody>
         </Card>
 
-        {/* Recent activity */}
         <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <span className="text-[12px] text-slate-400 dark:text-slate-500">Today</span>
-          </CardHeader>
+          <CardHeader><CardTitle>Recent Admissions</CardTitle><span className="text-[12px] text-slate-400">Live</span></CardHeader>
           <CardBody className="p-0">
-            <div className="divide-y divide-slate-100 dark:divide-[rgba(99,102,241,0.06)]">
-              {ACTIVITY.map((a, i) => (
-                <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                  <div className="w-2 h-2 rounded-full mt-[5px] flex-shrink-0"
-                    style={{ background: a.color, boxShadow: `0 0 6px ${a.color}80` }}
-                  />
-                  <div>
-                    <p className="text-[13px] text-slate-800 dark:text-slate-200">{a.text}</p>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{a.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {activity.length ? <div className="divide-y divide-slate-100 dark:divide-[rgba(99,102,241,0.06)]">{activity.map((item, index) => <div key={`${item.label}-${index}`} className="flex items-start gap-3 px-4 py-3">
+              <div className="w-2 h-2 rounded-full mt-[5px] flex-shrink-0 bg-blue-500" />
+              <div><p className="text-[13px] text-slate-800 dark:text-slate-200">{formatNumber(item.value)} admission{number(item.value) === 1 ? '' : 's'} recorded</p><p className="text-[11px] text-slate-400 mt-0.5">{item.label}</p></div>
+            </div>)}</div> : <p className="px-4 py-6 text-sm text-slate-400">No admission records for the selected period.</p>}
           </CardBody>
         </Card>
       </div>

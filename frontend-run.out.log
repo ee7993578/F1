@@ -1,0 +1,57 @@
+
+  VITE v6.4.3  ready in 4383 ms
+
+  ➜  Local:   http://127.0.0.1:5173/
+5:15:57 pm [vite] (client) hmr update /src/components/pages/Transport/Setup/DefineTransportType.jsx, /src/index.css
+5:15:57 pm [vite] (client) hmr update /src/components/pages/Transport/Work/VehicleMaster.jsx, /src/index.css
+5:15:57 pm [vite] (client) hmr update /src/components/pages/Transport/Report/AssignRoute.jsx, /src/index.css
+5:15:57 pm [vite] (client) hmr update /src/components/pages/Transport/Setup/RouteMaster.jsx, /src/index.css
+5:15:57 pm [vite] (client) hmr update /src/components/pages/Transport/Setup/StoppageMaster.jsx, /src/index.css
+5:15:57 pm [vite] (client) hmr update /src/components/pages/Transport/Setup/RouteStoppageMapping.jsx, /src/index.css
+5:15:57 pm [vite] (client) hmr update /src/components/pages/Transport/Work/DriverVehicleMaster.jsx, /src/index.css
+5:15:57 pm [vite] (client) hmr update /src/components/pages/Transport/Work/AssignTransport.jsx, /src/index.css
+5:15:57 pm [vite] (client) hmr update /src/components/pages/Transport/Report/StudentTransportReport.jsx, /src/index.css
+5:15:57 pm [vite] (client) hmr update /src/components/pages/Transport/Report/MonthwiseTransportReport.jsx, /src/index.css
+5:15:57 pm [vite] (client) hmr update /src/components/pages/Transport/Report/TransportPrivateStudentsReport.jsx, /src/index.css
+5:16:10 pm [vite] (client) hmr update /src/components/pages/Transport/TransportModule.jsx, /src/index.css
+5:28:45 pm [vite] (client) hmr update /src/App.jsx, /src/index.css
+5:30:12 pm [vite] (client) hmr update /src/components/pages/PageRenderer.jsx, /src/index.css
+5:40:30 pm [vite] (client) hmr update /src/components/pages/Dashboard/AllDashboard/AdminDashboard.jsx, /src/index.css
+5:40:30 pm [vite] (client) hmr update /src/components/pages/Dashboard/AllDashboard/AdminDashboardAttendance.jsx, /src/index.css
+5:40:30 pm [vite] (client) hmr update /src/components/pages/Dashboard/AllDashboard/AdminDashboardFees.jsx, /src/index.css
+5:40:30 pm [vite] (client) hmr update /src/components/pages/Dashboard/AllDashboard/FacultyAttendanceDashboard.jsx, /src/index.css
+5:40:30 pm [vite] (client) hmr update /src/components/pages/Dashboard/AllDashboard/LibraryDashBoard.jsx, /src/index.css
+5:40:30 pm [vite] (client) hmr update /src/components/pages/Dashboard/AllDashboard/AdminDashBoardMarks.jsx, /src/index.css
+5:40:30 pm [vite] (client) hmr update /src/components/pages/Dashboard/AllDashboard/ManagementDashboard.jsx, /src/index.css
+5:57:08 pm [vite] (client) hmr update /src/auth/AuthContext.jsx, /src/index.css, /src/App.jsx, /src/components/pages/Student/Update/ChangeAdmNo.jsx, /src/components/pages/Student/Work/newClassAllotment.jsx, /src/components/pages/Student/Work/StudentRegistration.jsx, /src/components/pages/Student/Work/StudentICard.jsx, /src/components/pages/Student/Work/SearchStudent.jsx, /src/components/pages/Student/Work/AdmNoAllotment.jsx, /src/components/pages/Student/Work/RegistrationRedirection.jsx, /src/components/pages/Student/Work/AdmitCard.jsx, /src/components/pages/Student/Work/BulkAdmissionOnlineRegistration.jsx, /src/components/pages/Student/Update/UpdateStudentInfosheet.jsx, /src/components/pages/Student/Reports/StudentIDPassword.jsx, /src/components/pages/Student/Reports/StudentWithdrawnReport.jsx, /src/components/pages/Student/Reports/StrengthReport.jsx, /src/components/pages/Student/Reports/OnlineRegistrationReport.jsx, /src/components/pages/Student/Reports/ClasswiseStrengthReport.jsx, /src/components/pages/Student/Reports/UDISEPromotionReport.jsx, /src/components/pages/Student/Reports/StudentInfoSheet.jsx, /src/components/pages/Student/Update/UpdateStudentInfo.jsx, /src/components/pages/Student/Update/StudentWithdrawn.jsx, /src/components/pages/Student/Reports/StudentRegistrationDetails.jsx, /src/components/pages/Student/Reports/EntranceExamAdmitCard.jsx, /src/components/pages/Student/Reports/RegistrationReport.jsx, /src/components/pages/Student/Update/UploadStudentImage.jsx, /src/components/pages/Student/Reports/StudentList.jsx, /src/components/pages/Student/Reports/OnlineRegistrationReportStatus.jsx, /src/components/pages/Student/Reports/StudentRecord.jsx, /src/components/pages/Student/Reports/StudentTypeReport.jsx, /src/components/pages/Student/Reports/AllStudentStrength.jsx, /src/components/pages/Student/Reports/BirthdayReport.jsx, /src/components/pages/Student/Reports/SiblingReport.jsx, /src/components/pages/Student/Reports/AdmittedStudentReport.jsx, /src/components/pages/Student/Reports/DownloadRegistrationForm.jsx, /src/components/pages/Student/Reports/NewStudentReport.jsx, /src/components/pages/Student/Reports/HouseReport.jsx, /src/components/pages/Student/Setup/ClassRepresentative.jsx, /src/components/pages/Student/Update/PromoteDemote.jsx, /src/components/pages/MasterSetting/Work/ViewProfile.jsx, /src/components/pages/MasterSetting/Work/RoleList.jsx, /src/components/pages/MasterSetting/Work/SessionMaster.jsx, /src/components/pages/MasterSetting/Work/ModuleMapping.jsx, /src/components/pages/MasterSetting/Work/Change_Section_Name.jsx, /src/components/pages/MasterSetting/Work/SwitchSession.jsx, /src/components/pages/MasterSetting/Work/ClassSectionMaster.jsx, /src/components/pages/MasterSetting/Work/Roles_Permission.jsx, /src/components/pages/MasterSetting/Work/LogReportDateWise.jsx, /src/components/pages/MasterSetting/Work/DefineStaffRole.jsx, /src/components/pages/MasterSetting/Work/Session_term.jsx, /src/components/pages/Student/Setup/HouseMaster.jsx, /src/components/pages/Student/Setup/RegistrationOpen.jsx, /src/components/pages/Transport/TransportModule.jsx, /src/components/pages/Dashboard/DashboardModule.jsx
+5:57:12 pm [vite] (client) hmr invalidate /src/auth/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+5:57:12 pm [vite] (client) page reload src/auth/AuthContext.jsx
+6:27:43 pm [vite] (client) hmr update /src/components/pages/Fee/Work/DepositFee.jsx, /src/index.css
+6:28:02 pm [vite] (client) hmr update /src/components/pages/Fee/Work/DepositFee.jsx, /src/index.css
+6:28:11 pm [vite] (client) hmr update /src/components/pages/Fee/Work/DepositFee.jsx, /src/index.css
+6:28:21 pm [vite] (client) hmr update /src/components/pages/Fee/Work/DepositFee.jsx, /src/index.css
+6:28:25 pm [vite] (client) hmr update /src/components/pages/Fee/Work/DepositFee.jsx, /src/index.css
+6:32:40 pm [vite] (client) hmr update /src/components/pages/Fee/Work/DepositFee.jsx, /src/index.css
+6:32:46 pm [vite] (client) hmr update /src/components/pages/Fee/Work/DepositFee.jsx, /src/index.css
+6:35:21 pm [vite] (client) hmr update /src/components/pages/Fee/Report/DailyCollectionReport.jsx, /src/index.css
+6:35:27 pm [vite] (client) hmr update /src/components/pages/Fee/Report/DailyCollectionReport.jsx, /src/index.css
+6:35:31 pm [vite] (client) hmr update /src/components/pages/Fee/Report/DailyCollectionReport.jsx, /src/index.css
+6:36:03 pm [vite] (client) hmr update /src/components/pages/Fee/Work/DepositFee.jsx, /src/index.css
+6:36:33 pm [vite] (client) hmr update /src/components/pages/Fee/Setup/FeeHeadMaster.jsx, /src/index.css
+6:36:39 pm [vite] (client) hmr update /src/components/pages/Fee/Setup/FeeHeadMaster.jsx, /src/index.css
+6:37:39 pm [vite] (client) hmr update /src/components/pages/Fee/Work/ImportExcelFee.jsx, /src/index.css
+6:42:15 pm [vite] (client) hmr update /src/components/pages/Fee/Setup/DefineLateFee.jsx, /src/index.css
+6:42:27 pm [vite] (client) hmr update /src/components/pages/Fee/Setup/DefineConcessionGroup.jsx, /src/index.css
+6:42:57 pm [vite] (client) hmr update /src/components/pages/Fee/Setup/DefineConcessionValue.jsx, /src/index.css
+6:43:17 pm [vite] (client) hmr update /src/components/pages/Fee/Setup/DefineInstallment.jsx, /src/index.css
+6:43:49 pm [vite] (client) hmr update /src/components/pages/Fee/Setup/DefineConcession.jsx, /src/index.css
+6:43:54 pm [vite] (client) hmr update /src/components/pages/Fee/Setup/DefineConcession.jsx, /src/index.css
+6:44:07 pm [vite] (client) hmr update /src/components/pages/Fee/Setup/FeeHeadChargeMaster.jsx, /src/index.css
+6:44:13 pm [vite] (client) hmr update /src/components/pages/Fee/Setup/FeeHeadChargeMaster.jsx, /src/index.css
+6:44:23 pm [vite] (client) hmr update /src/components/pages/Fee/Setup/FeeHeadChargeMaster.jsx, /src/index.css
+6:51:55 pm [vite] (client) hmr update /src/components/layout/Topbar.jsx, /src/index.css
+6:51:55 pm [vite] (client) hmr update /src/App.jsx, /src/index.css
+6:51:55 pm [vite] (client) hmr update /src/components/layout/MobileDrawer.jsx, /src/index.css
+6:52:20 pm [vite] (client) hmr update /src/components/dashboard/Dashboard.jsx, /src/index.css
+6:52:20 pm [vite] (client) hmr update /src/App.jsx, /src/index.css
+6:52:26 pm [vite] (client) hmr update /src/components/auth/Login.jsx, /src/index.css

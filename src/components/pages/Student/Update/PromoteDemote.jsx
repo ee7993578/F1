@@ -311,6 +311,8 @@ function MobileTransferView({ mode, leftPanel, rightPanel, onRight, onLeft, canR
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function PromoteDemote({ title = 'Promote / Change Section' }) {
   const { data: liveStudentData } = useStudents()
+  const liveSessions = liveStudentData?.sessions?.map(item => item.session).filter(Boolean) || []
+  const liveClasses = liveStudentData?.classes?.map(item => item.className).filter(Boolean) || []
   const liveStudentsForClass = cls => (liveStudentData?.students || []).filter(row => row.className === cls || row.class_name === cls).map(row => ({ ...row, id: row.studentId, name: row.name, roll: row.rollNo || '', gender: row.gender }))
   // Mode: 'promote' | 'section'
   const [mode, setMode]   = useState('section')
@@ -461,10 +463,10 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
       accent="blue"
       session={leftSession}
       onSessionChange={s => { setLeftSession(s); setLeftSessErr('') }}
-      sessions={SESSIONS}
+      sessions={liveSessions}
       cls={leftClass}
       onClassChange={handleLeftClass}
-      classes={CLASSES}
+      classes={liveClasses}
       students={leftStudents}
       selectedIds={leftSelected}
       onToggle={toggleLeft}
@@ -485,7 +487,7 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
       sessions={SESSIONS}
       cls={rightClass}
       onClassChange={handleRightClass}
-      classes={mode === 'promote' && leftClass ? [PROMOTE_MAP[leftClass] || ''].filter(Boolean) : CLASSES}
+      classes={mode === 'promote' && leftClass ? [PROMOTE_MAP[leftClass]].filter(value => value && liveClasses.includes(value)) : liveClasses}
       students={rightStudents}
       selectedIds={rightSelected}
       onToggle={toggleRight}

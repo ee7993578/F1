@@ -27,6 +27,7 @@ import {
   IndianRupee, Clock, BookOpen, Layers, Tag,
   LayoutGrid, Table2, ChevronLeft
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC / DUMMY DATA ──────────────────────────────────────────────────────
 const SESSIONS = ['2022-23', '2023-24', '2024-25', '2025-26']
@@ -510,7 +511,7 @@ export default function DefineInstallment() {
   const [feeType,     setFeeType]     = useState('Regular')
   const [installType, setInstallType] = useState('Fee Type Wise')
   const [rows,        setRows]        = useState([makeRow()])
-  const [savedRecords,setSavedRecords]= useState(DUMMY_SAVED)
+  const [savedRecords,setSavedRecords]= useState([])
   const [loading,     setLoading]     = useState(false)
   const [errors,      setErrors]      = useState({})
   const [toast,       setToast]       = useState(null)
@@ -521,6 +522,13 @@ export default function DefineInstallment() {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
   }
+
+  useEffect(() => {
+    if (!session) return
+    apiFetch('/fees/installments?session=' + encodeURIComponent(session))
+      .then(data => setSavedRecords((data || []).map(r => ({ id: r.id, session: r.session, feeType: feeType, installType: installType, instNo: r.installmentNo, feeTypeList: String(r.feeTypeId || ''), months: String(r.monthId || ''), dueDate: r.dueDate || '' }))))
+      .catch(error => showToast(error.message || 'Installments could not be loaded.', 'error'))
+  }, [session])
 
   // ── Row CRUD ────────────────────────────────────────────────────────────────
   const addRow = useCallback(() => {
@@ -565,7 +573,10 @@ export default function DefineInstallment() {
   const handleSubmit = () => {
     if (!validate()) { showToast('Please fix errors before submitting.', 'error'); return }
     setLoading(true)
-    setTimeout(() => {
+    const feeTypeId = feeType === 'Transport' ? 6 : feeType === 'Hostel' ? 7 : 1
+    const monthNumber = name => MONTHS.indexOf(name) + 1
+    const requests = rows.flatMap((r, index) => (r.months || []).map(month => apiFetch('/fees/installments', { method: 'POST', body: JSON.stringify({ session, installmentNo: index + 1, feeTypeId, feeHeadId: null, monthId: monthNumber(month), dueDate: r.dueDate, description: r.feeTypeList.join(', '), code: feeType + '-' + (index + 1) }) })))
+    Promise.all(requests).then(() => {
       const newRecords = rows.map((r, i) => ({
         id: Date.now() + i,
         session,
@@ -581,7 +592,7 @@ export default function DefineInstallment() {
       setLoading(false)
       setActiveTab('saved')
       showToast(`${rows.length} installment(s) saved successfully!`)
-    }, 800)
+    }).catch(error => showToast(error.message || 'Installment save failed.', 'error')).finally(() => setLoading(false))
   }
 
   // ── Reset ───────────────────────────────────────────────────────────────────
