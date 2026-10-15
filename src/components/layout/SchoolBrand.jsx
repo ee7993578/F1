@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 function initials(name) {
   const words = String(name || 'School ERP').trim().split(/\s+/).filter(Boolean)
-  return (words.length > 1 ? words.map((word) => word[0]) : words[0]?.slice(0, 3) || 'ERP')
+  return (words.length ? words.map((word) => word[0]) : ['E', 'R', 'P'])
     .join('').slice(0, 3).toUpperCase()
 }
 
