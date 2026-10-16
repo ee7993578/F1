@@ -32,41 +32,6 @@ import {
 
 // ─── DUMMY DATA ─────────────────────────────────────────────────────────────
 
-const SESSIONS = ['2023-24', '2024-25', '2025-26']
-const CLASSES  = [
-  { id: '1', name: 'Nursery' }, { id: '2', name: 'LKG' }, { id: '3', name: 'UKG' },
-  { id: '4', name: 'Class I' }, { id: '5', name: 'Class II' }, { id: '6', name: 'Class III' },
-  { id: '7', name: 'Class IV' }, { id: '8', name: 'Class V' }, { id: '9', name: 'Class VI' },
-  { id: '10', name: 'Class VII' }, { id: '11', name: 'Class VIII' }, { id: '12', name: 'Class IX' },
-  { id: '13', name: 'Class X' }, { id: '14', name: 'Class XI' }, { id: '15', name: 'Class XII' },
-]
-const STUDENTS = [
-  { id: 'S001', name: 'ARYAN SHARMA',    admNo: '13-6114', class: 'Class X - A',  mobile: '9876543210', father: 'Rajesh Sharma',    photo: null, status: 'Active',  transport: 'Route-3 / Stop-Sector 12', optional: 'Computer Science', admDate: '12 Apr 2020' },
-  { id: 'S002', name: 'PRIYA VERMA',     admNo: '13-6218', class: 'Class X - B',  mobile: '9812345678', father: 'Suresh Verma',     photo: null, status: 'Active',  transport: 'Own Vehicle',             optional: 'Physical Education', admDate: '08 Apr 2020' },
-  { id: 'S003', name: 'RAHUL GUPTA',     admNo: '13-6301', class: 'Class XI - A', mobile: '9898989898', father: 'Vikram Gupta',     photo: null, status: 'Active',  transport: 'Route-1 / Stop-Main Gate', optional: 'Biology',           admDate: '15 Apr 2021' },
-  { id: 'S004', name: 'SNEHA PATEL',     admNo: '13-6445', class: 'Class IX - B', mobile: '9765432109', father: 'Kiran Patel',      photo: null, status: 'Active',  transport: 'Not Assigned',            optional: 'Mathematics',       admDate: '10 Apr 2022' },
-]
-
-const FEE_TYPES = [
-  { id: '1', name: 'Tuition Fee' }, { id: '2', name: 'Transport Fee' },
-  { id: '3', name: 'Hostel Fee' }, { id: '4', name: 'Miscellaneous' },
-]
-
-// Current dues installment rows
-const DUMMY_DUES = [
-  { id: 1, inst_no: 'April',     fee_charges: 8500, con_charge: 500, WaveOffFeeValue: 0, receive_amount: 0, latefee: 0, balance: 8000, selected: false, waiveOff: false },
-  { id: 2, inst_no: 'May',       fee_charges: 8500, con_charge: 500, WaveOffFeeValue: 0, receive_amount: 0, latefee: 200, balance: 8200, selected: false, waiveOff: false },
-  { id: 3, inst_no: 'June',      fee_charges: 8500, con_charge: 500, WaveOffFeeValue: 0, receive_amount: 8200, latefee: 0, balance: 0,    selected: false, waiveOff: false },
-  { id: 4, inst_no: 'July',      fee_charges: 8500, con_charge: 500, WaveOffFeeValue: 0, receive_amount: 0, latefee: 0, balance: 8000, selected: false, waiveOff: false },
-  { id: 5, inst_no: 'August',    fee_charges: 8500, con_charge: 500, WaveOffFeeValue: 0, receive_amount: 0, latefee: 400, balance: 8400, selected: false, waiveOff: false },
-  { id: 6, inst_no: 'September', fee_charges: 8500, con_charge: 500, WaveOffFeeValue: 0, receive_amount: 0, latefee: 0, balance: 8000, selected: false, waiveOff: false },
-]
-
-const PREV_DUES = [
-  { id: 1, session: '2022-23', balance: 3200, con_charge: 200, latefee: 150, stu_id: 'S001', selected: false, waiveOff: false },
-  { id: 2, session: '2021-22', balance: 1800, con_charge: 0,   latefee: 0,   stu_id: 'S001', selected: false, waiveOff: false },
-]
-
 const FEE_SUMMARY = [
   {
     session: '2025-26', class_id: '13', stu_id: 'S001', expanded: false,
@@ -120,9 +85,6 @@ const OPTIONAL_STUDENTS = [
   { id: 'S003', admNo: '13-6301', name: 'Rahul Gupta',    class_id: '14', sts: true,  installments: ['April', 'May', 'June', 'July', 'August', 'September'] },
   { id: 'S004', admNo: '13-6445', name: 'Sneha Patel',    class_id: '12', sts: false, installments: ['April', 'May', 'June', 'July', 'August', 'September'] },
 ]
-
-const MOP_OPTIONS = ['Cash', 'Cheque', 'Net Banking', 'NEFT/RTGS', 'Payment Gateway', 'Mobile App', 'Online']
-const BANKS = ['SBI', 'HDFC Bank', 'ICICI Bank', 'PNB', 'Axis Bank', 'Canara Bank', 'Bank of Baroda']
 
 const mopIcon = (mop) => {
   if (!mop) return <Banknote className="w-3.5 h-3.5" />
@@ -187,12 +149,13 @@ function AmtDisplay({ value, color = 'default' }) {
   )
 }
 
-function NativeSelect({ value, onChange, children, placeholder, error, className = '' }) {
+function NativeSelect({ value, onChange, children, placeholder, error, disabled = false, className = '' }) {
   return (
     <div className="relative">
       <select
         value={value}
         onChange={onChange}
+        disabled={disabled}
         className={`w-full appearance-none pl-3 pr-8 py-2 text-[13px] rounded-lg border outline-none transition-all bg-white text-slate-800 dark:bg-[#1e2238] dark:text-slate-200
           ${error ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 dark:border-[rgba(99,102,241,0.25)] focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:border-indigo-400'}
           ${className}`}
@@ -310,9 +273,22 @@ function Toast({ message, type = 'success', onClose }) {
 
 // ─── STUDENT HEADER CARD ─────────────────────────────────────────────────────
 
-function StudentHeader({ student }) {
+function StudentHeader({ student, feeData, session, onPageClick }) {
   if (!student) return null
   const initials = student.name.split(' ').slice(0, 2).map(w => w[0]).join('')
+  const current = feeData?.current || [], previous = feeData?.previous || []
+  const balance = [...current, ...previous].reduce((sum, row) => sum + Number(row.balance || 0) + Number(row.lateFee || 0), 0)
+  const paid = [...current, ...previous].reduce((sum, row) => sum + Number(row.receiveAmount || 0), 0)
+  const totalDue = balance + paid
+  const goToFeePage = (group, page) => {
+    sessionStorage.setItem('fee.selectedStudent', JSON.stringify({
+      id: student.id,
+      admNo: student.admNo,
+      session: session || '',
+      name: student.name,
+    }))
+    onPageClick?.('fee', group, page)
+  }
 
   return (
     <SectionCard>
@@ -355,10 +331,10 @@ function StudentHeader({ student }) {
 
         {/* Right: financial summary pills */}
         <div className="flex items-center justify-around gap-2 p-4 sm:px-6 flex-wrap sm:flex-nowrap sm:gap-4">
-          <Pill label="Balance"      value={24600} color="red"   />
-          <Pill label="Paid"         value={32500} color="green" />
-          <Pill label="Total Due"    value={24600} color="amber" />
-          <Pill label="Excess/Adv"   value={500}   color="slate" />
+          <Pill label="Balance"      value={balance} color="red"   />
+          <Pill label="Paid"         value={paid} color="green" />
+          <Pill label="Total Due"    value={totalDue} color="amber" />
+          <Pill label="Excess/Adv"   value={feeData?.advance || 0} color="slate" />
         </div>
       </div>
 
@@ -370,7 +346,14 @@ function StudentHeader({ student }) {
           <span className="text-[11px] text-slate-400 ml-2">Father:</span>
           <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">{student.father}</span>
         </div>
-        <Btn variant="amber" size="xs" icon={CreditCard}>Pay Online</Btn>
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          <Btn variant="amber" size="xs" icon={CreditCard} onClick={() => goToFeePage('fee_report', 'StudentFeeSummary')}>Pay Online</Btn>
+          <Btn variant="ghost" size="xs" onClick={() => goToFeePage('fee_update', 'ReconFee')}>Cheque bounce</Btn>
+          <Btn variant="ghost" size="xs" onClick={() => goToFeePage('fee_setup', 'DefineConcession')}>Concession</Btn>
+          <Btn variant="ghost" size="xs" onClick={() => goToFeePage('fee_update', 'AssignConGroup')}>Concession Group</Btn>
+          <Btn variant="ghost" size="xs" onClick={() => goToFeePage('fee_work', 'WaveOffFees')}>WaveOff Fees</Btn>
+          <Btn variant="ghost" size="xs" onClick={() => goToFeePage('fee_work', 'WaveOffLateFees')}>WaveOff Late Fees</Btn>
+        </div>
       </div>
     </SectionCard>
   )
@@ -378,12 +361,12 @@ function StudentHeader({ student }) {
 
 // ─── TAB 1: DEPOSIT FEE ──────────────────────────────────────────────────────
 
-function DepositFeeTab({ student, showToast, feeData }) {
+function DepositFeeTab({ student, showToast, feeData, session, feeType, bootstrap }) {
   const [prevDues, setPrevDues] = useState([])
   const [currDues, setCurrDues] = useState([])
   const [payDate, setPayDate]   = useState('')
   const [mopRows, setMopRows]   = useState([
-    { id: 1, mop: 'Cash', chqNo: '', chqDate: '', bank: '', amount: '', useAmount: '', isLast: true }
+     { id: 1, mop: 'Cash', chqNo: '', chqDate: '', settlementDate: '', bank: '', amount: '', useAmount: '', isLast: true }
   ])
   const [advance, setAdvance]   = useState(0)
   const [adjAmt,  setAdjAmt]    = useState(0)
@@ -391,8 +374,26 @@ function DepositFeeTab({ student, showToast, feeData }) {
   const [deposited, setDeposited] = useState(false)
 
   useEffect(() => {
-    setPrevDues((feeData?.previous || []).map(row => ({ ...row, latefee: Number(row.lateFee || 0), waiveOff: false, selected: false, source: 'previous' })))
-    setCurrDues((feeData?.current || []).map(row => ({ ...row, fee_charges: Number(row.headAmount || row.payable || 0), con_charge: Number(row.concession || 0), receive_amount: Number(row.receiveAmount || 0), latefee: Number(row.lateFee || 0), balance: Number(row.balance || row.dueAmount || 0), waiveOff: false, selected: false, source: 'current' })))
+    setPrevDues((feeData?.previous || []).map(row => ({ ...row,
+      inst_no: row.instNo ?? row.inst_no ?? row.installmentNo ?? '',
+      balance: Number(row.balance || row.finalCharges || 0),
+      con_charge: Number(row.concession || 0),
+      latefee: Number(row.lateFee || row.latefee || 0),
+      lateFeeInput: Number(row.lateFee || row.latefee || 0),
+      selected: false, waiveOff: false, source: 'previous'
+    })))
+    setCurrDues((feeData?.current || []).map(row => ({ ...row,
+      inst_no: row.instNo ?? row.inst_no ?? row.installmentNo ?? '',
+      fee_charges: Number(row.headAmount || row.head_amount || row.payable || 0),
+      con_charge: Number(row.concession || row.con_charge || 0),
+      WaveOffFeeValue: Number(row.waveOffFeeValue || row.WaveOffFeeValue || 0),
+      receive_amount: Number(row.receiveAmount || row.receive_amount || 0),
+      latefee: Number(row.lateFee || row.latefee || 0),
+      lateFeeInput: Number(row.lateFee || row.latefee || 0),
+      balance: Number(row.balance || row.dueAmount || 0),
+      waiveOff: false, selected: false, source: 'current'
+    })))
+    setAdvance(Number(feeData?.advance || 0))
     setDeposited(false)
     setStep(1)
   }, [feeData, student])
@@ -413,11 +414,11 @@ function DepositFeeTab({ student, showToast, feeData }) {
 
   // totals
   const prevTotal = useMemo(() =>
-    prevDues.filter(r => r.selected).reduce((s, r) => s + r.balance + r.latefee - (r.waiveOff ? r.latefee : 0), 0)
+    prevDues.filter(r => r.selected).reduce((s, r) => s + r.balance + (r.waiveOff ? Number(r.lateFeeInput ?? r.latefee ?? 0) : r.latefee), 0)
   , [prevDues])
 
   const currTotal = useMemo(() =>
-    currDues.filter(r => r.selected).reduce((s, r) => s + r.balance + (r.waiveOff ? 0 : r.latefee), 0)
+    currDues.filter(r => r.selected).reduce((s, r) => s + r.balance + (r.waiveOff ? Number(r.lateFeeInput ?? r.latefee ?? 0) : r.latefee), 0)
   , [currDues])
 
   const totalPayable  = prevTotal + currTotal
@@ -427,22 +428,41 @@ function DepositFeeTab({ student, showToast, feeData }) {
   const handleDeposit = () => {
     if (!payDate) { showToast('Payment date is required!', 'error'); return }
     if (netPayable === 0) { showToast('No amount to deposit. Select installments.', 'error'); return }
-    const dues = [...prevDues, ...currDues].filter(row => row.selected).map(row => ({ id: row.id, source: row.source, amount: Number(row.balance || 0) + (row.waiveOff ? 0 : Number(row.latefee || 0)) }))
-    apiFetch('/fees/deposit', { method: 'POST', body: JSON.stringify({ studentId: student.id || student.studentId, session: student.session, paymentDate: payDate, mop: mopRows[0]?.mop || 'Cash', transactionNo: mopRows[0]?.chqNo || '', bankId: mopRows[0]?.bank || '', dues }) }).then(result => { setDeposited(true); showToast(`Fee deposited successfully. Receipt ${result.receiptNo || ''}`, 'success') }).catch(error => showToast(error.message || 'Fee deposit failed', 'error'))
+    if (mopTotal < netPayable) { showToast('Payment amount is less than net payable.', 'error'); return }
+    if (mopTotal > netPayable && !window.confirm('The deposit amount exceeds the payable amount. Are you sure you want to proceed?')) return
+    const dues = [...prevDues, ...currDues].filter(row => row.selected).map(row => ({ id: row.id, source: row.source, session: row.session || session, balance: Number(row.balance || 0), baseAmount: Number(row.balance || 0), lateFee: Number(row.waiveOff ? row.lateFeeInput ?? row.latefee ?? 0 : row.latefee || 0), waiveOff: row.waiveOff }))
+    const payments = mopRows.map(row => ({ mop: row.mop, bankId: row.bank, amount: Number(row.amount || 0), useAmount: Number(row.useAmount || row.amount || 0), transactionNo: row.chqNo, transactionDate: row.chqDate, settlementDate: row.settlementDate || '' }))
+    apiFetch('/fees/deposit', { method: 'POST', body: JSON.stringify({ studentId: student.id || student.studentId, session, feeType, paymentDate: payDate, advanceAdjusted: Number(adjAmt || 0), payments, dues }) }).then(result => { setDeposited(true); showToast(`Fee deposited successfully. Receipt ${result.receiptNo || ''}`, 'success') }).catch(error => showToast(error.message || 'Fee deposit failed', 'error'))
   }
 
   const addMopRow = () => {
-    setMopRows(r => [...r.map(x => ({ ...x, isLast: false })), { id: Date.now(), mop: 'Cash', chqNo: '', chqDate: '', bank: '', amount: '', useAmount: '', isLast: true }])
+    setMopRows(r => [...r.map(x => ({ ...x, isLast: false })), { id: Date.now(), mop: 'Cash', chqNo: '', chqDate: '', settlementDate: '', bank: '', amount: '', useAmount: '', isLast: true }])
   }
   const removeMopRow = (id) => {
     setMopRows(r => r.filter(x => x.id !== id))
   }
   const updateMop = (id, key, val) => {
-    setMopRows(r => r.map(x => x.id === id ? { ...x, [key]: val } : x))
+    setMopRows(rows => rows.map(row => {
+      if (row.id !== id) return row
+      if (key !== 'mop') return { ...row, [key]: val }
+      const next = { ...row, mop: val }
+      if (val === 'Cash' || val === 'Select') {
+        next.bank = ''; next.chqNo = ''; next.chqDate = ''; next.settlementDate = ''
+      } else if (val !== 'Online') {
+        next.settlementDate = ''
+      }
+      if (val === 'Select') { next.amount = ''; next.useAmount = '' }
+      return next
+    }))
   }
 
-  const allCurrSelected = currDues.every(r => r.selected)
-  const allPrevSelected = prevDues.every(r => r.selected)
+  const updateLateFee = (source, id, value) => {
+    const setter = source === 'previous' ? setPrevDues : setCurrDues
+    setter(rows => rows.map(row => row.id === id ? { ...row, lateFeeInput: Math.max(0, Math.min(Number(row.latefee || 0), Number(value) || 0)) } : row))
+  }
+
+  const allCurrSelected = currDues.length > 0 && currDues.every(r => r.selected)
+  const allPrevSelected = prevDues.length > 0 && prevDues.every(r => r.selected)
 
   return (
     <div className="space-y-4">
@@ -466,7 +486,7 @@ function DepositFeeTab({ student, showToast, feeData }) {
       </div>
 
       {/* ── PREVIOUS DUES ── (show on step 1 mobile / always desktop) */}
-      {(step === 1 || window.innerWidth >= 640) && (
+      <div className={step === 1 ? '' : 'hidden sm:block'}>
         <SectionCard className="hidden-on-mobile-step2">
           <SectionHeader icon={Clock} title="Previous Session Dues" color="amber"
             actions={
@@ -490,7 +510,9 @@ function DepositFeeTab({ student, showToast, feeData }) {
                     <td className="px-3 py-2.5"><Badge color="amber">{row.session}</Badge></td>
                     <td className="px-3 py-2.5"><AmtDisplay value={row.balance} color="red" /></td>
                     <td className="px-3 py-2.5"><AmtDisplay value={row.con_charge} /></td>
-                    <td className="px-3 py-2.5"><AmtDisplay value={row.latefee} color="amber" /></td>
+                    <td className="px-3 py-2.5">{row.waiveOff
+                      ? <Input value={row.lateFeeInput} onChange={e => updateLateFee('previous', row.id, e.target.value)} type="number" className="w-24" />
+                      : <AmtDisplay value={row.latefee} color="amber" />}</td>
                     <td className="px-3 py-2.5">
                       <Checkbox checked={row.waiveOff} onChange={() => setPrevDues(d => d.map(r => r.id === row.id ? { ...r, waiveOff: !r.waiveOff } : r))} label="Waive" />
                     </td>
@@ -517,7 +539,9 @@ function DepositFeeTab({ student, showToast, feeData }) {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
                   <div><span className="text-slate-400">Concession:</span> <span className="font-semibold text-slate-600 dark:text-slate-300">{row.con_charge}</span></div>
-                  <div><span className="text-slate-400">Late Fee:</span> <span className="font-semibold text-amber-600">{row.latefee}</span></div>
+                   <div><span className="text-slate-400">Late Fee:</span> {row.waiveOff
+                     ? <Input value={row.lateFeeInput} onChange={e => { e.stopPropagation(); updateLateFee('previous', row.id, e.target.value) }} type="number" className="w-20 inline-flex ml-1" />
+                     : <span className="font-semibold text-amber-600">{row.latefee}</span>}</div>
                 </div>
                 <div className="mt-2 flex gap-2">
                   <Checkbox checked={row.waiveOff} onChange={e => { e.stopPropagation(); setPrevDues(d => d.map(r => r.id === row.id ? { ...r, waiveOff: !r.waiveOff } : r)) }} label="Waive Off Late Fee" />
@@ -526,7 +550,7 @@ function DepositFeeTab({ student, showToast, feeData }) {
             ))}
           </div>
         </SectionCard>
-      )}
+      </div>
 
       {/* ── CURRENT DUES GRID ── */}
       {(step === 1) && (
@@ -561,7 +585,9 @@ function DepositFeeTab({ student, showToast, feeData }) {
                     <td className="px-3 py-2.5"><AmtDisplay value={row.con_charge} color="green" /></td>
                     <td className="px-3 py-2.5"><AmtDisplay value={row.WaveOffFeeValue} /></td>
                     <td className="px-3 py-2.5"><AmtDisplay value={row.receive_amount} color="green" /></td>
-                    <td className="px-3 py-2.5"><AmtDisplay value={row.latefee} color="amber" /></td>
+                    <td className="px-3 py-2.5">{row.waiveOff
+                      ? <Input value={row.lateFeeInput} onChange={e => updateLateFee('current', row.id, e.target.value)} type="number" className="w-24" />
+                      : <AmtDisplay value={row.latefee} color="amber" />}</td>
                     <td className="px-3 py-2.5">
                       <span className={`font-bold text-[13px] tabular-nums ${row.balance === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{row.balance}</span>
                     </td>
@@ -600,7 +626,9 @@ function DepositFeeTab({ student, showToast, feeData }) {
                   <div className="grid grid-cols-3 gap-1 text-[11px] mt-1">
                     <div><span className="text-slate-400">Head:</span> <span className="font-semibold">{row.fee_charges}</span></div>
                     <div><span className="text-slate-400">Con:</span> <span className="font-semibold text-emerald-600">{row.con_charge}</span></div>
-                    <div><span className="text-slate-400">Late:</span> <span className="font-semibold text-amber-600">{row.latefee}</span></div>
+                     <div><span className="text-slate-400">Late:</span> {row.waiveOff
+                       ? <Input value={row.lateFeeInput} onChange={e => { e.stopPropagation(); updateLateFee('current', row.id, e.target.value) }} type="number" className="w-20 inline-flex ml-1" />
+                       : <span className="font-semibold text-amber-600">{row.latefee}</span>}</div>
                   </div>
                 )}
               </div>
@@ -619,7 +647,7 @@ function DepositFeeTab({ student, showToast, feeData }) {
       )}
 
       {/* ── PAYMENT DETAILS ── */}
-      {(step === 2 || window.innerWidth >= 640) && (
+      <div className={step === 2 ? '' : 'hidden sm:block'}>
         <SectionCard>
           <SectionHeader icon={Banknote} title="Payment Details" color="emerald" />
           <div className="p-4 space-y-4">
@@ -681,18 +709,18 @@ function DepositFeeTab({ student, showToast, feeData }) {
                     <div className="hidden sm:grid grid-cols-[160px_1fr_1fr_1fr_120px_120px_auto_auto] gap-0 items-center">
                       <div className="px-2 py-2 border-r border-slate-100 dark:border-[rgba(99,102,241,0.08)]">
                         <NativeSelect value={row.mop} onChange={e => updateMop(row.id, 'mop', e.target.value)}>
-                          {MOP_OPTIONS.map(m => <option key={m}>{m}</option>)}
+                          {(bootstrap?.mops || []).map(m => <option key={m.id || m.name} value={m.name || m.label}>{m.name || m.label}</option>)}
                         </NativeSelect>
                       </div>
                       <div className="px-2 py-2 border-r border-slate-100 dark:border-[rgba(99,102,241,0.08)]">
-                        <Input value={row.chqNo} onChange={e => updateMop(row.id, 'chqNo', e.target.value)} placeholder="Cheque/Txn no." />
+                         <Input value={row.chqNo} disabled={row.mop === 'Cash' || row.mop === 'Select'} onChange={e => updateMop(row.id, 'chqNo', e.target.value)} placeholder="Cheque/Txn no." />
                       </div>
                       <div className="px-2 py-2 border-r border-slate-100 dark:border-[rgba(99,102,241,0.08)]">
-                        <Input type="date" value={row.chqDate} onChange={e => updateMop(row.id, 'chqDate', e.target.value)} />
+                         <Input type="date" value={row.chqDate} disabled={row.mop === 'Cash' || row.mop === 'Select'} onChange={e => updateMop(row.id, 'chqDate', e.target.value)} />
                       </div>
                       <div className="px-2 py-2 border-r border-slate-100 dark:border-[rgba(99,102,241,0.08)]">
-                        <NativeSelect value={row.bank} onChange={e => updateMop(row.id, 'bank', e.target.value)} placeholder="Select Bank">
-                          {BANKS.map(b => <option key={b}>{b}</option>)}
+                         <NativeSelect value={row.bank} disabled={row.mop === 'Cash' || row.mop === 'Select'} onChange={e => updateMop(row.id, 'bank', e.target.value)} placeholder="Select Bank">
+                          {(bootstrap?.banks || []).map(b => <option key={b.id || b.name} value={b.id}>{b.name || b.label}</option>)}
                         </NativeSelect>
                       </div>
                       <div className="px-2 py-2 border-r border-slate-100 dark:border-[rgba(99,102,241,0.08)]">
@@ -715,7 +743,7 @@ function DepositFeeTab({ student, showToast, feeData }) {
                         <div>
                           <p className="text-[10px] font-semibold text-slate-400 mb-1">MOP</p>
                           <NativeSelect value={row.mop} onChange={e => updateMop(row.id, 'mop', e.target.value)}>
-                            {MOP_OPTIONS.map(m => <option key={m}>{m}</option>)}
+                          {(bootstrap?.mops || []).map(m => <option key={m.id || m.name} value={m.name || m.label}>{m.name || m.label}</option>)}
                           </NativeSelect>
                         </div>
                         <div>
@@ -727,16 +755,22 @@ function DepositFeeTab({ student, showToast, feeData }) {
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <p className="text-[10px] font-semibold text-slate-400 mb-1">Cheque/Txn No.</p>
-                            <Input value={row.chqNo} onChange={e => updateMop(row.id, 'chqNo', e.target.value)} placeholder="No." />
+                           <Input value={row.chqNo} disabled={row.mop === 'Cash' || row.mop === 'Select'} onChange={e => updateMop(row.id, 'chqNo', e.target.value)} placeholder="No." />
                           </div>
                           <div>
                             <p className="text-[10px] font-semibold text-slate-400 mb-1">Bank</p>
-                            <NativeSelect value={row.bank} onChange={e => updateMop(row.id, 'bank', e.target.value)} placeholder="Select">
-                              {BANKS.map(b => <option key={b}>{b}</option>)}
+                             <NativeSelect value={row.bank} disabled={row.mop === 'Cash' || row.mop === 'Select'} onChange={e => updateMop(row.id, 'bank', e.target.value)} placeholder="Select">
+                              {(bootstrap?.banks || []).map(b => <option key={b.id || b.name} value={b.id}>{b.name || b.label}</option>)}
                             </NativeSelect>
                           </div>
-                        </div>
-                      )}
+                         </div>
+                       )}
+                       {row.mop === 'Online' && (
+                         <div>
+                           <p className="text-[10px] font-semibold text-slate-400 mb-1">Settlement Date</p>
+                           <Input type="date" value={row.settlementDate || ''} onChange={e => updateMop(row.id, 'settlementDate', e.target.value)} />
+                         </div>
+                       )}
                       <div className="flex gap-2 justify-end">
                         <Btn variant="success" size="xs" onClick={addMopRow} icon={Plus}>Add Row</Btn>
                         {mopRows.length > 1 && <Btn variant="danger" size="xs" onClick={() => removeMopRow(row.id)} icon={Minus}>Remove</Btn>}
@@ -761,13 +795,10 @@ function DepositFeeTab({ student, showToast, feeData }) {
               <Btn variant="success" size="lg" onClick={handleDeposit} disabled={deposited} className="flex-1 sm:flex-none sm:w-40" icon={Check}>
                 {deposited ? 'Deposited!' : 'Deposit'}
               </Btn>
-              <Btn variant="primary" size="lg" onClick={handleDeposit} disabled={deposited} className="flex-1 sm:flex-none sm:w-52" icon={Printer}>
-                Deposit + Receipt
-              </Btn>
             </div>
           </div>
         </SectionCard>
-      )}
+      </div>
 
       {/* Mobile: back to step 1 */}
       {step === 2 && (
@@ -917,7 +948,7 @@ function FeeSummaryTab({ rows = [] }) {
 
 // ─── TAB 3: PREVIOUS TXN ─────────────────────────────────────────────────────
 
-function PreviousTxnTab({ showToast, rows = [] }) {
+function PreviousTxnTab({ showToast, rows = [], studentId, session }) {
   const [sessions, setSessions] = useState([])
 
   useEffect(() => {
@@ -930,9 +961,9 @@ function PreviousTxnTab({ showToast, rows = [] }) {
         mop: row.mop || row.payMode || row.pay_mode || '',
         transaction_no: row.transactionNo || row.transaction_no || '',
         transaction_date: row.transactionDate || row.transaction_date || '',
-        inst_amount: Number(row.installmentAmount ?? row.instAmount ?? row.amount ?? 0),
-        late_fee: Number(row.lateFee ?? row.late_fee ?? 0),
-        extra_amount: Number(row.extraAmount ?? row.extra_amount ?? 0),
+        installment_amount: Number(row.installmentAmount ?? row.instAmount ?? row.amount ?? 0),
+        latefee: Number(row.lateFee ?? row.late_fee ?? 0),
+        advance_amount: Number(row.extraAmount ?? row.extra_amount ?? row.advanceAmount ?? 0),
         amount: Number(row.amount ?? row.transactionAmount ?? 0),
         status: String(row.status || 'active').toLowerCase(),
       }
@@ -945,9 +976,27 @@ function PreviousTxnTab({ showToast, rows = [] }) {
 
   const toggle = (i) => setSessions(s => s.map((x, idx) => idx === i ? { ...x, expanded: !x.expanded } : x))
 
-  const handlePrint = (txn) => showToast(`Printing receipt ${txn.receipt_no}…`)
-  const handleDelete = (txn) => showToast(`Delete ${txn.receipt_no} — confirm dialog would open.`, 'error')
-  const handleEdit = (txn) => showToast(`Edit mode for ${txn.receipt_no} — update popup would open.`)
+  const handlePrint = async (txn) => {
+    try {
+      const data = await apiFetch(`/fees/transactions/${studentId}/receipt?receiptNo=${encodeURIComponent(txn.receipt_no)}`)
+      const header = data.header || {}, student = data.student?.[0] || {}, lines = data.lines || []
+      const w = window.open('', '_blank', 'width=850,height=700')
+      if (!w) { showToast('Allow popups to print the receipt.', 'error'); return }
+      w.document.write(`<html><head><title>Receipt ${txn.receipt_no}</title><style>body{font-family:Arial;padding:28px}h2{text-align:center}table{width:100%;border-collapse:collapse;margin-top:18px}td,th{border:1px solid #bbb;padding:8px;text-align:left}.right{text-align:right}</style></head><body><h2>Fee Receipt</h2><p><b>Student:</b> ${student.name || ''}<br/><b>Admission No:</b> ${student.admNo || header.admno || ''}<br/><b>Receipt No:</b> ${header.receiptNo || txn.receipt_no}<br/><b>Payment Date:</b> ${header.paymentDate || txn.paymentdate || ''}</p><table><thead><tr><th>Installment</th><th>Fee Head</th><th class="right">Amount</th></tr></thead><tbody>${lines.map(line => `<tr><td>${line.installmentNo || ''}</td><td>${line.feeHead || ''}</td><td class="right">${line.amount || 0}</td></tr>`).join('')}</tbody></table><h3 class="right">Total: ${header.amount || txn.amount || 0}</h3></body></html>`)
+      w.document.close(); w.focus(); w.print()
+    } catch (error) { showToast(error.message || 'Receipt could not be opened.', 'error') }
+  }
+  const handleDelete = async (txn) => {
+    if (!window.confirm(`Delete receipt ${txn.receipt_no}?`)) return
+    const remark = window.prompt('Delete remark:', '') ?? ''
+    try { await apiFetch('/fees/transactions/delete', { method: 'POST', body: JSON.stringify({ receiptNo: txn.receipt_no, session, remark }) }); setSessions(s => s.map(group => ({ ...group, txns: group.txns.filter(item => item.receipt_no !== txn.receipt_no) }))); showToast('Fee deleted successfully.') } catch (error) { showToast(error.message || 'Fee delete failed.', 'error') }
+  }
+  const handleEdit = async (txn) => {
+    const mop = window.prompt('Payment mode:', txn.mop || 'Cash'); if (mop === null) return
+    const transactionNo = window.prompt('Transaction/Cheque no.:', txn.transaction_no || ''); if (transactionNo === null) return
+    const transactionDate = window.prompt('Transaction date (YYYY-MM-DD):', txn.transaction_date || ''); if (transactionDate === null) return
+    try { await apiFetch('/fees/transactions', { method: 'PUT', body: JSON.stringify({ receiptNo: txn.receipt_no, session, mop, transactionNo, transactionDate, paymentDate: txn.paymentdate }) }); setSessions(s => s.map(group => ({ ...group, txns: group.txns.map(item => item.receipt_no === txn.receipt_no ? { ...item, mop, transaction_no: transactionNo, transaction_date: transactionDate } : item) }))); showToast('Student fee data updated successfully.') } catch (error) { showToast(error.message || 'Fee update failed.', 'error') }
+  }
 
   return (
     <div className="space-y-3">
@@ -1061,9 +1110,14 @@ function PreviousTxnTab({ showToast, rows = [] }) {
 
 // ─── TAB 4: DEPOSIT MISC FEE ─────────────────────────────────────────────────
 
-function DepositMiscFeeTab({ showToast }) {
+function DepositMiscFeeTab({ showToast, student, session, bootstrap }) {
+  const [liveMiscHeads, setLiveMiscHeads] = useState([])
+  const liveMops = bootstrap?.mops || []
+  const liveBanks = bootstrap?.banks || []
+  useEffect(() => { setLiveMiscHeads((bootstrap?.miscHeads || []).map(h => ({ ...h, name: h.name || h.label }))) }, [bootstrap])
+  useEffect(() => { setMiscRows(rows => rows.map(row => ({ ...row, session }))) }, [session])
   const [miscRows, setMiscRows] = useState([
-    { id: 1, session: '2025-26', head: '', miscFee: '', lateFee: '', waiveOff: false, remark: '' }
+    { id: 1, session: '', head: '', miscFee: '', lateFee: '', waiveOff: false, remark: '' }
   ])
   const [chqRows, setChqRows] = useState([
     { id: 1, amount: '', mop: 'Cash', chqNo: '', chqDate: '', bank: '' }
@@ -1073,6 +1127,22 @@ function DepositMiscFeeTab({ showToast }) {
   const updateChq  = (id, key, val) => setChqRows(r => r.map(x => x.id === id ? { ...x, [key]: val } : x))
 
   const totalMisc = miscRows.reduce((s, r) => s + (parseFloat(r.miscFee) || 0) + (parseFloat(r.lateFee) || 0), 0)
+  const submitMisc = async (withReceipt) => {
+    const row = miscRows[0], payment = chqRows[0]
+    if (!student?.admNo || !row.head) { showToast('Student and miscellaneous head are required.', 'error'); return }
+    try {
+      const result = await apiFetch('/fees/work/miscellaneous', { method: 'POST', body: JSON.stringify({ admissionNo: student.admNo, session, headId: row.head, amount: Number(row.miscFee || 0), lateFee: Number(row.lateFee || 0), waiveOff: row.waiveOff, paymentDate: new Date().toISOString().slice(0, 10), remark: row.remark, mop: payment.mop, bankId: payment.bank, transactionNo: payment.chqNo, transactionDate: payment.chqDate }) })
+      showToast(`Miscellaneous fee deposited. Receipt ${result.receiptNo || ''}`)
+      if (withReceipt) {
+        const receipt = await apiFetch(`/fees/work/miscellaneous/${student.id}/receipt?receiptNo=${encodeURIComponent(result.receiptNo)}`)
+        const header = receipt.header || {}, person = receipt.student?.[0] || {}, lines = receipt.lines || []
+        const w = window.open('', '_blank', 'width=850,height=700')
+        if (!w) { showToast('Allow popups to print the receipt.', 'error'); return }
+        w.document.write(`<html><head><title>Receipt ${header.receiptNo || result.receiptNo}</title><style>body{font-family:Arial;padding:28px}h2{text-align:center}table{width:100%;border-collapse:collapse;margin-top:18px}td,th{border:1px solid #bbb;padding:8px;text-align:left}.right{text-align:right}</style></head><body><h2>Miscellaneous Fee Receipt</h2><p><b>Student:</b> ${person.name || ''}<br/><b>Admission No:</b> ${person.admNo || header.admno || ''}<br/><b>Receipt No:</b> ${header.receiptNo || result.receiptNo}<br/><b>Payment Date:</b> ${header.paymentDate || ''}</p><table><thead><tr><th>Fee Head</th><th>Remark</th><th class="right">Amount</th></tr></thead><tbody>${lines.map(line => `<tr><td>${line.feeHead || ''}</td><td>${line.remark || ''}</td><td class="right">${line.amount || 0}</td></tr>`).join('')}</tbody></table><h3 class="right">Total: ${header.amount || result.amount || 0}</h3></body></html>`)
+        w.document.close(); w.focus(); w.print()
+      }
+    } catch (error) { showToast(error.message || 'Miscellaneous fee deposit failed.', 'error') }
+  }
 
   return (
     <div className="space-y-4">
@@ -1093,7 +1163,7 @@ function DepositMiscFeeTab({ showToast }) {
                 <tr key={row.id} className="border-b border-slate-100 dark:border-[rgba(99,102,241,0.06)]">
                   <td className="px-3 py-2.5">
                     <NativeSelect value={row.head} onChange={e => updateMisc(row.id, 'head', e.target.value)} placeholder="Select Misc Head">
-                      {MISC_HEADS.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                      {liveMiscHeads.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                     </NativeSelect>
                   </td>
                   <td className="px-3 py-2.5"><Input value={row.miscFee} onChange={e => updateMisc(row.id, 'miscFee', e.target.value)} type="number" placeholder="0" className="w-28" /></td>
@@ -1112,7 +1182,7 @@ function DepositMiscFeeTab({ showToast }) {
               <div>
                 <p className="text-[10px] font-semibold text-slate-400 mb-1">Misc. Fee Head</p>
                 <NativeSelect value={row.head} onChange={e => updateMisc(row.id, 'head', e.target.value)} placeholder="Select Head">
-                  {MISC_HEADS.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                  {liveMiscHeads.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                 </NativeSelect>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -1153,7 +1223,7 @@ function DepositMiscFeeTab({ showToast }) {
               <div>
                 <p className="text-[10px] font-semibold text-slate-400 mb-1">MOP</p>
                 <NativeSelect value={row.mop} onChange={e => updateChq(row.id, 'mop', e.target.value)}>
-                  {MOP_OPTIONS.map(m => <option key={m}>{m}</option>)}
+                  {liveMops.map(m => <option key={m.id || m.name} value={m.name || m.label}>{m.name || m.label}</option>)}
                 </NativeSelect>
               </div>
               <div>
@@ -1167,7 +1237,7 @@ function DepositMiscFeeTab({ showToast }) {
               <div>
                 <p className="text-[10px] font-semibold text-slate-400 mb-1">Bank</p>
                 <NativeSelect value={row.bank} onChange={e => updateChq(row.id, 'bank', e.target.value)} placeholder="Select Bank">
-                  {BANKS.map(b => <option key={b}>{b}</option>)}
+                  {liveBanks.map(b => <option key={b.id || b.name} value={b.id}>{b.name || b.label}</option>)}
                 </NativeSelect>
               </div>
               <div className="flex items-end gap-1">
@@ -1178,8 +1248,8 @@ function DepositMiscFeeTab({ showToast }) {
           ))}
         </div>
         <div className="flex flex-col sm:flex-row gap-2 px-4 pb-4">
-          <Btn variant="success" size="lg" className="flex-1 sm:flex-none sm:w-40" icon={Check} onClick={() => showToast('Misc fee deposited!')}>Deposit</Btn>
-          <Btn variant="primary" size="lg" className="flex-1 sm:flex-none sm:w-52" icon={Printer} onClick={() => showToast('Depositing with receipt…')}>Deposit + Receipt</Btn>
+          <Btn variant="success" size="lg" className="flex-1 sm:flex-none sm:w-40" icon={Check} onClick={() => submitMisc(false)}>Deposit</Btn>
+          <Btn variant="primary" size="lg" className="flex-1 sm:flex-none sm:w-52" icon={Printer} onClick={() => submitMisc(true)}>Deposit + Receipt</Btn>
         </div>
       </SectionCard>
     </div>
@@ -1188,9 +1258,16 @@ function DepositMiscFeeTab({ showToast }) {
 
 // ─── TAB 5: ASSIGN OPTIONAL FEE ──────────────────────────────────────────────
 
-function AssignOptionalFeeTab({ showToast }) {
+function AssignOptionalFeeTab({ showToast, session, bootstrap, student }) {
   const [selectedHead, setSelectedHead] = useState('')
-  const [students, setStudents] = useState(OPTIONAL_STUDENTS)
+  const [students, setStudents] = useState([])
+  const optionalHeads = (bootstrap?.feeHeads || []).filter(h => h.isOptional).map(h => ({ id: h.feeHeadId || h.id, name: h.name || h.feeHead }))
+  useEffect(() => {
+    if (!session || !selectedHead) { setStudents([]); return }
+    apiFetch(`/fees/optional?session=${encodeURIComponent(session)}&feeHeadId=${encodeURIComponent(selectedHead)}&admissionNo=${encodeURIComponent(student?.admNo || '')}`)
+      .then(rows => setStudents((rows || []).map(s => ({ ...s, id: s.studentId || s.id, admNo: s.admNo || s.registrationNo, name: s.name || s.studentName, sts: Boolean(s.sts), installments: (s.installments || []).map(i => i.value ?? i.label), selectedInsts: s.selectedInsts || [] }))))
+      .catch(e => showToast(e.message, 'error'))
+  }, [session, selectedHead, student?.admNo, showToast])
   const [expanded, setExpanded] = useState({})
 
   const toggleStu = (id) => setStudents(s => s.map(x => x.id === id ? { ...x, sts: !x.sts } : x))
@@ -1216,7 +1293,7 @@ function AssignOptionalFeeTab({ showToast }) {
           <div className="w-full sm:w-64">
             <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mb-1">Fee Head <span className="text-rose-500">*</span></p>
             <NativeSelect value={selectedHead} onChange={e => setSelectedHead(e.target.value)} placeholder="-- Select Fee Head --">
-              {OPTIONAL_HEADS.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+              {optionalHeads.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
             </NativeSelect>
           </div>
         </div>
@@ -1304,7 +1381,12 @@ function AssignOptionalFeeTab({ showToast }) {
             ))}
           </div>
           <div className="p-4 border-t border-slate-100 dark:border-[rgba(99,102,241,0.1)]">
-            <Btn variant="success" size="lg" icon={Check} className="w-full sm:w-auto sm:min-w-[160px]" onClick={() => showToast('Optional fee assigned!')}>Submit</Btn>
+            <Btn variant="success" size="lg" icon={Check} className="w-full sm:w-auto sm:min-w-[160px]" onClick={async () => {
+              try {
+                const result = await apiFetch('/fees/optional', { method: 'POST', body: JSON.stringify({ session, feeHeadId: selectedHead, students: students.map(s => ({ studentId: s.id, classId: s.classId, installments: s.sts ? (s.selectedInsts || []) : [] })) }) })
+                showToast(result.message || 'Optional fee assignment saved.')
+              } catch (error) { showToast(error.message || 'Optional fee assignment failed.', 'error') }
+            }}>Submit</Btn>
           </div>
         </SectionCard>
       )}
@@ -1314,33 +1396,65 @@ function AssignOptionalFeeTab({ showToast }) {
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 
+function AdjustmentDetailsTab({ student, session, showToast }) {
+  const [type, setType] = useState('FeeReceivable')
+  const [data, setData] = useState({ opening: [], rows: [] })
+  useEffect(() => {
+    if (!student?.id || !session) return
+    apiFetch(`/fees/students/${student.id}/receivable?session=${encodeURIComponent(session)}`).then(setData).catch(error => showToast(error.message || 'Adjustment details could not be loaded.', 'error'))
+  }, [student?.id, session, showToast])
+  const opening = data.opening?.[0] || {}
+  return (
+    <SectionCard>
+      <SectionHeader icon={BookOpen} title="Adjustment Details" color="violet" />
+      <div className="p-4 space-y-4">
+        <div className="w-full sm:w-64"><p className="text-[11px] font-semibold text-slate-400 mb-1">Details Type</p><NativeSelect value={type} onChange={e => setType(e.target.value)}><option value="FeeReceivable">Fee Receivable</option></NativeSelect></div>
+        {type === 'FeeReceivable' && <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3"><Pill label="Date" value={opening.createdDate || '—'} color="slate" /><Pill label="Opening" value={opening.opening || 0} color="blue" /><Pill label="Adjust" value={opening.adjust || 0} color="green" /><Pill label="Balance" value={opening.balance || 0} color="amber" /></div>
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-[rgba(99,102,241,0.2)]"><table className="w-full text-[12px]"><thead className="bg-slate-50 dark:bg-white/[0.02]"><tr><th className="px-3 py-2 text-left">S.No.</th><th className="px-3 py-2 text-left">Deposit Date</th><th className="px-3 py-2 text-left">Inst No.</th><th className="px-3 py-2 text-left">Receipt No.</th><th className="px-3 py-2 text-right">Receive Amount</th></tr></thead><tbody>{(data.rows || []).map((r, i) => <tr key={`${r.uid || i}`} className="border-t border-slate-100 dark:border-[rgba(99,102,241,0.1)]"><td className="px-3 py-2">{i + 1}</td><td className="px-3 py-2">{r.depositDate || ''}</td><td className="px-3 py-2">{r.installmentNo || ''}</td><td className="px-3 py-2">{r.receiptNo || ''}</td><td className="px-3 py-2 text-right">{r.receiveAmount || 0}</td></tr>)}</tbody></table></div>
+        </>}
+      </div>
+    </SectionCard>
+  )
+}
+
 const TABS = [
   { id: 0, label: 'Deposit Fee',      shortLabel: 'Deposit',  icon: CreditCard  },
   { id: 1, label: 'Fee Summary',      shortLabel: 'Summary',  icon: BarChart3   },
   { id: 2, label: 'Previous Txn',     shortLabel: 'Txn',      icon: Clock       },
-  { id: 3, label: 'Misc Fee',         shortLabel: 'Misc',     icon: Settings    },
-  { id: 4, label: 'Assign Optional',  shortLabel: 'Optional', icon: Star        },
+  { id: 3, label: 'Deposit Misc. Fee', shortLabel: 'Misc',     icon: Settings    },
+  { id: 4, label: 'Assign Optional Fee', shortLabel: 'Optional', icon: Star        },
+  { id: 5, label: 'Adjustment Details', shortLabel: 'Adjust', icon: BookOpen    },
 ]
 
-export default function DepositFee() {
+export default function DepositFee({ onPageClick }) {
   const [session,    setSession]    = useState('')
   const [feeType,    setFeeType]    = useState('')
   const [classId,    setClassId]    = useState('')
   const [admNo,      setAdmNo]      = useState('')
+  const [feeBookNo,  setFeeBookNo]  = useState('')
   const [studentId,  setStudentId]  = useState('')
   const [student,    setStudent]    = useState(null)
   const [activeTab,  setActiveTab]  = useState(0)
   const [toast,      setToast]      = useState(null)
   const [loading,    setLoading]    = useState(false)
   const [mobileMenu, setMobileMenu] = useState(false)
-  const [bootstrap, setBootstrap] = useState({ sessions: [], classes: [], feeTypes: [] })
+  const [bootstrap, setBootstrap] = useState({ schoolId: '', sessions: [], classes: [], feeTypes: [] })
   const [studentOptions, setStudentOptions] = useState([])
   const [feeData, setFeeData] = useState(null)
   const [summaryRows, setSummaryRows] = useState([])
   const [transactionRows, setTransactionRows] = useState([])
+  const [legacyPrefill, setLegacyPrefill] = useState(null)
 
   useEffect(() => {
-    apiFetch('/fees/bootstrap').then(data => { setBootstrap(data); setSession(data.session || data.sessions?.[0]?.value || '') }).catch(error => showToast(error.message || 'Fee setup could not be loaded', 'error'))
+    apiFetch('/fees/bootstrap').then(data => { setBootstrap(data); setSession(data.session || data.sessions?.[0]?.value || ''); setFeeType(String(data.feeTypes?.[0]?.id ?? '0')) }).catch(error => showToast(error.message || 'Fee setup could not be loaded', 'error'))
+  }, [])
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('fee.deposit.prefill')
+      if (raw) { setLegacyPrefill(JSON.parse(raw)); sessionStorage.removeItem('fee.deposit.prefill') }
+    } catch { setLegacyPrefill(null) }
   }, [])
 
   const showToast = useCallback((msg, type = 'success') => {
@@ -1348,21 +1462,61 @@ export default function DepositFee() {
     setTimeout(() => setToast(null), 3500)
   }, [])
 
-  const handleLoadStudent = useCallback(async () => {
+  const handleLoadStudent = useCallback(async (selectedId = studentId, overrides = {}) => {
+    const selectedClassId = overrides.classId ?? classId
+    const selectedAdmNo = overrides.admNo ?? admNo
+    const selectedFeeBookNo = overrides.feeBookNo ?? feeBookNo
     if (!session) { showToast('Please select session.', 'error'); return }
-    if (!classId && !admNo) { showToast('Select class or enter admission no.', 'error'); return }
+    if (!selectedClassId && !selectedAdmNo && !selectedFeeBookNo) { showToast('Select class or enter admission no / fee book no.', 'error'); return }
     setLoading(true)
     try {
-      const rows = await apiFetch('/fees/students/search?' + new URLSearchParams({ session, query: admNo || '', classId: classId || '' }))
+      const rows = await apiFetch('/fees/students/search?' + new URLSearchParams({ session, query: selectedAdmNo || '', classId: selectedClassId || '', feeBookNo: selectedFeeBookNo || '' }))
       setStudentOptions(rows)
-      const found = studentId ? rows.find(row => String(row.id || row.studentId) === String(studentId)) : rows[0]
+      const found = selectedId ? rows.find(row => String(row.id || row.studentId) === String(selectedId)) : rows[0]
       if (!found) { showToast('Student not found.', 'error'); return }
-      const mapped = { ...found, id: found.id || found.studentId, admNo: found.admNo || found.registrationNo, name: found.name || found.studentName, class: found.classLabel || `${found.className || ''} ${found.sectionName || ''}`, father: found.father || found.fatherName || '', admDate: found.admDate || '' }
+      const mapped = { ...found, id: found.id || found.studentId, admNo: found.admNo || found.registrationNo, feeBookNo: found.feeBookNo || selectedFeeBookNo, name: found.name || found.studentName, class: found.classLabel || `${found.className || ''} ${found.sectionName || ''}`, father: found.father || found.fatherName || '', admDate: found.admDate || '' }
       setStudent(mapped)
-      const [dues, summary, transactions] = await Promise.all([apiFetch(`/fees/students/${mapped.id}/dues?session=${encodeURIComponent(session)}`), apiFetch(`/fees/students/${mapped.id}/summary`), apiFetch(`/fees/students/${mapped.id}/transactions`)])
+      setStudentId(String(mapped.id))
+      setAdmNo(mapped.admNo || '')
+      setFeeBookNo(mapped.feeBookNo || '')
+      // The old FeeBookNo/admission lookup selects the student's section
+      // back into ddlClass after getstudetail returns.
+      if (mapped.sectionId != null && String(mapped.sectionId) !== '') setClassId(String(mapped.sectionId))
+      const [dues, summary, transactions] = await Promise.all([apiFetch(`/fees/students/${mapped.id}/deposit-flow?session=${encodeURIComponent(session)}&feeType=${encodeURIComponent(feeType || '0')}`), apiFetch(`/fees/students/${mapped.id}/summary`), apiFetch(`/fees/students/${mapped.id}/transactions`)])
       setFeeData(dues); setSummaryRows(summary); setTransactionRows(transactions); showToast(`Loaded: ${mapped.name}`)
     } catch (error) { showToast(error.message || 'Student fee data could not be loaded', 'error') } finally { setLoading(false) }
-  }, [session, classId, admNo, studentId, showToast])
+  }, [session, feeType, classId, admNo, feeBookNo, studentId, showToast])
+
+  useEffect(() => {
+    if (!legacyPrefill || !session || !feeType) return
+    const admissionNo = legacyPrefill.admissionNo || ''
+    if (!admissionNo) return
+    const targetFeeType = String(legacyPrefill.feeTypeId ?? feeType)
+    if (feeType !== targetFeeType) { setFeeType(targetFeeType); return }
+    setAdmNo(admissionNo)
+    handleLoadStudent('', { admNo: admissionNo })
+    setLegacyPrefill(null)
+  }, [legacyPrefill, session, feeType, handleLoadStudent])
+
+  useEffect(() => {
+    if (!session || !classId) { setStudentOptions([]); return undefined }
+    let active = true
+    apiFetch('/fees/students/search?' + new URLSearchParams({ session, classId }))
+      .then(rows => { if (active) setStudentOptions(rows || []) })
+      .catch(error => { if (active) showToast(error.message || 'Student list could not be loaded', 'error') })
+    return () => { active = false }
+  }, [session, classId, showToast])
+
+  const handleClassChange = useCallback((event) => {
+    setClassId(event.target.value)
+    setAdmNo(''); setFeeBookNo(''); setStudentId(''); setStudent(null); setFeeData(null); setSummaryRows([]); setTransactionRows([])
+  }, [])
+
+  const handleStudentChange = useCallback((event) => {
+    const id = event.target.value
+    setStudentId(id)
+    if (id) handleLoadStudent(id)
+  }, [handleLoadStudent])
 
   const filteredStudents = useMemo(() => studentOptions, [studentOptions])
 
@@ -1399,7 +1553,7 @@ export default function DepositFee() {
         {/* ── FILTER ROW ── */}
         <SectionCard>
           <div className="p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 items-end">
               {/* Session */}
               <div>
                 <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mb-1">Session <span className="text-rose-500">*</span></p>
@@ -1422,6 +1576,7 @@ export default function DepositFee() {
                   <Input
                     value={admNo}
                     onChange={e => setAdmNo(e.target.value)}
+                    onBlur={() => admNo.trim() && handleLoadStudent('', { classId: '', feeBookNo: '' })}
                     placeholder="Adm no. / name"
                     className="pl-8"
                   />
@@ -1430,17 +1585,30 @@ export default function DepositFee() {
               {/* Class */}
               <div>
                 <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mb-1">Class</p>
-                <NativeSelect value={classId} onChange={e => setClassId(e.target.value)} placeholder="-- Class --">
+                <NativeSelect value={classId} onChange={handleClassChange} placeholder="-- Class --">
                   {bootstrap.classes.map(c => <option key={c.id} value={c.id}>{c.label || c.className}</option>)}
                 </NativeSelect>
               </div>
               {/* Student */}
               <div>
                 <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mb-1">Student</p>
-                <NativeSelect value={studentId} onChange={e => setStudentId(e.target.value)} placeholder="-- Student --">
+                <NativeSelect value={studentId} onChange={handleStudentChange} placeholder="-- Student --">
                   {filteredStudents.map(s => <option key={s.id || s.studentId} value={s.id || s.studentId}>{s.name || s.studentName} ({s.admNo || s.registrationNo})</option>)}
                 </NativeSelect>
               </div>
+              {/* Fee Book No. — old page shows this for schools outside its excluded list */}
+              {!['hrbl_123', 'Padma123', 'dpsbsr123'].includes(bootstrap.schoolId) && (
+                <div>
+                  <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mb-1">Fee Book No.</p>
+                  <Input
+                    value={feeBookNo}
+                    onChange={e => setFeeBookNo(e.target.value)}
+                    onBlur={() => feeBookNo.trim() && handleLoadStudent('', { classId: '', admNo: '', feeBookNo: feeBookNo.trim() })}
+                    placeholder="Fee Book No."
+                    maxLength={8}
+                  />
+                </div>
+              )}
               {/* Load button */}
               <div className="col-span-2 sm:col-span-1">
                 <Btn
@@ -1459,7 +1627,7 @@ export default function DepositFee() {
         </SectionCard>
 
         {/* ── STUDENT HEADER ── */}
-        {student && <StudentHeader student={student} />}
+        {student && <StudentHeader student={student} feeData={feeData} session={session} onPageClick={onPageClick} />}
 
         {/* ── EMPTY STATE ── */}
         {!student && !loading && (
@@ -1527,11 +1695,12 @@ export default function DepositFee() {
 
             {/* Tab Content */}
             <div>
-              {activeTab === 0 && <DepositFeeTab     student={student} feeData={feeData} showToast={showToast} />}
+              {activeTab === 0 && <DepositFeeTab     student={student} feeData={feeData} showToast={showToast} session={session} feeType={feeType} bootstrap={bootstrap} />}
               {activeTab === 1 && <FeeSummaryTab     rows={summaryRows} />}
-              {activeTab === 2 && <PreviousTxnTab    rows={transactionRows} showToast={showToast} />}
-              {activeTab === 3 && <DepositMiscFeeTab showToast={showToast} />}
-              {activeTab === 4 && <AssignOptionalFeeTab showToast={showToast} />}
+              {activeTab === 2 && <PreviousTxnTab    rows={transactionRows} showToast={showToast} studentId={student.id} session={session} />}
+          {activeTab === 3 && <DepositMiscFeeTab showToast={showToast} student={student} session={session} bootstrap={bootstrap} />}
+              {activeTab === 4 && <AssignOptionalFeeTab showToast={showToast} session={session} bootstrap={bootstrap} student={student} />}
+              {activeTab === 5 && <AdjustmentDetailsTab student={student} session={session} showToast={showToast} />}
             </div>
           </div>
         )}

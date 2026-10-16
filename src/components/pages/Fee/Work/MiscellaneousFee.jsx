@@ -15,6 +15,7 @@ import {
   School2, Building2, MapPin, Eye, Printer,
   CreditCard, Tag, Users, LayoutList
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC / DUMMY DATA ──────────────────────────────────────────────────────
 const SESSIONS = ['2022-23', '2023-24', '2024-25', '2025-26']
@@ -287,9 +288,9 @@ function MobileRecordCard({ row, idx }) {
 }
 
 // ─── ENTRY FORM ───────────────────────────────────────────────────────────────
-function EntryForm({ onSave, sessions, miscHeads, studentDb }) {
+function EntryForm({ onSave, sessions, miscHeads, onLookup }) {
   const [form, setForm] = useState({
-    receipt: '', session: '2025-26', head: '', admNo: '', amount: '', date: todayISO(), remark: ''
+    receipt: '', session: '', head: '', admNo: '', amount: '', date: todayISO(), remark: ''
   })
   const [student, setStudent] = useState(null)
   const [errors, setErrors] = useState({})
@@ -303,11 +304,9 @@ function EntryForm({ onSave, sessions, miscHeads, studentDb }) {
     const adm = form.admNo.trim().toUpperCase()
     if (adm.length >= 4) {
       setAdmLookup(true)
-      const t = setTimeout(() => {
-        setStudent(studentDb[adm] || null)
-        setAdmLookup(false)
-      }, 400)
-      return () => clearTimeout(t)
+      let active = true
+      onLookup(adm).then(value => { if (active) { setStudent(value || null); setAdmLookup(false) } }).catch(() => { if (active) { setStudent(null); setAdmLookup(false) } })
+      return () => { active = false }
     } else {
       setStudent(null)
     }
@@ -329,27 +328,13 @@ function EntryForm({ onSave, sessions, miscHeads, studentDb }) {
     if (Object.keys(e).length) { setErrors(e); return }
     setErrors({})
     setSaving(true)
-    setTimeout(() => {
-      const headLabel = miscHeads.find(h => String(h.id) === form.head)?.label || form.head
-      onSave({
-        pay_date: formatDate(form.date),
-        head: headLabel,
-        adm_no: form.admNo.trim().toUpperCase(),
-        name: student.name,
-        amount: Number(form.amount),
-        remarks: form.remark,
-        receipt_no: form.receipt.trim(),
-        session: form.session,
-        stu_id: Date.now(),
-      })
-      setForm({ receipt: '', session: form.session, head: '', admNo: '', amount: '', date: todayISO(), remark: '' })
-      setStudent(null)
-      setSaving(false)
-    }, 700)
+    onSave({ admissionNo: form.admNo.trim().toUpperCase(), amount: Number(form.amount), headId: form.head, paymentDate: form.date, receiptNo: form.receipt.trim(), remark: form.remark, session: form.session })
+      .then(() => { setForm({ receipt: '', session: form.session, head: '', admNo: '', amount: '', date: todayISO(), remark: '' }); setStudent(null) })
+      .finally(() => setSaving(false))
   }
 
   const handleReset = () => {
-    setForm({ receipt: '', session: '2025-26', head: '', admNo: '', amount: '', date: todayISO(), remark: '' })
+    setForm({ receipt: '', session: sessions[0] || '', head: '', admNo: '', amount: '', date: todayISO(), remark: '' })
     setStudent(null)
     setErrors({})
   }
@@ -663,21 +648,37 @@ function RecordsPanel({ records }) {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function MiscellaneousFee() {
-  const [records, setRecords] = useState(INITIAL_RECORDS.map((r, i) => ({ ...r, uid: i + 1 })))
+  const [records, setRecords] = useState([])
+  const [sessions, setSessions] = useState([])
+  const [miscHeads, setMiscHeads] = useState([])
   const [toast, setToast] = useState(null)
   // Tab state for mobile
   const [mobileTab, setMobileTab] = useState('entry') // 'entry' | 'records'
+  const load = useCallback(async () => {
+    const data = await apiFetch('/fees/work/miscellaneous')
+    setSessions((data.sessions || []).map(x => x.value || x.label))
+    setMiscHeads((data.heads || []).map(x => ({ ...x, label: x.label || x.name })))
+    setRecords((data.records || []).map(x => ({ uid: x.id, pay_date: formatDate(x.payDate), head: x.headName, adm_no: x.admissionNo, name: x.studentName, amount: Number(x.amount || 0), remarks: x.remark, receipt_no: x.receiptNo, session: x.session })))
+  }, [])
+  useEffect(() => { load().catch(e => showToast(e.message, 'error')) }, [load])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3200)
   }
 
-  const handleSave = useCallback((entry) => {
+  const handleSave = useCallback(async (entry) => {
+    await apiFetch('/fees/work/miscellaneous', { method: 'POST', body: JSON.stringify(entry) })
+    await load()
+    setMobileTab('records')
+  }, [load])
+  /* legacy local handler retained only for old markup compatibility
+  const handleSaveLegacy = useCallback((entry) => {
     setRecords(prev => [{ ...entry, uid: Date.now() }, ...prev])
     showToast(`Fee saved! ₹${entry.amount.toLocaleString('en-IN')} — ${entry.name}`)
     setMobileTab('records') // switch to records tab on mobile after save
-  }, [])
+  }, []) */
+  const lookup = useCallback(async (q) => { const rows = await apiFetch(`/fees/students/search?query=${encodeURIComponent(q)}`); const x = rows[0]; return x && { name: x.name || x.studentName, father: x.father || x.fatherName, class: x.classLabel || x.className } }, [])
 
   // Stats
   const stats = useMemo(() => ({
@@ -722,7 +723,7 @@ export default function MiscellaneousFee() {
 
       {/* ── DESKTOP: Form + Records stacked normally ───────────────────── */}
       <div className="hidden md:block space-y-4">
-        <EntryForm onSave={handleSave} sessions={SESSIONS} miscHeads={MISC_HEADS} studentDb={STUDENT_DB} />
+        <EntryForm onSave={handleSave} sessions={sessions} miscHeads={miscHeads} onLookup={lookup} />
         <RecordsPanel records={records} />
       </div>
 
@@ -759,7 +760,7 @@ export default function MiscellaneousFee() {
 
         {/* Tab Content */}
         {mobileTab === 'entry' && (
-          <EntryForm onSave={handleSave} sessions={SESSIONS} miscHeads={MISC_HEADS} studentDb={STUDENT_DB} />
+          <EntryForm onSave={handleSave} sessions={sessions} miscHeads={miscHeads} onLookup={lookup} />
         )}
         {mobileTab === 'records' && (
           <RecordsPanel records={records} />

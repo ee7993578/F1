@@ -29,14 +29,7 @@ import {
 
 const SESSIONS = ['2022-23', '2023-24', '2024-25', '2025-26', '2026-27']
 
-const CONCESSION_GROUPS = [
-  { id: '1', label: 'Staff Ward' },
-  { id: '2', label: 'SC/ST Students' },
-  { id: '3', label: 'Freedom Fighter Ward' },
-  { id: '4', label: 'Sibling Concession' },
-  { id: '5', label: 'Merit Scholar' },
-  { id: '6', label: 'BPL Category' },
-]
+const CONCESSION_GROUPS = []
 
 // installment-wise fee heads for Regular
 const REGULAR_INSTALLMENT_DATA = [
@@ -394,8 +387,7 @@ function InstallmentTableDesktop({ inst, instIdx, onTypeChange, onValueChange })
 
 // ─── SUMMARY STRIP ────────────────────────────────────────────────────────────
 
-function SummaryStrip({ feeType, session, group }) {
-  const groupLabel = CONCESSION_GROUPS.find((g) => g.id === group)?.label || '—'
+function SummaryStrip({ feeType, session, group, groupLabel = '—' }) {
   return (
     <div className="flex flex-wrap items-center gap-3 px-5 py-3.5 rounded-2xl border border-emerald-200 dark:border-emerald-500/25 bg-emerald-50/60 dark:bg-emerald-500/[0.05]">
       <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
@@ -421,6 +413,7 @@ function SummaryStrip({ feeType, session, group }) {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
 export default function DefineConcessionValue() {
+  const [setup, setSetup] = useState({ session: '', sessions: [], concessionGroups: [], installments: [], heads: [] })
   // ── Filter state ──────────────────────────────────────────────────────────
   const [feeType,          setFeeType]          = useState('regular')   // 'regular' | 'transport'
   const [session,          setSession]          = useState('')
@@ -445,6 +438,13 @@ export default function DefineConcessionValue() {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
   }
+
+  useEffect(() => {
+    apiFetch('/fees/setup/bootstrap').then(data => {
+      setSetup(data)
+      setSession(data.session || data.sessions?.[0]?.value || '')
+    }).catch(error => showToast(error.message || 'Concession setup could not be loaded.', 'error'))
+  }, [])
 
   useEffect(() => {
     if (!session || !concessionGroup) return
@@ -496,11 +496,17 @@ export default function DefineConcessionValue() {
           acc[key].heads.push({ fee_head_id: row.feeHeadId, fee_head: row.feeHead || 'Fee Head', con_type: row.type || transportConType, con_value: row.value || (feeType === 'transport' ? transportValue : ''), id: row.id })
           return acc
         }, {})
+        if (!Object.keys(grouped).length) {
+          const typeId = feeType === 'transport' ? 6 : 0
+          const installmentNumbers = [...new Set((setup.installments || []).filter(item => typeId === 0 ? ![6, 7].includes(Number(item.feeTypeId)) : Number(item.feeTypeId) === typeId).map(item => Number(item.installmentNo)))].sort((a, b) => a - b)
+          const heads = (setup.heads || []).filter(head => typeId === 0 ? ![6, 7].includes(Number(head.feeTypeId)) : Number(head.feeTypeId) === typeId)
+          installmentNumbers.forEach(number => { grouped[number] = { installment_no: number, label: '', heads: heads.map(head => ({ fee_head_id: head.feeHeadId ?? head.id, fee_head: head.name || head.feeHead || 'Fee Head', con_type: feeType === 'transport' ? transportConType : 'Fix', con_value: feeType === 'transport' ? transportValue : '' })) } })
+        }
         setGridData(Object.values(grouped)); setShownMeta({ feeType, session, concessionGroup }); setGridShown(true); showToast('Concession grid loaded. Edit values and save.')
       })
       .catch(error => showToast(error.message || 'Concession grid could not be loaded.', 'error'))
       .finally(() => setLoading(false))
-  }, [feeType, session, concessionGroup, transportValue, transportConType])
+  }, [feeType, session, concessionGroup, transportValue, transportConType, setup.installments, setup.heads])
 
   // ── Grid cell updates ─────────────────────────────────────────────────────
   const handleTypeChange = useCallback((instIdx, hIdx, val) => {
@@ -540,7 +546,7 @@ export default function DefineConcessionValue() {
       return
     }
     setSaving(true)
-    const requests = gridData.flatMap(inst => inst.heads.map(head => apiFetch(head.id ? '/fees/concession-details/' + head.id : '/fees/concession-details', { method: head.id ? 'PUT' : 'POST', body: JSON.stringify({ session: shownMeta.session, groupCode: shownMeta.concessionGroup, installmentNo: inst.installment_no, feeHeadId: head.fee_head_id, type: head.con_type, value: head.con_value }) })))
+    const requests = gridData.flatMap(inst => inst.heads.map(head => apiFetch(head.id ? '/fees/concession-details/' + head.id : '/fees/concession-details', { method: head.id ? 'PUT' : 'POST', body: JSON.stringify({ session: shownMeta.session, groupCode: shownMeta.concessionGroup, installmentNo: inst.installment_no, feeHeadId: head.fee_head_id, feeTypeId: shownMeta.feeType === 'transport' ? 6 : Number((setup.heads || []).find(item => String(item.feeHeadId ?? item.id) === String(head.fee_head_id))?.feeTypeId || 0), type: head.con_type, value: head.con_value }) })))
     Promise.all(requests).then(() => showToast('Concession values saved successfully!')).catch(error => showToast(error.message || 'Concession values could not be saved.', 'error')).finally(() => setSaving(false))
   }
 
@@ -625,7 +631,7 @@ export default function DefineConcessionValue() {
                 placeholder="-- Select Session --"
                 error={errors.session}
               >
-                {SESSIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                {(setup.sessions || []).map((s) => <option key={s.value} value={s.value}>{s.label || s.value}</option>)}
               </NativeSelect>
             </Field>
 
@@ -636,7 +642,7 @@ export default function DefineConcessionValue() {
                 placeholder="-- Select Group --"
                 error={errors.group}
               >
-                {CONCESSION_GROUPS.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
+                {(setup.concessionGroups || []).map((g) => <option key={g.groupCode || g.id} value={g.groupCode || g.id}>{g.name || g.label}</option>)}
               </NativeSelect>
             </Field>
           </div>
@@ -720,6 +726,7 @@ export default function DefineConcessionValue() {
             feeType={shownMeta.feeType}
             session={shownMeta.session}
             group={shownMeta.concessionGroup}
+            groupLabel={(setup.concessionGroups || []).find(item => String(item.groupCode || item.id) === String(shownMeta.concessionGroup))?.name || '—'}
           />
 
           {/* Info tip — mobile */}
@@ -799,9 +806,7 @@ export default function DefineConcessionValue() {
                 <button
                   type="button"
                   onClick={() => {
-                    setGridData(cloneInstallments(
-                      feeType === 'transport' ? TRANSPORT_INSTALLMENT_DATA : REGULAR_INSTALLMENT_DATA
-                    ))
+                    setGridData(previous => previous.map(inst => ({ ...inst, heads: inst.heads.map(head => ({ ...head, con_value: '' })) })))
                     showToast('All values cleared.', 'error')
                   }}
                   className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[13px] font-semibold

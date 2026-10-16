@@ -15,7 +15,7 @@
  *  - Desktop: dense ERP table
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X,
   ChevronDown, Loader2, Eye, Trash2, RefreshCw,
@@ -27,6 +27,7 @@ import {
   ArrowRight, IndianRupee, BookOpen, TrendingUp,
   Landmark, ReceiptText, ShieldAlert
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC / DUMMY DATA ───────────────────────────────────────────────────────
 
@@ -295,33 +296,28 @@ function FileDropZone({ file, onFile, error }) {
 // ─── FAILED STUDENTS MODAL ────────────────────────────────────────────────────
 
 function FailedStudentsModal({ record, onClose }) {
-  const [students, setStudents] = useState(DUMMY_FAILED[record?.guid] || [])
+  const [students, setStudents] = useState([])
   const [editId, setEditId] = useState(null)
   const [editVal, setEditVal] = useState('')
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
+  useEffect(() => { apiFetch(`/fees/work/excel/uploads/${encodeURIComponent(record?.guid)}/failed`).then(rows => setStudents((rows || []).map(s => ({ ...s, stu_name: s.studentName || s.stu_name, reg_no: s.regNo || s.reg_no })))).catch(() => setStudents([])) }, [record?.guid])
 
   const filtered = useMemo(() => {
     if (!search) return students
     const q = search.toLowerCase()
     return students.filter(s =>
-      s.stu_name.toLowerCase().includes(q) ||
-      (s.reg_no || '').toLowerCase().includes(q) ||
+      (s.studentName || s.stu_name || '').toLowerCase().includes(q) ||
+      (s.regNo || s.reg_no || '').toLowerCase().includes(q) ||
       (s.class || '').toLowerCase().includes(q)
     )
   }, [students, search])
 
-  const startEdit = (s) => { setEditId(s.id); setEditVal(s.reg_no || '') }
+  const startEdit = (s) => { setEditId(s.id); setEditVal(s.regNo || s.reg_no || '') }
 
   const saveEdit = (id) => {
     setSaving(true)
-    setTimeout(() => {
-      setStudents(prev => prev.map(s =>
-        s.id === id ? { ...s, reg_no: editVal } : s
-      ))
-      setSaving(false)
-      setEditId(null)
-    }, 600)
+    apiFetch(`/fees/work/excel/records/${id}`, { method: 'PUT', body: JSON.stringify({ regNo: editVal }) }).then(() => setStudents(prev => prev.map(s => s.id === id ? { ...s, regNo: editVal } : s))).finally(() => { setSaving(false); setEditId(null) })
   }
 
   const cancelEdit = () => { setEditId(null); setEditVal('') }
@@ -667,8 +663,9 @@ export default function ImportExcelFee() {
   const [uploadSuccess, setUploadSuccess] = useState(false)
 
   // ── Records table state ───────────────────────────────────────────────────
-  const [gridSession, setGridSession] = useState('2024-25')
-  const [records, setRecords] = useState(DUMMY_RECORDS)
+  const [gridSession, setGridSession] = useState('')
+  const [records, setRecords] = useState([])
+  const [liveSessions, setLiveSessions] = useState([])
   const [gridSearch, setGridSearch] = useState('')
 
   // ── Modals ────────────────────────────────────────────────────────────────
@@ -680,6 +677,14 @@ export default function ImportExcelFee() {
 
   // ── Accordion (mobile form) ───────────────────────────────────────────────
   const [formOpen, setFormOpen] = useState(true)
+
+  const loadRecords = useCallback(async (ses = gridSession) => {
+    if (!ses) return
+    const rows = await apiFetch(`/fees/work/excel/uploads?session=${encodeURIComponent(ses)}`)
+    setRecords((rows || []).map(r => ({ guid: r.guid, title: r.title || r.guid, month: String(r.monthId || ''), mode: r.mode || '', filetype: String(r.fileType || ''), postedDate: r.postedDate || '', session: ses, total: Number(r.totalCount || 0), failed: Number(r.failedCount || 0), bank: String(r.bankId || '') })))
+  }, [gridSession])
+  useEffect(() => { apiFetch('/fees/bootstrap').then(d => { const ss = (d.sessions || []).map(x => x.value || x.label); setLiveSessions(ss); if (!gridSession && ss[0]) setGridSession(ss[0]) }).catch(() => {}) }, [])
+  useEffect(() => { loadRecords().catch(e => showToast(e.message, 'error')) }, [loadRecords])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -716,40 +721,14 @@ export default function ImportExcelFee() {
   const prevStep = () => { setErrors({}); setStep(s => s - 1) }
 
   // ── Submit ────────────────────────────────────────────────────────────────
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setUploading(true)
-    setTimeout(() => {
-      const newRec = {
-        guid: Math.random().toString(36).slice(2, 8),
-        title,
-        month: MONTHS.find(m => m.id === month)?.name || '',
-        mode,
-        filetype: FILE_TYPES.find(f => f.id === fileType)?.name || '',
-        postedDate: new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }),
-        session: gridSession || session,
-        total: Math.floor(Math.random() * 40) + 20,
-        failed: Math.floor(Math.random() * 5),
-        bank: bank ? BANKS.find(b => b.id === bank)?.name || '' : '',
-      }
-      setRecords(prev => [newRec, ...prev])
-      setUploading(false)
-      setUploadSuccess(true)
-      showToast('Excel imported to database successfully!')
-      setTimeout(() => {
-        setUploadSuccess(false)
-        setStep(0)
-        setSession(''); setTitle(''); setMonth(''); setMode('')
-        setBank(''); setFileType(''); setFile(null)
-        setFormOpen(false)
-      }, 2500)
-    }, 1800)
+    try { const body = new FormData(); body.append('session', session); body.append('title', title); body.append('monthId', month); body.append('mode', mode); if (bank) body.append('bankId', bank); body.append('fileType', fileType || '1'); body.append('file', file); await apiFetch('/fees/work/excel/upload', { method: 'POST', body }); await loadRecords(session); setUploadSuccess(true); showToast('Excel imported to database successfully!'); setStep(0); setSession(''); setTitle(''); setMonth(''); setMode(''); setBank(''); setFileType(''); setFile(null) } catch (e) { showToast(e.message, 'error') } finally { setUploading(false) }
   }
 
   // ── Delete record ─────────────────────────────────────────────────────────
   const handleDelete = () => {
-    setRecords(prev => prev.filter(r => r.guid !== deleteModal.guid))
-    setDeleteModal(null)
-    showToast('Record deleted successfully.')
+    apiFetch(`/fees/work/excel/uploads/${encodeURIComponent(deleteModal.guid)}`, { method: 'DELETE' }).then(() => { setRecords(prev => prev.filter(r => r.guid !== deleteModal.guid)); setDeleteModal(null); showToast('Record deleted successfully.') }).catch(e => showToast(e.message, 'error'))
   }
 
   // ── Filtered grid records ─────────────────────────────────────────────────
@@ -824,7 +803,7 @@ export default function ImportExcelFee() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field label="Session" error={errors.session} required>
                       <NativeSelect value={session} onChange={e => setSession(e.target.value)} placeholder="-- Select Session --" error={errors.session}>
-                        {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                        {liveSessions.map(s => <option key={s} value={s}>{s}</option>)}
                       </NativeSelect>
                     </Field>
 
@@ -1012,7 +991,7 @@ export default function ImportExcelFee() {
             <div className="flex items-center gap-2 flex-wrap">
               <div className="w-36">
                 <NativeSelect value={gridSession} onChange={e => setGridSession(e.target.value)}>
-                  {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                  {liveSessions.map(s => <option key={s} value={s}>{s}</option>)}
                 </NativeSelect>
               </div>
               <div className="relative">

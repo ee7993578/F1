@@ -5,7 +5,7 @@
  *           mobile card layout, desktop dense table, toast notifications
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   Search, RefreshCw, Filter, SlidersHorizontal,
   X, Check, AlertCircle, Loader2, ChevronDown,
@@ -15,6 +15,7 @@ import {
   BadgeIndianRupee, Clock, BookOpen, Info,
   CheckCircle2, XCircle, Hash
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
 const SESSIONS = ['2022-23', '2023-24', '2024-25', '2025-26']
@@ -432,12 +433,12 @@ function FilterDrawer({ open, onClose, session, setSession, classId, setClassId,
           <Field label="Session" error={errors.session} required>
             <NativeSelect value={session} onChange={e => setSession(e.target.value)} error={errors.session}>
               <option value="">-- Select Session --</option>
-              {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              {liveSessions.map(s => <option key={s} value={s}>{s}</option>)}
             </NativeSelect>
           </Field>
           <Field label="Class">
             <NativeSelect value={classId} onChange={e => setClassId(e.target.value)}>
-              {CLASSES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {liveClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </NativeSelect>
           </Field>
           <Field label="Admission No">
@@ -488,6 +489,9 @@ export default function LateFeeReport() {
   const [toast,       setToast]       = useState(null)
   const [searchText,  setSearchText]  = useState('')
   const [activeTab,   setActiveTab]   = useState('all') // all | pending | paid
+  const [liveSessions, setLiveSessions] = useState([])
+  const [liveClasses, setLiveClasses] = useState([])
+  useEffect(() => { apiFetch('/fees/bootstrap').then(d => { setLiveSessions((d.sessions || []).map(x => x.value || x.label)); setLiveClasses([{ id: '0', name: 'All Classes' }, ...(d.classes || []).map(x => ({ id: String(x.classId), name: x.className }))]) }).catch(() => {}) }, [])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -495,7 +499,7 @@ export default function LateFeeReport() {
   }
 
   // ── Submit / Fetch ─────────────────────────────────────────────────────────
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     const err = {}
     if (!session) err.session = 'Please select a session'
     if (Object.keys(err).length) { setErrors(err); return }
@@ -504,21 +508,7 @@ export default function LateFeeReport() {
     setSearchText('')
     setActiveTab('all')
 
-    // Simulate API call
-    setTimeout(() => {
-      let filtered = LATE_FEE_DATA
-      if (classId !== '0') {
-        const className = CLASSES.find(c => c.id === classId)?.name || ''
-        filtered = filtered.filter(r => r.Class.includes(className))
-      }
-      if (admno) {
-        filtered = filtered.filter(r => r.Registration_No.toLowerCase().includes(admno.toLowerCase()))
-      }
-      setRows(filtered)
-      setShown(true)
-      setLoading(false)
-      showToast(`Found ${filtered.length} records for session ${session}`, 'success')
-    }, 700)
+    try { const data = await apiFetch(`/fees/work/late-report?session=${encodeURIComponent(session)}${classId !== '0' ? `&classId=${classId}` : ''}${admno ? `&admissionNo=${encodeURIComponent(admno)}` : ''}`); const mapped = (data || []).map((r, i) => ({ ...r, id: `${r.studentId}-${r.installmentNo}-${i}`, Name: r.studentName, Registration_No: r.admissionNo, Class: r.className, Father_name: r.fatherName, lateFee: Number(r.lateFee || 0), Status: Number(r.balance || 0) > 0 ? 'Pending' : 'Paid', installmentNumber: r.installmentNo })); setRows(mapped); setShown(true); showToast(`Found ${mapped.length} records for session ${session}`, 'success') } catch (e) { showToast(e.message, 'error') } finally { setLoading(false) }
   }, [session, classId, admno])
 
   const handleReset = () => {
@@ -528,14 +518,8 @@ export default function LateFeeReport() {
   }
 
   // ── Edit Save ──────────────────────────────────────────────────────────────
-  const handleSave = (row, decreaseAmount) => {
-    setRows(prev => prev.map(r =>
-      r.id === row.id
-        ? { ...r, lateFee: r.lateFee - decreaseAmount, Status: (r.lateFee - decreaseAmount === 0) ? 'Paid' : r.Status }
-        : r
-    ))
-    setEditRow(null)
-    showToast(`Late fee updated for ${row.Name}. Decreased by ₹${decreaseAmount}.`, 'success')
+  const handleSave = async (row, decreaseAmount) => {
+    try { await apiFetch('/fees/work/late-report/adjust', { method: 'POST', body: JSON.stringify({ session, admissionNo: row.Registration_No, installmentNo: row.installmentNumber, amount: decreaseAmount }) }); setRows(prev => prev.map(r => r.id === row.id ? { ...r, lateFee: r.lateFee - decreaseAmount, Status: r.lateFee - decreaseAmount <= 0 ? 'Paid' : r.Status } : r)); setEditRow(null); showToast(`Late fee updated for ${row.Name}.`, 'success') } catch (e) { showToast(e.message, 'error') }
   }
 
   // ── Computed / Filtered ────────────────────────────────────────────────────
@@ -608,13 +592,13 @@ export default function LateFeeReport() {
                   error={errors.session}
                 >
                   <option value="">-- Select Session --</option>
-                  {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                  {liveSessions.map(s => <option key={s} value={s}>{s}</option>)}
                 </NativeSelect>
               </Field>
 
               <Field label="Class">
                 <NativeSelect value={classId} onChange={e => setClassId(e.target.value)}>
-                  {CLASSES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {liveClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </NativeSelect>
               </Field>
 

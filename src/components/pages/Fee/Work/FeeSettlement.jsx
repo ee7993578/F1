@@ -4,7 +4,7 @@
  * Desktop: ERP-dense table layout | Mobile: card-based, tab-driven
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   Upload, FileSpreadsheet, Download, RefreshCw, Eye,
   AlertCircle, X, Check, Loader2, ChevronDown,
@@ -14,6 +14,7 @@ import {
   CheckCircle2, XCircle, Clock, FileUp, Banknote,
   Hash, ArrowUpRight, Zap, Shield
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
 const SESSIONS = [
@@ -287,13 +288,8 @@ function UploadSection({ onUploadSuccess }) {
   const handleUpload = () => {
     if (!validate()) return
     setUploading(true)
-    setTimeout(() => {
-      setUploading(false)
-      setFile(null); setTitle(''); setSession(''); setBank('0')
-      setErrors({})
-      if (fileRef.current) fileRef.current.value = ''
-      onUploadSuccess?.()
-    }, 1800)
+    const body = new FormData(); body.append('session', session); body.append('title', title); body.append('monthId', ''); body.append('mode', 'Settlement'); body.append('bankId', bank === '0' ? '' : bank); body.append('fileType', '1'); body.append('file', file)
+    apiFetch('/fees/work/excel/upload', { method: 'POST', body }).then(() => { setFile(null); setTitle(''); setSession(''); setBank('0'); setErrors({}); if (fileRef.current) fileRef.current.value = ''; onUploadSuccess?.() }).catch(e => setErrors({ file: e.message })).finally(() => setUploading(false))
   }
 
   const handleFileChange = (e) => {
@@ -604,27 +600,27 @@ function MobileCard({ record, idx, onFailedClick }) {
 }
 
 // ─── HISTORY SECTION ──────────────────────────────────────────────────────────
-function HistorySection() {
+function HistorySection({ records = [] }) {
   const [search, setSearch]     = useState('')
   const [failedModal, setFailedModal] = useState(null)
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return SETTLEMENT_HISTORY
+    if (!search.trim()) return records
     const q = search.toLowerCase()
-    return SETTLEMENT_HISTORY.filter(r =>
+    return records.filter(r =>
       r.title.toLowerCase().includes(q) ||
       r.uid.toLowerCase().includes(q) ||
       r.bank.toLowerCase().includes(q)
     )
-  }, [search])
+  }, [search, records])
 
   // Summary totals
   const totals = useMemo(() => ({
-    records: SETTLEMENT_HISTORY.length,
-    totalCount: SETTLEMENT_HISTORY.reduce((s, r) => s + r.totalcount, 0),
-    success: SETTLEMENT_HISTORY.reduce((s, r) => s + r.statu_count_complete, 0),
-    failed: SETTLEMENT_HISTORY.reduce((s, r) => s + r.faild, 0),
-  }), [])
+    records: records.length,
+    totalCount: records.reduce((s, r) => s + r.totalcount, 0),
+    success: records.reduce((s, r) => s + r.statu_count_complete, 0),
+    failed: records.reduce((s, r) => s + r.faild, 0),
+  }), [records])
 
   return (
     <>
@@ -783,7 +779,7 @@ function HistorySection() {
         <div className="flex items-center justify-between px-5 py-3.5 border-t border-slate-100 bg-slate-50/50">
           <p className="text-[12px] text-slate-400">
             Showing <strong className="text-slate-600">{filtered.length}</strong> of{' '}
-            <strong className="text-slate-600">{SETTLEMENT_HISTORY.length}</strong> settlements
+            <strong className="text-slate-600">{records.length}</strong> settlements
           </p>
           {search && (
             <button onClick={() => setSearch('')}
@@ -806,6 +802,9 @@ function HistorySection() {
 export default function FeeSettlement() {
   const [toast, setToast]       = useState(null)
   const [activeTab, setActiveTab] = useState('upload') // 'upload' | 'history'
+  const [history, setHistory] = useState([])
+  const loadHistory = useCallback(() => apiFetch('/fees/work/settlement').then(rows => setHistory((rows || []).map(r => ({ uid: r.guid, title: r.title || r.guid, totalcount: Number(r.totalCount || 0), total_amount: '', statu_count_complete: Number(r.totalCount || 0) - Number(r.failedCount || 0), Complete_amount: '', faild: Number(r.failedCount || 0), Failed_amount: '', Settlement_Date: '', PostedDate: r.postedDate || '', bank: String(r.bankId || '') })))), [])
+  useEffect(() => { loadHistory().catch(() => {}) }, [loadHistory])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -814,6 +813,7 @@ export default function FeeSettlement() {
 
   const handleUploadSuccess = () => {
     showToast('✓ File uploaded and processed successfully!')
+    loadHistory()
     setActiveTab('history')
   }
 
@@ -901,7 +901,7 @@ export default function FeeSettlement() {
 
             {/* Quick stats from history */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <StatCard icon={Layers}        label="Total Batches"      value={SETTLEMENT_HISTORY.length}   color="blue" />
+                <StatCard icon={Layers}        label="Total Batches"      value={history.length}   color="blue" />
               <StatCard icon={TrendingUp}    label="Avg Success Rate"   value="97.2%"                        color="green" />
               <StatCard icon={CreditCard}    label="Total Processed"    value="₹24.46L"                      color="violet" />
               <StatCard icon={Zap}           label="Latest Settlement"  value="05-Apr-25"                    color="amber" />
@@ -909,7 +909,7 @@ export default function FeeSettlement() {
           </>
         )}
 
-        {activeTab === 'history' && <HistorySection />}
+        {activeTab === 'history' && <HistorySection records={history} />}
       </div>
 
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}

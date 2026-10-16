@@ -413,10 +413,11 @@ function InstallmentMobileCard({ installNo, installName, slabs, onAdd, onDelete,
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function DefineLateFee() {
+  const [setup,        setSetup]        = useState({ session: '', sessions: [], installments: [], schoolType: 1 })
   const [session,      setSession]      = useState('')
   const [feeType,      setFeeType]      = useState('regular')
   const [lateFeeType,  setLateFeeType]  = useState('per_day')
-  const [slabsMap,     setSlabsMap]     = useState(() => buildInitialSlabs('regular'))
+  const [slabsMap,     setSlabsMap]     = useState({})
   const [loading,      setLoading]      = useState(false)
   const [submitting,   setSubmitting]   = useState(false)
   const [errors,       setErrors]       = useState({})
@@ -429,6 +430,13 @@ export default function DefineLateFee() {
   }
 
   useEffect(() => {
+    apiFetch('/fees/setup/bootstrap').then(data => {
+      setSetup(data)
+      setSession(data.session || data.sessions?.[0]?.value || '')
+    }).catch(error => showToast(error.message || 'Late fee setup could not be loaded.', 'error'))
+  }, [])
+
+  useEffect(() => {
     if (!session) return
     const feeTypeId = feeType === 'transport' ? 6 : feeType === 'hostel' ? 7 : 0
     apiFetch('/fees/late-fees?' + new URLSearchParams({ session, feeTypeId }))
@@ -439,7 +447,7 @@ export default function DefineLateFee() {
           if (!grouped[key]) grouped[key] = []
           grouped[key].push({ id: row.id, late_fee_id: row.id, from_date: row.fromDate || '', to_date: row.toDate || '', charge: row.charge ?? '', mode: row.mode || 'Fix' })
         })
-        if (Object.keys(grouped).length) setSlabsMap(prev => ({ ...prev, ...grouped }))
+        setSlabsMap(grouped)
       })
       .catch(error => showToast(error.message || 'Late fee data could not be loaded.', 'error'))
   }, [session, feeType])
@@ -447,7 +455,7 @@ export default function DefineLateFee() {
   // When fee type changes, rebuild installments
   const handleFeeTypeChange = useCallback((ft) => {
     setFeeType(ft)
-    setSlabsMap(buildInitialSlabs(ft))
+    setSlabsMap({})
   }, [])
 
   // Add slab to an installment
@@ -484,7 +492,7 @@ export default function DefineLateFee() {
     setSession('')
     setFeeType('regular')
     setLateFeeType('per_day')
-    setSlabsMap(buildInitialSlabs('regular'))
+    setSlabsMap({})
     setErrors({})
   }
 
@@ -505,7 +513,15 @@ export default function DefineLateFee() {
     Promise.all(requests).then(() => showToast('Late fee slabs saved successfully!')).catch(error => showToast(error.message || 'Late fee save failed.', 'error')).finally(() => setSubmitting(false))
   }
 
-  const installments = INSTALLMENTS[feeType] || []
+  const feeTypeIdForFilter = feeType === 'transport' ? 6 : feeType === 'hostel' ? 7 : 0
+  const installments = useMemo(() => [...new Set((setup.installments || []).filter(row => feeTypeIdForFilter === 0 ? ![6, 7].includes(Number(row.feeTypeId)) : Number(row.feeTypeId) === feeTypeIdForFilter).map(row => Number(row.installmentNo)))].sort((a, b) => a - b), [setup.installments, feeTypeIdForFilter])
+  useEffect(() => {
+    setSlabsMap(previous => {
+      const next = {}
+      installments.forEach(number => { next[number] = previous[number] || [] })
+      return next
+    })
+  }, [installments])
 
   // Summary stats
   const totalSlabs = useMemo(() =>
@@ -563,7 +579,7 @@ export default function DefineLateFee() {
                 placeholder="-- Select Session --"
                 error={errors.session}
               >
-                {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {(setup.sessions || []).map(s => <option key={s.value} value={s.value}>{s.label || s.value}</option>)}
               </NativeSelect>
             </Field>
             <div className="sm:col-span-2 flex gap-2 sm:justify-end">

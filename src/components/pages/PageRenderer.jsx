@@ -1,3 +1,4 @@
+import GenericPage from './GenericPage'
 import StudentRegistration from './Student/Work/StudentRegistration'
 import AdmNoAllotment from './Student/Work/AdmNoAllotment'
 import NewClassAllotment from './Student/Work/newClassAllotment'
@@ -68,22 +69,11 @@ import RegistrationOpenConfig from './Staff/Setup/RegistrationOpenConfig'
 
 // Fees work start here
 import DepositFee from './Fee/Work/DepositFee'
-import DepositLateFees from './Fee/Work/DepositLateFees'
-import FeeSettlement from './Fee/Work/FeeSettlement'
-import ImportExcelFee from './Fee/Work/ImportExcelFee'
-import LateFeeReportWork from './Fee/Work/LateFeeReportWork'
-import MiscellaneousFee from './Fee/Work/MiscellaneousFee'
-import RefundableFees from './Fee/Work/RefundableFees'
-import WaveOffFees from './Fee/Work/WaveOffFees'
-import WaveOffLateFees from './Fee/Work/WaveOffLateFees'
+import FeeBooklet from './Fee/Work/FeeBooklet'
+import { DepositLateFees, FeeSettlement, ImportExcelFee, LateFeeReportWork, MiscellaneousFee, RefundableFees, WaveOffFees, WaveOffLateFees } from './Fee/Work/FeeWorkDynamic'
 
 
-import AssignConGroup from './Fee/Update/AssignConGroup'
-import AssignOptional from './Fee/Update/AssignOptional'
-import FeeNotice from './Fee/Update/FeeNotice'
-import ReconFee from './Fee/Update/ReconFee'
-import ReprintFeeSlip from './Fee/Update/ReprintFeeSlip'
-import UpdateStudentFee from './Fee/Update/UpdateStudentFee'
+import { AssignConGroup, AssignOptional, FeeNotice, ReconFee, ReprintFeeSlip, UpdateStudentFee } from './Fee/Update/FeeUpdateDynamic'
 
 
 import FeeHeadMaster from './Fee/Setup/FeeHeadMaster'
@@ -97,19 +87,9 @@ import DefineConcessionValue from './Fee/Setup/DefineConcessionValue'
 
 
 
-import BudgetReport from './Fee/Report/BudgetReport'
-import ClasswiseFeeReport from './Fee/Report/ClasswiseFeeReport'
-import ConcessionGroupReport from './Fee/Report/ConcessionGroupReport'
-import ConcessionReport from './Fee/Report/ConcessionReport'
-import DailyCollectionReport from './Fee/Report/DailyCollectionReport'
-import DailyDepositReport from './Fee/Report/DailyDepositReport'
-import FeeDefaulterReport from './Fee/Report/FeeDefaulterReport'
-import FeeReconciliationReport from './Fee/Report/FeeReconciliationReport'
-import FeeSubReconciliationReport from './Fee/Report/FeeSubReconciliationReport'
-import InstallmentWiseDefaulter from './Fee/Report/InstallmentWiseDefaulter'
-import LateFeeReport from './Fee/Report/LateFeeReport'
-import PaymentResponseReport from './Fee/Report/PaymentResponseReport'
-import StudentFeeSummary from './Fee/Report/StudentFeeSummary'
+import { ClasswiseFeeReport, ConcessionGroupReport, ConcessionReport, DailyCollectionReport, FeeReconciliationReport, FeeSubReconciliationReport, InstallmentWiseDefaulter, LateFeeReport, StudentFeeSummary } from './Fee/Report/FeeReportDynamic'
+import { FeeDefaulterReport, PaymentResponseReport } from './Fee/Report/LegacyFeeReports'
+import { BudgetReportExact, DailyDepositReportExact } from './Fee/Report/FeeExactReports'
 
 
 //Transport work start from here
@@ -338,7 +318,7 @@ import LeaveStaffApproval from './Leave/Work/LeaveStaffApproval'
  * Everything else falls through to GenericPage.
  * Future: add more dedicated pages here as you build them.
  */
-export default function PageRenderer({ moduleData, currentGroup, currentPage }) {
+export default function PageRenderer({ moduleData, currentGroup, currentPage, onPageClick }) {
   if (!moduleData || !currentGroup || !currentPage) {
     return (
       <div className="page-animate rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
@@ -425,11 +405,12 @@ export default function PageRenderer({ moduleData, currentGroup, currentPage }) 
     if (pageId === 'RegistrationOpenConfig') return <RegistrationOpenConfig />
 
   //Fee work start here
-    if (pageId === 'DepositFee') return <DepositFee />
-    if (pageId === 'DepositLateFees') return <DepositLateFees />
+    if (pageId === 'DepositFee') return <DepositFee onPageClick={onPageClick} />
+    if (pageId === 'fee_booklet' || pageId === 'FeeBooklet') return <FeeBooklet />
+    if (pageId === 'DepositLateFees' || pageId === 'DepositLateFeesFee') return <DepositLateFees />
     if (pageId === 'FeeSettlement') return <FeeSettlement />
     if (pageId === 'ImportExcelFee') return <ImportExcelFee />
-    if (pageId === 'LateFeeReport') return <LateFeeReport />
+    if (pageId === 'LateFeeReportWork') return <LateFeeReportWork />
     if (pageId === 'MiscellaneousFee') return <MiscellaneousFee />
     if (pageId === 'RefundableFees') return <RefundableFees />
     if (pageId === 'WaveOffFees') return <WaveOffFees />
@@ -455,13 +436,13 @@ export default function PageRenderer({ moduleData, currentGroup, currentPage }) 
 
 
 
-      if (pageId === 'BudgetReport') return <BudgetReport />
+      if (pageId === 'BudgetReport') return <BudgetReportExact />
       if (pageId === 'ClasswiseFeeReport') return <ClasswiseFeeReport />
       if (pageId === 'ConcessionGroupReport') return <ConcessionGroupReport />
       if (pageId === 'ConcessionReport') return <ConcessionReport />
       if (pageId === 'DailyCollectionReport') return <DailyCollectionReport />
-      if (pageId === 'DailyDepositReport') return <DailyDepositReport />
-      if (pageId === 'FeeDefaulterReport') return <FeeDefaulterReport />
+      if (pageId === 'DailyDepositReport') return <DailyDepositReportExact />
+      if (pageId === 'FeeDefaulterReport' || (moduleLabel === 'Fee' && (pageId === 'DefaulterReport' || pageId === 'defaulter-report_renssance'))) return <FeeDefaulterReport onPageClick={onPageClick} />
       if (pageId === 'FeeReconciliationReport') return <FeeReconciliationReport />
       if (pageId === 'FeeSubReconciliationReport') return <FeeSubReconciliationReport />
       if (pageId === 'InstallmentWiseDefaulter') return <InstallmentWiseDefaulter />

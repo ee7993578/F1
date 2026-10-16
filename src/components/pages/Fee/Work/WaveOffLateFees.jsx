@@ -16,6 +16,7 @@ import {
   SlidersHorizontal, ArrowLeft, Info, Sparkles,
   TrendingDown, Receipt, Shield, RotateCcw, Save
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
 
@@ -650,26 +651,15 @@ export default function WaveOffLateFees() {
   }, [])
 
   // ── Handle show ─────────────────────────────────────────────────────────
-  const handleShow = useCallback(() => {
+  const handleShow = useCallback(async () => {
     const err = {}
     if (!session) err.session = 'Please select a session'
     if (!admNo.trim()) err.admNo = 'Please enter admission number'
     if (Object.keys(err).length) { setErrors(err); return }
 
-    const st = STUDENT_DB[admNo.trim().toUpperCase()]
-    if (!st) { setErrors({ admNo: 'Student not found. Try ADM001, ADM002, ADM003' }); return }
-
     setErrors({})
     setLoading(true)
-
-    setTimeout(() => {
-      const data = (LATE_FEE_DATA[admNo.trim().toUpperCase()] || []).map(r => ({ ...r }))
-      setStudent(st)
-      setRows(data)
-      setStep(3)
-      setLoading(false)
-      showToast(`Loaded ${data.length} installments for ${st.name}`)
-    }, 700)
+    try { const students = await apiFetch(`/fees/students/search?query=${encodeURIComponent(admNo)}&session=${encodeURIComponent(session)}`); const st = students[0]; if (!st) throw new Error('Student not found'); const data = await apiFetch(`/fees/work/late-report?session=${encodeURIComponent(session)}&admissionNo=${encodeURIComponent(admNo)}`); const rows = (data || []).map(r => ({ ...r, id: `${r.studentId}-${r.installmentNo}`, installment_no: r.installmentNo, month_name: r.installmentNo, latefee: Number(r.lateFee || 0), WaveOffFeeValue: 0, balancelatefee: Number(r.balance || 0), Remark: '', status: '0' })); setStudent({ name: st.name || st.studentName, class: st.classLabel || st.className, fatherName: st.father || st.fatherName, phone: st.mobile }); setRows(rows); setStep(3); showToast(`Loaded ${rows.length} installments for ${st.name || st.studentName}`) } catch (e) { setErrors({ admNo: e.message }) } finally { setLoading(false) }
   }, [session, admNo, showToast])
 
   // ── Handle autocomplete select ───────────────────────────────────────────
@@ -705,15 +695,12 @@ export default function WaveOffLateFees() {
   }
 
   // ── Submit ───────────────────────────────────────────────────────────────
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const changed = rows.filter(r => Number(r.WaveOffFeeValue) > 0 || r.status === '1')
     if (changed.length === 0) { showToast('No wave-off amounts entered.', 'error'); return }
 
     setSubmitting(true)
-    setTimeout(() => {
-      setSubmitting(false)
-      showToast(`Wave off saved successfully for ${changed.length} installment(s)!`)
-    }, 1200)
+    try { await Promise.all(changed.map(r => apiFetch('/fees/work/late-report/adjust', { method: 'POST', body: JSON.stringify({ session, admissionNo: admNo, installmentNo: r.installment_no, amount: Number(r.WaveOffFeeValue) }) }))); showToast(`Wave off saved successfully for ${changed.length} installment(s)!`) } catch (e) { showToast(e.message, 'error') } finally { setSubmitting(false) }
   }
 
   // ── Current step guard for wizard on mobile ──────────────────────────────

@@ -754,6 +754,7 @@ function ConcessionSummary({ installments }) {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function DefineConcession() {
+  const [setup, setSetup] = useState({ session: '', sessions: [], concessionGroups: [] })
   // Form state
   const [feeType,          setFeeType]          = useState('Regular')
   const [session,          setSession]          = useState('')
@@ -781,6 +782,13 @@ export default function DefineConcession() {
     setTimeout(() => setToast(null), 3500)
   }, [])
 
+  useEffect(() => {
+    apiFetch('/fees/setup/bootstrap').then(data => {
+      setSetup(data)
+      setSession(data.session || data.sessions?.[0]?.value || '')
+    }).catch(error => showToast(error.message || 'Concession setup could not be loaded.', 'error'))
+  }, [showToast])
+
   // Auto-lookup student when adm no changes
   const handleAdmNoChange = useCallback((val) => {
     setAdmNo(val)
@@ -807,18 +815,6 @@ export default function DefineConcession() {
       }).catch(error => { setErrors(p => ({ ...p, admNo: error.message || 'Student lookup failed' })); setAdmLoading(false) })
     }
   }, [feeType, session])
-
-  // When fee type changes, reload installments if student is loaded
-  useEffect(() => {
-    if (!student) return
-    const feeDb = FEE_DATA_MAP[feeType] || REGULAR_FEE_DATA
-    const raw = feeDb[student.stuId] || []
-    setInstallments(raw.map(inst => ({
-      ...inst,
-      heads: inst.heads.map(h => ({ ...h })),
-    })))
-    setSubmitted(false)
-  }, [feeType])
 
   // Handle value/mode change in nested installment table
   const handleInstallmentChange = useCallback((instIdx, headIdx, field, value) => {
@@ -936,7 +932,7 @@ export default function DefineConcession() {
                 placeholder="-- Select Session --"
                 error={errors.session}
               >
-                {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {(setup.sessions || []).map(s => <option key={s.value} value={s.value}>{s.label || s.value}</option>)}
               </NativeSelect>
             </Field>
 
@@ -969,7 +965,7 @@ export default function DefineConcession() {
                 placeholder="-- Select Group --"
                 disabled={!student}
               >
-                {CONCESSION_GROUPS.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
+                {(setup.concessionGroups || []).map(g => <option key={g.groupCode || g.id} value={g.groupCode || g.id}>{g.name || g.label}</option>)}
               </NativeSelect>
             </Field>
 

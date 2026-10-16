@@ -21,6 +21,7 @@ import {
   Receipt, Banknote, Coins, ChevronUp, Info, Bus, GraduationCap,
   CheckSquare, Square, Phone, Users
 } from "lucide-react";
+import { apiFetch } from '../../../../lib/api'
 
 // ─── DUMMY DATA ───────────────────────────────────────────────────────────────
 
@@ -466,7 +467,7 @@ function DesktopInstallmentTable({ installment, instIdx, onChange, onChecked }) 
 export default function WaveOffFees() {
   // Filters
   const [feeType, setFeeType] = useState("regular"); // regular | transport
-  const [session, setSession] = useState("2024-25");
+  const [session, setSession] = useState("");
   const [admNo, setAdmNo] = useState("");
   const [admInput, setAdmInput] = useState("");
 
@@ -495,14 +496,10 @@ export default function WaveOffFees() {
   // ── Autocomplete ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (admInput.length < 1) { setSuggestions([]); return; }
-    const q = admInput.toLowerCase();
-    const filtered = STUDENT_DB.filter(s =>
-      s.RegistrationNo.toLowerCase().includes(q) ||
-      s.Name.toLowerCase().includes(q)
-    );
-    setSuggestions(filtered.slice(0, 5));
-    setShowSuggestions(true);
-  }, [admInput]);
+    let active = true
+    apiFetch(`/fees/students/search?query=${encodeURIComponent(admInput)}&session=${encodeURIComponent(session)}`).then(rows => { if (active) { setSuggestions((rows || []).slice(0, 5).map(s => ({ RegistrationNo: s.registrationNo || s.admNo, Name: s.name || s.studentName, Class: s.classLabel || s.className, FatherName: s.father || s.fatherName, PhoneNo: s.mobile })) ); setShowSuggestions(true) } }).catch(() => setSuggestions([]))
+    return () => { active = false }
+  }, [admInput, session]);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -532,30 +529,14 @@ export default function WaveOffFees() {
   };
 
   // ── Show Data ─────────────────────────────────────────────────────────────
-  const handleShow = () => {
+  const handleShow = async () => {
     const err = {};
     if (!session) err.session = "Select session";
     if (!admNo) err.admNo = "Enter admission number";
     if (Object.keys(err).length) { setErrors(err); showToast("Please fill required fields", "error"); return; }
     setErrors({});
-    setLoading(true);
-    setShown(false);
-
-    setTimeout(() => {
-      const db = feeType === "regular" ? FEE_DUE_REGULAR : FEE_DUE_TRANSPORT;
-      const data = db[admNo];
-      if (!data || data.length === 0) {
-        showToast("No fee dues found for this student", "warning");
-        setInstallments([]);
-        setShown(false);
-      } else {
-        // Deep clone so edits don't mutate source
-        setInstallments(JSON.parse(JSON.stringify(data)));
-        setShown(true);
-        showToast(`Loaded ${data.length} installment(s) for ${feeType} fee`);
-      }
-      setLoading(false);
-    }, 700);
+    setLoading(true); setShown(false)
+    try { const data = await apiFetch(`/fees/work/waveoff?admissionNo=${encodeURIComponent(admNo)}&session=${encodeURIComponent(session)}`); const grouped = {}; (data.rows || []).forEach(r => { const k = r.installmentNo; grouped[k] ||= { installment_no: r.installmentNo, month_name: r.installmentName, fees: [] }; grouped[k].fees.push({ id: r.id, fee_head_id: r.feeHeadId, display_fee_head: r.feeHead, balance: Number(r.balance || 0), status: Number(r.waveOffAmount || 0) > 0 ? 1 : 0, WaveOffFeeValue: Number(r.waveOffAmount || 0), Remark: r.remark || '' }) }); setInstallments(Object.values(grouped)); setShown(Object.values(grouped).length > 0); showToast(`Loaded ${Object.values(grouped).length} installment(s)`) } catch (e) { showToast(e.message, 'error'); setInstallments([]) } finally { setLoading(false) }
   };
 
   const handleReset = () => {
@@ -592,7 +573,7 @@ export default function WaveOffFees() {
   }, []);
 
   // ── Validate & Submit ─────────────────────────────────────────────────────
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Validate no wave-off exceeds balance
     let hasError = false;
@@ -608,11 +589,8 @@ export default function WaveOffFees() {
     );
     if (waivedRows.length === 0) { showToast("Please enter wave off amount for at least one fee head", "warning"); return; }
 
-    setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      showToast(`Wave off saved successfully for ${waivedRows.length} fee head(s)!`);
-    }, 1200);
+    setSubmitting(true)
+    try { await apiFetch('/fees/work/waveoff', { method: 'POST', body: JSON.stringify({ session, rows: waivedRows.map(f => ({ id: f.id, amount: Number(f.WaveOffFeeValue), remark: f.Remark })) }) }); showToast(`Wave off saved successfully for ${waivedRows.length} fee head(s)!`) } catch (e) { showToast(e.message, 'error') } finally { setSubmitting(false) }
   };
 
   // ── Stats ─────────────────────────────────────────────────────────────────

@@ -23,6 +23,7 @@ import {
   Banknote, Bus, Building2, Info,
   CheckCircle2, ArrowRight, ChevronRight
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── DUMMY DATA ───────────────────────────────────────────────────────────────
 
@@ -287,19 +288,11 @@ export default function DepositLateFees() {
   const handleShow = () => {
     const err = {}
     if (!classId)   err.classId   = 'Required'
-    if (!studentId) err.studentId = 'Required'
+    if (!admNo) err.studentId = 'Required'
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({})
     setLoading(true)
-
-    setTimeout(() => {
-      const key = `${studentId}-${feeType}`
-      const data = LATE_FEE_DATA[key] || []
-      setRows(data.map(r => ({ ...r }))) // fresh copy
-      setShown(true)
-      setLoading(false)
-      if (data.length === 0) showToast('No late fee records found.', 'error')
-    }, 700)
+    apiFetch(`/fees/work/late-deposits?admissionNo=${encodeURIComponent(admNo)}&session=${encodeURIComponent(session)}`).then(data => { const rows = (data.rows || []).map(r => ({ ...r, Installment_no: r.installmentNo, late_fee: Number(r.lateFee || 0), receive_amount: Number(r.receiveAmount || 0), balance: Number(r.balance || 0), deposit_amount: '' })); setRows(rows); setShown(true); if (!rows.length) showToast('No late fee records found.', 'error') }).catch(e => showToast(e.message, 'error')).finally(() => setLoading(false))
   }
 
   const handleReset = () => {
@@ -320,7 +313,7 @@ export default function DepositLateFees() {
     if (!date)             { showToast('Please select a date.', 'error'); return }
 
     setDepositing(row.id)
-    setTimeout(() => {
+    apiFetch('/fees/work/late-deposits', { method: 'POST', body: JSON.stringify({ admissionNo: admNo, session, installmentNo: row.Installment_no, amount: amt, paymentDate: date, feeType }) }).then(() => {
       const student = STUDENTS_DB.find(s => s.id === studentId)
       // Update row
       setRows(r => r.map(x => {
@@ -342,7 +335,7 @@ export default function DepositLateFees() {
       }
       if (printRec) setReceipt(rec)
       else showToast(`₹${amt} deposited for ${row.Installment_no}!`)
-    }, 600)
+    }).catch(e => showToast(e.message, 'error')).finally(() => setDepositing(null))
   }
 
   // ── stats ─────────────────────────────────────────────────────────────────

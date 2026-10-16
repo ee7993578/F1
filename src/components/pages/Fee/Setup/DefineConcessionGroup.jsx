@@ -507,6 +507,7 @@ function MobileGroupCard({ row, idx, onEdit }) {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function DefineConcessionGroup() {
+  const [setup, setSetup] = useState({ sessions: [] })
   // Form state
   const [session,    setSession]    = useState('')
   const [mainGroup,  setMainGroup]  = useState('')
@@ -516,8 +517,8 @@ export default function DefineConcessionGroup() {
   const [submitting, setSubmitting] = useState(false)
 
   // Data state
-  const [mainGroups, setMainGroups] = useState(INITIAL_MAIN_GROUPS)
-  const [groups,     setGroups]     = useState(INITIAL_GROUPS)
+  const [mainGroups, setMainGroups] = useState([])
+  const [groups,     setGroups]     = useState([])
 
   // Modal / Edit state
   const [showModal,    setShowModal]    = useState(false)
@@ -532,6 +533,14 @@ export default function DefineConcessionGroup() {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
   }
+
+  useEffect(() => {
+    apiFetch('/fees/setup/bootstrap').then(data => {
+      setSetup(data)
+      setSession(data.session || data.sessions?.[0]?.value || '')
+      setMainGroups((data.mainGroups || []).map(group => ({ id: group.id, name: group.name })))
+    }).catch(error => showToast(error.message || 'Concession setup could not be loaded.', 'error'))
+  }, [])
 
   useEffect(() => {
     if (!session) return
@@ -572,29 +581,22 @@ export default function DefineConcessionGroup() {
   // ── Add Main Group ─────────────────────────────────────────────────────────
   const handleAddMainGroup = (name) => {
     setModalLoading(true)
-    setTimeout(() => {
-      const newGroup = { id: Date.now(), name }
-      setMainGroups(prev => [...prev, newGroup])
-      setModalLoading(false)
-      setShowModal(false)
-      showToast(`Main Group "${name}" added!`)
-    }, 600)
+    apiFetch('/fees/concession-main-groups', { method: 'POST', body: JSON.stringify({ name }) }).then(data => {
+      const newGroup = { id: data.id, name }
+      setMainGroups(prev => [...prev, newGroup]); setModalLoading(false); setShowModal(false); showToast(`Main Group "${name}" added!`)
+    }).catch(error => { setModalLoading(false); showToast(error.message || 'Main group save failed.', 'error') })
   }
 
   // ── Desktop grid update ────────────────────────────────────────────────────
   const handleDesktopUpdate = (updated) => {
     const mgName = mainGroups.find(g => g.id === updated.main_group_id)?.name || updated.main_group_name
-    setGroups(prev => prev.map(r => r.id === updated.id ? { ...updated, main_group_name: mgName } : r))
-    setEditingId(null)
-    showToast('Group updated successfully!')
+    apiFetch(`/fees/concession-groups/${updated.id}`, { method: 'PUT', body: JSON.stringify({ name: updated.Group_name, mainGroupId: updated.main_group_id, lateFeeApplicable: updated.is_late_fee_applicable }) }).then(() => { setGroups(prev => prev.map(r => r.id === updated.id ? { ...updated, main_group_name: mgName } : r)); setEditingId(null); showToast('Group updated successfully!') }).catch(error => showToast(error.message || 'Group update failed.', 'error'))
   }
 
   // ── Mobile drawer update ───────────────────────────────────────────────────
   const handleMobileUpdate = (updated) => {
     const mgName = mainGroups.find(g => g.id === updated.main_group_id)?.name || updated.main_group_name
-    setGroups(prev => prev.map(r => r.id === updated.id ? { ...updated, main_group_name: mgName } : r))
-    setMobileEdit(null)
-    showToast('Group updated successfully!')
+    apiFetch(`/fees/concession-groups/${updated.id}`, { method: 'PUT', body: JSON.stringify({ name: updated.Group_name, mainGroupId: updated.main_group_id, lateFeeApplicable: updated.is_late_fee_applicable }) }).then(() => { setGroups(prev => prev.map(r => r.id === updated.id ? { ...updated, main_group_name: mgName } : r)); setMobileEdit(null); showToast('Group updated successfully!') }).catch(error => showToast(error.message || 'Group update failed.', 'error'))
   }
 
   // ── Search filter ──────────────────────────────────────────────────────────
@@ -653,7 +655,7 @@ export default function DefineConcessionGroup() {
                 placeholder="-- Select Session --"
                 error={errors.session}
               >
-                {SESSIONS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                {(setup.sessions || []).map(s => <option key={s.value} value={s.value}>{s.label || s.value}</option>)}
               </NativeSelect>
             </Field>
 

@@ -19,6 +19,48 @@ const moduleIdAliases = {
   28: 'canteen', 31: 'website', 32: 'masterSetting', 6: 'hostel',
 }
 
+// The legacy database contains several Fee page keys that do not match the
+// React page IDs character-for-character. Keep these aliases at the menu
+// boundary so the actual page workflow is selected instead of GenericPage.
+const legacyPageAliases = Object.fromEntries([
+  ['define_late_fees', 'DefineLateFee'],
+  ['define_fee_concession', 'DefineConcession'],
+  ['define_con_group', 'DefineConcessionGroup'],
+  ['define_concession_value', 'DefineConcessionValue'],
+  ['depositfee', 'DepositFee'],
+  ['deposit-late-fees', 'DepositLateFeesFee'],
+  ['Refundable_Fees', 'RefundableFees'],
+  ['importexcel_database', 'ImportExcelFee'],
+  ['stu_miscellaneous_fee', 'MiscellaneousFee'],
+  ['importexcel_for_settlement', 'FeeSettlement'],
+  ['getLateFee', 'LateFeeReportWork'],
+  ['EmailReport', 'EmailReport'],
+  ['smsreport_new', 'SmsReport'],
+  ['sentfeesms', 'SendSMS'],
+  ['WaveOffLateFees', 'WaveOffLateFees'],
+  ['WaveOffFees', 'WaveOffFees'],
+  ['AssignOptional', 'AssignOptional'],
+  ['AssginConGroup', 'AssignConGroup'],
+  ['Fee_notice', 'FeeNotice'],
+  ['reprint_fee_slip', 'ReprintFeeSlip'],
+  ['update_student_fee', 'UpdateStudentFee'],
+  ['classwise_fee_details_report', 'ClasswiseFeeReport'],
+  ['Concession_group_report', 'ConcessionGroupReport'],
+  ['DefaulterReport', 'FeeDefaulterReport'],
+  ['defaulter-report_renssance', 'FeeDefaulterReport'],
+  ['BudgetReport', 'BudgetReport'],
+  ['total_fee_colllection', 'DailyCollectionReport'],
+  ['day_wise_feehead_deposit', 'DailyDepositReport'],
+  ['Class_wise_fee_collection_report', 'ClasswiseFeeReport'],
+  ['ConcessionReport', 'ConcessionReport'],
+  ['DailyDepositReport', 'DailyDepositReport'],
+  ['feeReconcialtionReport', 'FeeReconciliationReport'],
+  ['PaymentResponseReport', 'PaymentResponseReport'],
+  ['headwis_defaulter_report(instwise)', 'InstallmentWiseDefaulter'],
+  ['late_fee_report', 'LateFeeReport'],
+  ['StudentFeeSummary', 'StudentFeeSummary'],
+].map(([legacy, reactId]) => [key(legacy), reactId]))
+
 const field = (value, ...names) => {
   for (const name of names) {
     if (value && value[name] !== undefined && value[name] !== null) return value[name]
@@ -62,7 +104,9 @@ const findStaticPage = (staticModule, staticGroup, page) => {
   const candidates = allStaticPages(staticModule, staticGroup)
   const pageKey = pageFileKey(page)
   const labelKey = key(field(page, 'label', 'title', 'text', 'pageName', 'PageName'))
-  return candidates.find((item) => key(item.id) === pageKey)
+  const aliasId = legacyPageAliases[pageKey]
+  return candidates.find((item) => aliasId && item.id === aliasId)
+    || candidates.find((item) => key(item.id) === pageKey)
     || candidates.find((item) => key(item.label) === pageKey)
     || candidates.find((item) => labelKey && key(item.label) === labelKey)
 }

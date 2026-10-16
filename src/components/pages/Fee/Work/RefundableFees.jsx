@@ -5,7 +5,7 @@
  * Mirrors the ASPX workflow: search student → select session/head → add deduction → view ledger
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   Search, User, BookOpen, CreditCard, Calendar, FileText,
   Plus, Trash2, RefreshCw, ChevronDown, AlertCircle, X,
@@ -14,6 +14,7 @@ import {
   SlidersHorizontal, ReceiptIndianRupee, GraduationCap,
   BadgeIndianRupee, Clock, Eye
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── DUMMY DATA ──────────────────────────────────────────────────────────────
 
@@ -365,7 +366,10 @@ export default function RefundableFees() {
   const [submitting, setSubmitting] = useState(false)
 
   // ── Records
-  const [records, setRecords]     = useState(INITIAL_RECORDS)
+  const [records, setRecords]     = useState({})
+  const [liveSessions, setLiveSessions] = useState([])
+  const [liveHeads, setLiveHeads] = useState([])
+  const [liveDeposit, setLiveDeposit] = useState(0)
 
   // ── UI State
   const [activeTab, setActiveTab] = useState('add')  // 'add' | 'ledger'
@@ -387,15 +391,23 @@ export default function RefundableFees() {
 
   // Deposit amount for selected combo
   const depositAmt = useMemo(() => {
-    if (!recordKey) return 0
-    return DEPOSITS[recordKey] || 0
-  }, [recordKey])
+    return liveDeposit
+  }, [liveDeposit])
 
   const totalDeduction = useMemo(() => currentRecords.reduce((s, r) => s + r.deduction_amt, 0), [currentRecords])
   const balance = depositAmt - totalDeduction
 
   // ── Search Student
-  const handleSearch = useCallback(() => {
+  const loadLedger = useCallback(async (adm, ses, head) => {
+    if (!adm) return
+    const data = await apiFetch(`/fees/work/refundable?admissionNo=${encodeURIComponent(adm)}${ses ? `&session=${encodeURIComponent(ses)}` : ''}`)
+    if (data.student) setStudent({ ...data.student, name: data.student.name, class: data.student.className })
+    setLiveSessions((data.sessions || []).map(x => x.value || x.label))
+    setLiveHeads(data.heads || [])
+    setLiveDeposit(Number(data.deposit || 0))
+    if (ses && head) setRecords(prev => ({ ...prev, [`${adm}-${ses}-${head}`]: (data.records || []).filter(x => String(x.feeHeadId) === String(head)).map(x => ({ ...x, deduction_amt: Number(x.deductionAmount || 0), name: data.student?.name, class: data.student?.className })) }))
+  }, [])
+  const handleSearch = useCallback(async () => {
     const trimmed = admNo.trim().toUpperCase()
     if (!trimmed) { setAdmError('Enter admission number'); return }
     setAdmError('')
@@ -404,19 +416,10 @@ export default function RefundableFees() {
     setPanelVisible(false)
     setSession('')
     setHeadId('')
-
-    setTimeout(() => {
-      const found = STUDENTS[trimmed]
-      if (found) {
-        setStudent(found)
-        setPanelVisible(true)
-        showToast(`Student found: ${found.name}`)
-      } else {
-        setAdmError('No student found with this admission number')
-      }
-      setSearching(false)
-    }, 500)
+    try { const data = await apiFetch(`/fees/work/refundable?admissionNo=${encodeURIComponent(trimmed)}`); if (!data.student) throw new Error('No student found with this admission number'); setStudent({ ...data.student, class: data.student.className }); setLiveSessions((data.sessions || []).map(x => x.value || x.label)); setLiveHeads(data.heads || []); setLiveDeposit(Number(data.deposit || 0)); setPanelVisible(true); showToast(`Student found: ${data.student.name}`) } catch (e) { setAdmError(e.message) } finally { setSearching(false) }
   }, [admNo])
+
+  useEffect(() => { if (student && session && headId) loadLedger(admNo.trim().toUpperCase(), session, headId).catch(e => showToast(e.message, 'error')) }, [student, session, headId, admNo, loadLedger])
 
   // ── Submit Deduction
   const handleSubmit = () => {
@@ -433,37 +436,15 @@ export default function RefundableFees() {
     if (!valid) return
 
     setSubmitting(true)
-    setTimeout(() => {
-      const key = `${admNo.trim().toUpperCase()}-${session}-${headId}`
-      const newRec = {
-        id: Date.now(),
-        name: student.name,
-        class: student.class,
-        session,
-        fee_head_id: parseInt(headId),
-        deduction_amt: Number(amount),
-        date,
-        reason: reason.trim(),
-        row_id: `r${Date.now()}`,
-      }
-      setRecords(prev => ({ ...prev, [key]: [...(prev[key] || []), newRec] }))
-      setAmount(''); setReason(''); setDate('')
-      setSubmitting(false)
-      setActiveTab('ledger')
-      showToast('Deduction recorded successfully!')
-    }, 600)
+    apiFetch('/fees/work/refundable', { method: 'POST', body: JSON.stringify({ admissionNo: admNo.trim().toUpperCase(), session, headId, amount, reason, date }) }).then(() => loadLedger(admNo.trim().toUpperCase(), session, headId)).then(() => { setAmount(''); setReason(''); setDate(''); setActiveTab('ledger'); showToast('Deduction recorded successfully!') }).catch(e => showToast(e.message, 'error')).finally(() => setSubmitting(false))
   }
 
   // ── Delete
   const handleDelete = (id) => {
-    setRecords(prev => ({
-      ...prev,
-      [recordKey]: (prev[recordKey] || []).filter(r => r.id !== id)
-    }))
-    showToast('Record deleted', 'error')
+    apiFetch(`/fees/work/refundable/${id}`, { method: 'DELETE' }).then(() => loadLedger(admNo.trim().toUpperCase(), session, headId)).then(() => showToast('Record deleted', 'error')).catch(e => showToast(e.message, 'error'))
   }
 
-  const headName = FEE_HEADS.find(h => h.id === parseInt(headId))?.name || ''
+  const headName = liveHeads.find(h => String(h.id) === String(headId))?.name || ''
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0f1120] p-4 sm:p-6 font-sans">
@@ -570,13 +551,13 @@ export default function RefundableFees() {
                 <Field label="Session" error={sessionError} required>
                   <Select value={session} onChange={e => { setSession(e.target.value); setSessionError('') }}
                     placeholder="-- Select Session --" error={sessionError}>
-                    {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                    {liveSessions.map(s => <option key={s} value={s}>{s}</option>)}
                   </Select>
                 </Field>
                 <Field label="Fee Head" error={headError} required>
                   <Select value={headId} onChange={e => { setHeadId(e.target.value); setHeadError('') }}
                     placeholder="-- Select Fee Head --" error={headError}>
-                    {FEE_HEADS.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                    {liveHeads.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                   </Select>
                 </Field>
               </div>
