@@ -90,6 +90,7 @@ import DefineConcessionValue from './Fee/Setup/DefineConcessionValue'
 import { ClasswiseFeeReport, ConcessionGroupReport, ConcessionReport, DailyCollectionReport, FeeReconciliationReport, FeeSubReconciliationReport, InstallmentWiseDefaulter, LateFeeReport, StudentFeeSummary } from './Fee/Report/FeeReportDynamic'
 import { FeeDefaulterReport, PaymentResponseReport } from './Fee/Report/LegacyFeeReports'
 import { BudgetReportExact, DailyDepositReportExact } from './Fee/Report/FeeExactReports'
+import { HeadwiseDefaulterExact, InstallmentWiseDefaulterExact, LateFeeReportExact, StudentFeeSummaryExact } from './Fee/Report/LegacyFeeDetailReports'
 
 
 //Transport work start from here
@@ -445,10 +446,11 @@ export default function PageRenderer({ moduleData, currentGroup, currentPage, on
       if (pageId === 'FeeDefaulterReport' || (moduleLabel === 'Fee' && (pageId === 'DefaulterReport' || pageId === 'defaulter-report_renssance'))) return <FeeDefaulterReport onPageClick={onPageClick} />
       if (pageId === 'FeeReconciliationReport') return <FeeReconciliationReport />
       if (pageId === 'FeeSubReconciliationReport') return <FeeSubReconciliationReport />
-      if (pageId === 'InstallmentWiseDefaulter') return <InstallmentWiseDefaulter />
-      if (pageId === 'LateFeeReport') return <LateFeeReport />
+      if (pageId === 'InstallmentWiseDefaulter' || pageId === 'Installment_wise_defaulter') return <InstallmentWiseDefaulterExact />
+      if (pageId === 'HeadwiseDefaulter' || pageId === 'headwis_defaulter_report(instwise)' || pageId === 'HeadwiseDefaulterReport') return <HeadwiseDefaulterExact />
+      if (pageId === 'LateFeeReport' || pageId === 'late_fee_report') return <LateFeeReportExact />
       if (pageId === 'PaymentResponseReport') return <PaymentResponseReport />
-      if (pageId === 'StudentFeeSummary') return <StudentFeeSummary />
+      if (pageId === 'StudentFeeSummary' || pageId === 'StudentFeeSummaryReport') return <StudentFeeSummaryExact />
      
 
 //Transport work from here

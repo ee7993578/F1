@@ -56,7 +56,8 @@ const legacyPageAliases = Object.fromEntries([
   ['DailyDepositReport', 'DailyDepositReport'],
   ['feeReconcialtionReport', 'FeeReconciliationReport'],
   ['PaymentResponseReport', 'PaymentResponseReport'],
-  ['headwis_defaulter_report(instwise)', 'InstallmentWiseDefaulter'],
+  ['Installment_wise_defaulter', 'InstallmentWiseDefaulter'],
+  ['headwis_defaulter_report(instwise)', 'HeadwiseDefaulter'],
   ['late_fee_report', 'LateFeeReport'],
   ['StudentFeeSummary', 'StudentFeeSummary'],
 ].map(([legacy, reactId]) => [key(legacy), reactId]))
