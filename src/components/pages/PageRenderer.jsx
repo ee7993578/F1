@@ -16,19 +16,36 @@ const legacyTransportPageIds = {
   assigntransportaspx: 'AssignTransport',
 }
 
+const legacyStudentPageIds = {
+  admnoallotmentfortstu: 'TransferredStudentAdmNoAllotment',
+  updatestudentinfowithdrawn: 'UpdateStudentInfoWithdrawn',
+  updatealumnirecord: 'UpdateAlumniRecord',
+  downloadstudentimages: 'DownloadStudentImages',
+  promotedemotenew: 'TransferStudentBranch',
+  updatestudentinfo: 'UpdateStudentInfo',
+  uploadstudentimage: 'UploadStudentImage',
+  updatestuinfosheetreport: 'UpdateStudentInfosheet',
+  changeadmno: 'ChangeAdmNo',
+  studentwithdrawn: 'StudentWithdrawn',
+  promotedemote: 'PromoteDemote',
+}
+
 const resolvedPageId = (page) => {
   const values = [page?.id, page?.pageId, page?.pageKey, page?.pageName, page?.url, page?.label]
     .filter(Boolean)
     .map((value) => String(value).toLowerCase().replace(/[^a-z0-9]/g, ''))
   for (const value of values) {
     if (legacyTransportPageIds[value]) return legacyTransportPageIds[value]
+    if (legacyStudentPageIds[value]) return legacyStudentPageIds[value]
     const file = value.split('aspx')[0]
     if (legacyTransportPageIds[file]) return legacyTransportPageIds[file]
+    if (legacyStudentPageIds[file]) return legacyStudentPageIds[file]
   }
   return page?.id
 }
 import StudentRegistration from './Student/Work/StudentRegistration'
 import AdmNoAllotment from './Student/Work/AdmNoAllotment'
+import TransferredStudentAdmNoAllotment from './Student/Work/TransferredStudentAdmNoAllotment'
 import NewClassAllotment from './Student/Work/newClassAllotment'
 import StudentICard from './Student/Work/StudentICard'
 import AdmitCard from './Student/Work/AdmitCard'
@@ -40,7 +57,11 @@ import ChangeAdmNo from './Student/Update/ChangeAdmNo'
 import UploadStudentImage from './Student/Update/UploadStudentImage'
 import StudentWithdrawn from './Student/Update/StudentWithdrawn'
 import UpdateStudentInfosheet from './Student/Update/UpdateStudentInfosheet'
+import UpdateStudentInfoWithdrawn from './Student/Update/UpdateStudentInfoWithdrawn'
 import PromoteDemote from './Student/Update/PromoteDemote'
+import UpdateAlumniRecord from './Student/Update/UpdateAlumniRecord'
+import DownloadStudentImages from './Student/Update/DownloadStudentImages'
+import TransferStudentBranch from './Student/Update/TransferStudentBranch'
 import StudentIDPassword from './Student/Reports/StudentIDPassword'
 import StrengthReport from './Student/Reports/StrengthReport'
 import ClasswiseStrengthReport from './Student/Reports/ClasswiseStrengthReport'
@@ -380,6 +401,7 @@ export default function PageRenderer({ moduleData, currentGroup, currentPage, on
 
   if (pageId === 'studentRegistration') return <StudentRegistration />
   if (pageId === 'AdmNoAllotment') return <AdmNoAllotment />
+  if (pageId === 'TransferredStudentAdmNoAllotment') return <TransferredStudentAdmNoAllotment />
   if (pageId === 'newClassAllotment') return <NewClassAllotment />
    if (pageId === 'StudentICard') return <StudentICard />
    if (pageId === 'AdmitCard') return <AdmitCard />
@@ -389,7 +411,11 @@ export default function PageRenderer({ moduleData, currentGroup, currentPage, on
    if (pageId === 'UploadStudentImage') return <UploadStudentImage />
    if (pageId === 'StudentWithdrawn') return <StudentWithdrawn />
    if (pageId === 'UpdateStudentInfosheet') return <UpdateStudentInfosheet />
+   if (pageId === 'UpdateStudentInfoWithdrawn') return <UpdateStudentInfoWithdrawn />
    if (pageId === 'PromoteDemote') return <PromoteDemote />
+   if (pageId === 'UpdateAlumniRecord') return <UpdateAlumniRecord />
+   if (pageId === 'DownloadStudentImages') return <DownloadStudentImages />
+   if (pageId === 'TransferStudentBranch') return <TransferStudentBranch />
    if (pageId === 'StudentIDPassword') return <StudentIDPassword />
    if (pageId === 'StrengthReport') return <StrengthReport />
    if (pageId === 'ClasswiseStrengthReport') return <ClasswiseStrengthReport />

@@ -81,6 +81,27 @@ const legacyPageAliases = Object.fromEntries([
   ['vehiclemaster.aspx', 'VehicleMaster'],
   ['assign_transport', 'AssignTransport'],
   ['assign_transport.aspx', 'AssignTransport'],
+  // Student pages are returned by the live menu with their ASPX-era keys.
+  // Keep the database key at this boundary, then render the React page below.
+  ['student-registration', 'studentRegistration'],
+  ['adm_no_allotment', 'AdmNoAllotment'],
+  ['adm_no_allotment_for_t_stu', 'TransferredStudentAdmNoAllotment'],
+  ['new_class_allotment', 'newClassAllotment'],
+  ['Icard', 'StudentICard'],
+  ['bulkAdmissionOnlineStudentRegistration', 'BulkAdmissionOnlineRegistration'],
+  ['Update_studentinfo', 'UpdateStudentInfo'],
+  ['upload_studentimage', 'UploadStudentImage'],
+  ['Update_stu_infosheet_report', 'UpdateStudentInfosheet'],
+  ['change_adm_no', 'ChangeAdmNo'],
+  ['student_withdrawn', 'StudentWithdrawn'],
+  ['Update_studentinfo_withdrawn', 'UpdateStudentInfoWithdrawn'],
+  ['promote_demote', 'PromoteDemote'],
+  ['update_alumni_record', 'UpdateAlumniRecord'],
+  ['download_student_images', 'DownloadStudentImages'],
+  ['promote_demote_new', 'TransferStudentBranch'],
+  ['AluminiForm', 'AlumniRegistration'],
+  ['class_representative', 'ClassRepresentative'],
+  ['examConfiguration', 'ExamConfiguration'],
   ['define_transport_type', 'DefineTransportType'],
   ['route_stoppage_mapping', 'RouteStoppageMapping'],
   ['student_transport_report', 'StudentTransportReport'],
@@ -180,7 +201,7 @@ export function resolveMenu(serverMenu) {
 
         const resolvedPage = {
           ...page,
-          id: staticPage?.id || page.id || ('db-page-' + pageIdentity(page)),
+          id: staticPage?.id || legacyPageAliases[pageFileKey(page)] || page.id || ('db-page-' + pageIdentity(page)),
           label: page.label || staticPage?.label || 'Page',
         }
         if (!bucket.pages.some((item) => item.id === resolvedPage.id)) bucket.pages.push(resolvedPage)

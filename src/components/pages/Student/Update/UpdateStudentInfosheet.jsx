@@ -178,10 +178,14 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 const DAYS   = Array.from({length:31},(_,i)=>i+1)
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
-export default function UpdateStudentInfosheet() {
+export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
   const { data: liveStudentData } = useStudents()
   const liveSessions = liveStudentData?.sessions?.map(row => row.session).filter(Boolean) || []
-  const liveClasses = liveStudentData?.classes?.map(row => row.className).filter(Boolean) || []
+  const [withdrawnStudents, setWithdrawnStudents] = useState([])
+  const sourceStudents = withdrawnOnly ? withdrawnStudents : (liveStudentData?.students || [])
+  const liveClasses = withdrawnOnly
+    ? [...new Set(sourceStudents.map(row => row.className || row.class_name).filter(Boolean))]
+    : liveStudentData?.classes?.map(row => row.className).filter(Boolean) || []
   const [form,         setForm]         = useState({ ...EMPTY_FORM })
   const [errors,       setErrors]       = useState({})
   const [loading,      setLoading]      = useState(false)
@@ -205,6 +209,11 @@ export default function UpdateStudentInfosheet() {
     ]).then(([options]) => setLookups(options || {})).catch(() => {})
   }, [])
 
+  useEffect(() => {
+    if (!withdrawnOnly) return
+    fetchStudentSearch({ status: 'withdrawn' }).then(setWithdrawnStudents).catch(() => setWithdrawnStudents([]))
+  }, [withdrawnOnly])
+
   const showToast = (msg, type='success') => {
     setToast({ msg, type }); setTimeout(() => setToast(null), 3500)
   }
@@ -223,7 +232,7 @@ export default function UpdateStudentInfosheet() {
   // When class changes — load students
   const handleClassChange = v => {
     setV('class_', v); setV('studentId', '')
-    setStudentList((liveStudentData?.students || []).filter(row => row.className === v || row.class_name === v))
+    setStudentList(sourceStudents.filter(row => row.className === v || row.class_name === v))
     setErrors(p => ({ ...p, class_: undefined }))
   }
 
@@ -263,7 +272,7 @@ export default function UpdateStudentInfosheet() {
   }
 
   // Live registration and fee-book lookups
-  const lookupLiveStudent = value => fetchStudentSearch({ query: value }).then(rows => { const row = rows[0]; if (!row) { showToast('No record found for this student.', 'error'); return } setForm(applyLiveStudent(row)); setStudentList((liveStudentData?.students || []).filter(item => item.className === row.className)); setOpenSection(1); showToast('Student record loaded.') })
+  const lookupLiveStudent = value => fetchStudentSearch({ query: value, ...(withdrawnOnly ? { status: 'withdrawn' } : {}) }).then(rows => { const row = rows[0]; if (!row) { showToast('No record found for this student.', 'error'); return } setForm(applyLiveStudent(row)); setStudentList(sourceStudents.filter(item => item.className === row.className)); setOpenSection(1); showToast('Student record loaded.') })
   const handleRegNoChange = v => { setV('regNo', v); if (v.length >= 3) lookupLiveStudent(v).catch(error => showToast(error.message || 'Request failed', 'error')) }
   const handleFeebookChange = v => { setV('feebook', v); if (v.length >= 3) lookupLiveStudent(v).catch(error => showToast(error.message || 'Request failed', 'error')) }
 
@@ -373,7 +382,7 @@ export default function UpdateStudentInfosheet() {
 
       {/* Page Title */}
       <div>
-        <h1 className="font-display text-[20px] font-bold text-slate-800 dark:text-slate-100">Student Infosheet</h1>
+        <h1 className="font-display text-[20px] font-bold text-slate-800 dark:text-slate-100">{withdrawnOnly ? 'Update Infosheet (Withdrawn)' : 'Student Infosheet'}</h1>
         <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
           Search by Reg No / Fee Book No / Class → edit details → update.
         </p>
