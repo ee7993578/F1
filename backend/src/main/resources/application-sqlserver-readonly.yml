@@ -1,11 +1,17 @@
 spring:
   datasource:
-    url: jdbc:sqlserver://103.180.163.70:1433;databaseName=beta_dpsbsr_edufox_net;encrypt=true;trustServerCertificate=true
+    # Legacy Web.config does not enable TLS; keep the same connection mode for
+    # this local compatibility run. The database remains read-only via Hikari
+    # and DatabaseWriteGuard.
+    url: jdbc:sqlserver://103.180.163.70:1433;databaseName=beta_dpsbsr_edufox_net;encrypt=false;trustServerCertificate=true
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     hikari:
       read-only: true
+      max-lifetime: 240000
+      keepalive-time: 60000
+      validation-timeout: 5000
 app:
   auth:
     database-read-only: true

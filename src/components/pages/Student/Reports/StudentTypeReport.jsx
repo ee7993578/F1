@@ -16,7 +16,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { fetchStudentReport, useStudents } from '../../../../hooks/useStudents'
 import {
   RefreshCw, Eye,
   AlertCircle, X, Check, Loader2, ChevronDown,
@@ -324,6 +324,8 @@ function MobileCard({ row, idx }) {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function StudentTypeReport() {
   const [stuType,    setStuType]    = useState('1')   // '1' = Day School, '2' = Day Boarding
+  const { data: studentData } = useStudents()
+  const session = studentData?.sessions?.find(item => String(item.status).toLowerCase() === 'default')?.session || studentData?.sessions?.[0]?.session || ''
   const [rows,       setRows]       = useState([])
   const [loading,    setLoading]    = useState(false)
   const [exporting,  setExporting]  = useState(false)
@@ -340,11 +342,11 @@ export default function StudentTypeReport() {
   // Day School (1) vs Day Boarding/hostel (2) via hostel assignment.
   const loadData = useCallback((type) => {
     setLoading(true); setSearch(''); setClassFilter('')
-    fetchStudentReport('student-type', {}).then(data => { setRows(data); setLoading(false); showToast('Loaded ' + data.length + ' ' + (type === '1' ? 'Day School' : 'Day Boarding') + ' students.') }).catch(err => { setLoading(false); showToast(err.message || 'Request failed', 'error') })
-  }, [])
+    fetchStudentReport('student-type', { session, studentType: type }).then(data => { setRows(data); setLoading(false); showToast('Loaded ' + data.length + ' ' + (type === '1' ? 'Day School' : 'Day Boarding') + ' students.') }).catch(err => { setLoading(false); showToast(err.message || 'Request failed', 'error') })
+  }, [session])
 
   // Load Day School on mount (matches original which shows data on page load)
-  useEffect(() => { loadData('1') }, [loadData])
+  useEffect(() => { if (session) loadData('1') }, [loadData, session])
 
   const handleTypeChange = (val) => {
     setStuType(val)

@@ -13,7 +13,8 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
-import { fetchStudentDetails } from '../../../../hooks/useStudents'
+import { fetchStudentDetails, fetchStudentSearch } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   ChevronDown, AlertCircle, X, Check, Loader2,
   RefreshCw, Eye, Printer, GraduationCap, ClipboardList,
@@ -96,21 +97,13 @@ export default function StudentRecord() {
   useEffect(() => {
     (async () => {
       try {
-        const [sess, me] = await Promise.all([
-          api('/master/sessions').catch(() => []),
-          api('/menu/session').catch(() => null),
-        ])
-        const list = (sess || []).map((s) => s.session || s.session_name || s).filter(Boolean)
+        const bootstrap = await apiFetch('/students/bootstrap')
+        const list = (bootstrap?.sessions || []).map((s) => s.session || s.session_name || s).filter(Boolean)
         setSessions(list)
-        const cur = me?.session || list[0] || ''
+        const cur = bootstrap?.sessions?.find((s) => s.status === 1 || s.status === true)?.session || list[0] || ''
         if (cur) setSession(cur)
+        setSections(bootstrap?.sections || [])
       } catch { /* keep empty */ }
-      try {
-        const secs = await api('/admission/sections-all')
-        setSections(secs || [])
-      } catch {
-        setSections([])
-      }
     })()
   }, [])
 
@@ -120,7 +113,7 @@ export default function StudentRecord() {
     (async () => {
       setLoadingStudents(true)
       try {
-        const rows = await api(`/admission/ddl-students?session=${encodeURIComponent(session)}&secId=${encodeURIComponent(secId)}`)
+        const rows = await fetchStudentSearch({ session, sectionId: secId, status: 'registered' })
         setStudents(rows || [])
       } catch (e) {
         setStudents([])
@@ -141,20 +134,27 @@ export default function StudentRecord() {
     setErrors((p) => ({ ...p, sec: undefined }))
   }
 
-  // btnsubmit -> bind_studentrecord proc via /student-record?session&secId&admNo
+  // btnsubmit -> bind_studentrecord equivalent through the direct student projection.
   const handleSubmit = useCallback(() => {
-    const err = {}; if (!session) err.session = 'Please select a session'; if (!cls) err.cls = 'Please select a class'; if (!studentId) err.student = 'Please select a student'; if (Object.keys(err).length) { setErrors(err); return }
+    const err = {}
+    if (!session) err.session = 'Please select a session'
+    if (!secId) err.sec = 'Please select a class'
+    if (!admNo) err.adm = 'Please select a student'
+    if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true)
-    fetchStudentDetails(studentId).then(stu => { setStudent(stu); setReport({ student: stu, marks: [], attendance: [], coscholastic: [] }); setLoading(false); setActiveTab('marks'); showToast('Report Card loaded for ' + (stu?.name || 'student') + '.') }).catch(err => { setLoading(false); showToast(err.message || 'Request failed', 'error') })
-  }, [session, cls, studentId])
+    fetchStudentDetails(admNo)
+      .then(stu => { setRecord(stu); showToast('Student record loaded for ' + (stu?.name || 'student') + '.') })
+      .catch(error => showToast(error.message || 'Request failed', 'error'))
+      .finally(() => setLoading(false))
+  }, [session, secId, admNo])
 
   const handleReset = () => {
     setSecId(''); setAdmNo(''); setRecord(null); setStudents([]); setErrors({})
   }
 
-  const secLabel = (s) => s.class_name || s.class || s.Section || s.section || s.sec_id
-  const stuName = (s) => pick(s, 'Name', 'name', 'StudentName', 'student_name')
-  const stuReg = (s) => pick(s, 'registration_no', 'Registration_no', 'Registration_NO', 'admNo', 'reg_no')
+  const secLabel = (s) => [s.className || s.class_name || s.class, s.sectionName || s.section].filter(Boolean).join(' ') || s.sectionId || s.sec_id
+  const stuName = (s) => pick(s, 'name', 'studentName', 'student_name', 'Name')
+  const stuReg = (s) => pick(s, 'registrationNo', 'registration_no', 'Registration_no', 'Registration_NO', 'admNo', 'reg_no')
 
   const entries = record ? Object.entries(record).filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '') : []
   const title_name = record ? pick(record, 'Name', 'name', 'First_name', 'first_name', 'StudentName') : ''
@@ -188,14 +188,14 @@ export default function StudentRecord() {
             </Field>
             <Field label="Class" error={errors.sec} required>
               <NativeSelect value={secId} onChange={(e) => handleSecChange(e.target.value)} placeholder="-- Select Class --" error={errors.sec} disabled={!session}>
-                {sections.map((s) => <option key={s.sec_id} value={s.sec_id}>{secLabel(s)}</option>)}
+                {sections.map((s) => <option key={s.sectionId || s.sec_id} value={s.sectionId || s.sec_id}>{secLabel(s)}</option>)}
               </NativeSelect>
             </Field>
             <Field label="Student" error={errors.adm} required>
               <NativeSelect value={admNo} onChange={(e) => setAdmNo(e.target.value)} placeholder={loadingStudents ? '-- Loading... --' : '-- Select Student --'} error={errors.adm} disabled={!secId || loadingStudents}>
                 {students.map((s, i) => {
                   const r = stuReg(s)
-                  return <option key={`${r}-${i}`} value={r}>{stuName(s)} ({r})</option>
+                  return <option key={`${s.studentId || r}-${i}`} value={s.studentId || r}>{stuName(s)} ({r})</option>
                 })}
               </NativeSelect>
             </Field>

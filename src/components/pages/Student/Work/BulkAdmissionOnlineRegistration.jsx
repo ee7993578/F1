@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react'
-import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { fetchStudentReport, useStudents } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   Upload, FileSpreadsheet, Download, Eye, Trash2, Search,
   RefreshCw, X, Check, ChevronDown, AlertCircle, FileText,
@@ -8,18 +9,17 @@ import {
 } from 'lucide-react'
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
-const SESSIONS = ['2023-24', '2024-25', '2025-26', '2026-27']
+// Session and class options are loaded from the school configuration API.
 
-const ALL_CLASSES = [
+/* const ALL_CLASSES = [
   'Nursery','LKG','UKG',
   'Class I','Class II','Class III','Class IV','Class V',
   'Class VI','Class VII','Class VIII','Class IX','Class X','Class XI','Class XII',
-]
+] */
 
-// Dummy upload history
 const INITIAL_HISTORY = []
 
-// Dummy registered students for "Report" view
+// Report rows are loaded from the registration report endpoint.
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function cx(...a) { return a.filter(Boolean).join(' ') }
 
@@ -155,7 +155,7 @@ function FileDropZone({ onFile, accept = '.xlsx,.xls,.csv', label = 'Drop Excel 
 }
 
 // ─── CLASS MULTI SELECT ───────────────────────────────────────────────────────
-function ClassMultiSelect({ selected, onToggle, onSelectAll, onClearAll }) {
+function ClassMultiSelect({ selected, onToggle, onSelectAll, onClearAll, classes }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
@@ -167,7 +167,7 @@ function ClassMultiSelect({ selected, onToggle, onSelectAll, onClearAll }) {
         </div>
       </div>
       <div className="flex flex-wrap gap-1.5 p-2.5 border border-slate-200 dark:border-[rgba(99,102,241,0.2)] rounded-lg bg-slate-50/60 dark:bg-white/[0.03] min-h-[48px]">
-        {ALL_CLASSES.map(cls => (
+        {classes.map(cls => (
           <button key={cls} type="button" onClick={() => onToggle(cls)}
             className={cx(
               'px-2.5 py-1 text-[11px] font-semibold rounded-md border transition-all',
@@ -336,9 +336,12 @@ function StudentCard({ student }) {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function BulkAdmission({ title = 'Bulk Admission — Online Student Registration' }) {
+  const { data: studentData } = useStudents()
+  const sessions = studentData?.sessions || []
+  const classOptions = studentData?.classes || []
   // Mode: 'excel' | 'report'
   const [mode,        setMode]        = useState('excel')
-  const [session,     setSession]     = useState('2025-26')
+  const [session,     setSession]     = useState('')
 
   // Excel mode
   const [file,        setFile]        = useState(null)
@@ -365,6 +368,11 @@ export default function BulkAdmission({ title = 'Bulk Admission — Online Stude
   // Toasts
   const [toasts,      setToasts]      = useState([])
 
+  useEffect(() => {
+    const current = sessions.find(row => String(row.status).toLowerCase() === 'default')?.session || sessions[0]?.session || ''
+    if (current && !session) setSession(current)
+  }, [sessions, session])
+
   // ── Toast helpers ─────────────────────────────────────────────────────────
   const addToast = useCallback((msg, type = 'success') => {
     const id = Date.now() + Math.random()
@@ -372,40 +380,38 @@ export default function BulkAdmission({ title = 'Bulk Admission — Online Stude
     setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500)
   }, [])
   const removeToast = useCallback(id => setToasts(p => p.filter(t => t.id !== id)), [])
+  const refreshHistory = useCallback(async currentSession => {
+    const rows = await apiFetch('/students/bulk-uploads?session=' + encodeURIComponent(currentSession))
+    setHistory((rows || []).map(row => ({
+      id: row.id, fileName: row.id, uploadCount: row.uploadedCount || 0,
+      failedCount: row.failedCount || 0, postedDate: row.postedDate || '', session: currentSession
+    })))
+  }, [])
+
+  useEffect(() => {
+    if (!session) return
+    refreshHistory(session).catch(error => addToast(error.message || 'Unable to load upload history', 'error'))
+  }, [session, addToast, refreshHistory])
 
   // ── Upload ────────────────────────────────────────────────────────────────
-  const handleUpload = () => {
-    addToast('Upload is disabled while the connected database is read-only.', 'error')
-    return
-  }
-  const handleUploadDisabled = () => {
+  const handleUpload = async () => {
     if (!file) { addToast('Please select a file first.', 'error'); return }
+    if (!session) { addToast('Select a session first.', 'error'); return }
     setUploading(true)
-    setTimeout(() => {
-      const newRow = {
-        id: Date.now(),
-        uploadCount: Math.floor(Math.random() * 50) + 10,
-        failedCount: Math.floor(Math.random() * 3),
-        postedDate: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
-        fileName: file.name,
-        session,
-      }
-      setHistory(p => [newRow, ...p])
-      setFile(null)
-      setUploading(false)
-      addToast(`${newRow.uploadCount} records uploaded from ${file.name}!`)
-    }, 1500)
+    try {
+      const body = new FormData(); body.append('session', session); body.append('file', file)
+      const result = await apiFetch('/students/bulk-uploads', { method: 'POST', body })
+      setFile(null); await refreshHistory(session); addToast(result.message || 'Excel uploaded successfully')
+    } catch (error) { addToast(error.message || 'Excel upload failed', 'error') }
+    finally { setUploading(false) }
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────
-  const handleDelete = (row) => {
-    addToast('Delete is disabled while the connected database is read-only.', 'error')
-    return
-  }
-  const handleDeleteDisabled = (row) => {
-    setHistory(p => p.filter(r => r.id !== row.id))
-    setConfirmRow(null)
-    addToast(`Upload record deleted.`, 'warning')
+  const handleDelete = async row => {
+    try {
+      const result = await apiFetch('/students/bulk-uploads/' + encodeURIComponent(row.id) + '?session=' + encodeURIComponent(session), { method: 'DELETE' })
+      setConfirmRow(null); await refreshHistory(session); addToast(result.message || 'Upload record deleted')
+    } catch (error) { addToast(error.message || 'Delete failed', 'error') }
   }
 
   // ── Download blank template ───────────────────────────────────────────────
@@ -489,7 +495,7 @@ export default function BulkAdmission({ title = 'Bulk Admission — Online Stude
             <div className="flex flex-col gap-1.5 flex-1 max-w-xs">
               <FieldLabel>Session</FieldLabel>
               <Sel value={session} onChange={e => setSession(e.target.value)}>
-                {SESSIONS.map(s => <option key={s}>{s}</option>)}
+                {sessions.map(s => <option key={s.session}>{s.session}</option>)}
               </Sel>
             </div>
           </div>
@@ -535,9 +541,10 @@ export default function BulkAdmission({ title = 'Bulk Admission — Online Stude
             <div className="space-y-4">
               {/* Classes */}
               <ClassMultiSelect
+                classes={classOptions.map(item => item.className).filter(Boolean)}
                 selected={selClasses}
                 onToggle={toggleClass}
-                onSelectAll={() => setSelClasses(new Set(ALL_CLASSES))}
+                onSelectAll={() => setSelClasses(new Set(classOptions.map(item => item.className).filter(Boolean)))}
                 onClearAll={() => setSelClasses(new Set())}
               />
 

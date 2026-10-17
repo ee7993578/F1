@@ -11,7 +11,7 @@
  *  - Fully responsive — no horizontal scroll on mobile
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   Users, Search, RefreshCw, CheckSquare, Square, Eye,
   X, Check, AlertCircle, Loader2, ChevronDown, ChevronRight,
@@ -19,6 +19,7 @@ import {
   Briefcase, MapPin, CreditCard, Shield, BookOpen,
   UserCheck, SlidersHorizontal, Info, UserX
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── DUMMY DATA ───────────────────────────────────────────────────────────────
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
@@ -34,6 +35,45 @@ const DUMMY_FACULTY = [
   { f_id: 5, staff_u_id: 'STF005', name: 'Dr. Anil Prasad Bisht', e_mail: 'anil.bisht@school.edu', Mobile: '9834567890', dob: '29/07/1970', remark: 'Promotion re-registration', firstName: 'Anil', midName: 'Prasad', lastName: 'Bisht', gender: 'Male', bloodGroup: 'O-', eduGrad: 'B.Sc Chemistry', eduPG: 'Ph.D Chemistry', experience: '22', department: 'Chemistry', designation: 'HOD', doj: '10/03/2002', district: 'Almora', city: 'Almora', aadhar: '5678 9012 3456', panCard: 'EFGHI5678J', accNo: '5678901234567890', ifsc: 'BKID0005678' },
   { f_id: 6, staff_u_id: 'STF006', name: 'Mrs. Meena Lal Thakur', e_mail: 'meena.thakur@school.edu', Mobile: '9845678901', dob: '11/11/1982', remark: 'Transfer re-registration', firstName: 'Meena', midName: 'Lal', lastName: 'Thakur', gender: 'Female', bloodGroup: 'B-', eduGrad: 'B.Sc Biology', eduPG: 'M.Sc Biology', experience: '11', department: 'Biology', designation: 'Assistant Professor', doj: '05/09/2013', district: 'Tehri', city: 'New Tehri', aadhar: '6789 0123 4567', panCard: 'FGHIJ6789K', accNo: '6789012345678901', ifsc: 'UBIN0006789' },
 ]
+
+const normalizeWithdrawnFaculty = (row = {}) => ({
+  ...row,
+  f_id: row.f_id ?? row.id ?? '',
+  staff_u_id: row.staff_u_id ?? row.staffUid ?? '',
+  name: row.name || [row.firstName, row.middleName, row.lastName].filter(Boolean).join(' '),
+  e_mail: row.e_mail ?? row.email ?? '',
+  Mobile: row.Mobile ?? row.mobile ?? '',
+  eduGrad: row.eduGrad ?? row.graduation ?? '',
+  eduPG: row.eduPG ?? row.education ?? '',
+  aadhar: row.aadhar ?? '',
+  panCard: row.panCard ?? row.pan ?? '',
+  accNo: row.accNo ?? row.accountNo ?? '',
+  remark: row.remark ?? '',
+})
+
+const reregUpdatePayload = (row = {}) => ({
+  facultyId: row.facultyId,
+  firstName: row.firstName,
+  middleName: row.midName,
+  lastName: row.lastName,
+  dob: row.dob,
+  gender: row.gender,
+  bloodGroup: row.bloodGroup,
+  graduation: row.eduGrad,
+  education: row.eduPG,
+  experience: row.experience,
+  department: row.department,
+  designation: row.designation,
+  doj: row.doj,
+  district: row.district,
+  city: row.city,
+  mobile: row.mobile,
+  email: row.email,
+  aadhar: row.aadhar,
+  pan: row.panCard,
+  accountNo: row.accNo,
+  ifsc: row.ifsc,
+})
 
 // ─── HELPER COMPONENTS ────────────────────────────────────────────────────────
 
@@ -368,13 +408,19 @@ function MobileFacultyCard({ faculty, checked, onCheck, onDetails }) {
 
 // ─── MAIN PAGE COMPONENT ──────────────────────────────────────────────────────
 export default function FacultyReregistration() {
-  const [facultyList, setFacultyList]   = useState(DUMMY_FACULTY)
+  const [facultyList, setFacultyList]   = useState([])
   const [selected, setSelected]         = useState([])
   const [modalFaculty, setModalFaculty] = useState(null)
   const [search, setSearch]             = useState('')
   const [loading, setLoading]           = useState(false)
   const [reregLoading, setReregLoading] = useState(false)
   const [toast, setToast]               = useState(null)
+
+  useEffect(() => {
+    apiFetch('/staff?withdrawn=true')
+      .then((response) => setFacultyList((Array.isArray(response) ? response : (response.rows || response.data || [])).map(normalizeWithdrawnFaculty)))
+      .catch((error) => showToast(error.message || 'Unable to load withdrawn faculty.', 'error'))
+  }, [])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -410,19 +456,21 @@ export default function FacultyReregistration() {
   }, [])
 
   // ── Re Register ──────────────────────────────────────────────────────────
-  const handleReregister = useCallback(() => {
+  const handleReregister = useCallback(async () => {
     if (selected.length === 0) { showToast('Please select at least one faculty.', 'error'); return }
     setReregLoading(true)
-    setTimeout(() => {
-      setFacultyList(p => p.filter(f => !selected.includes(f.f_id)))
-      setSelected([])
-      setReregLoading(false)
+    try {
+      await Promise.all(selected.map((id) => apiFetch(`/staff/${encodeURIComponent(id)}/reregister?session=`, { method: 'POST' })))
+      setFacultyList(p => p.filter(f => !selected.includes(f.f_id))); setSelected([])
       showToast(`${selected.length} faculty re-registered successfully!`)
-    }, 1000)
+    } catch (error) { showToast(error.message || 'Faculty re-registration failed.', 'error') }
+    finally { setReregLoading(false) }
   }, [selected])
 
   // ── Update faculty ────────────────────────────────────────────────────────
-  const handleUpdate = useCallback((updatedForm) => {
+  const handleUpdate = useCallback(async (updatedForm) => {
+    try {
+      await apiFetch(`/staff/${encodeURIComponent(modalFaculty.f_id)}`, { method: 'PUT', body: JSON.stringify(reregUpdatePayload(updatedForm)) })
     setFacultyList(p => p.map(f => f.f_id === modalFaculty.f_id
       ? { ...f, firstName: updatedForm.firstName, midName: updatedForm.midName, lastName: updatedForm.lastName,
           name: [updatedForm.firstName, updatedForm.midName, updatedForm.lastName].filter(Boolean).join(' '),
@@ -431,6 +479,7 @@ export default function FacultyReregistration() {
       : f))
     setModalFaculty(null)
     showToast('Faculty details updated successfully!')
+    } catch (error) { showToast(error.message || 'Faculty update failed.', 'error') }
   }, [modalFaculty])
 
   const handleReset = () => { setSearch(''); setSelected([]) }

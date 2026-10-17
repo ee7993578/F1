@@ -17,7 +17,7 @@
  *  - Search/filter
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   Filter, RefreshCw, Eye,
   AlertCircle, X, Check, Loader2, ChevronDown,
@@ -27,9 +27,10 @@ import {
   Users, ShieldCheck, Info, KeyRound,
   LayoutGrid, List, EyeOff
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC / DUMMY DATA ───────────────────────────────────────────────────────
-const SESSIONS = ['2022-23', '2023-24', '2024-25', '2025-26']
+const SESSIONS = []
 
 const SCHOOL_INFO = {
   name: 'Saraswati Vidya Mandir Senior Secondary School',
@@ -406,7 +407,7 @@ function MobileCard({ row, idx }) {
 }
 
 // ─── MOBILE FILTER DRAWER ──────────────────────────────────────────────────────
-function FilterDrawer({ open, onClose, session, setSession, onShow, loading, errors }) {
+function FilterDrawer({ open, onClose, session, setSession, onShow, loading, errors, sessionOptions }) {
   if (!open) return null
   return (
     <>
@@ -436,7 +437,7 @@ function FilterDrawer({ open, onClose, session, setSession, onShow, loading, err
               placeholder="-- Select Session --"
               error={errors.session}
             >
-              {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              {sessionOptions.map(s => <option key={s} value={s}>{s}</option>)}
             </NativeSelect>
           </Field>
         </div>
@@ -498,6 +499,19 @@ export default function ClassTeacherReport() {
   const [toast,        setToast]        = useState(null)
   const [shown,        setShown]        = useState(false)
   const [shownSession, setShownSession] = useState('')
+  const [sessionOptions, setSessionOptions] = useState([])
+
+  useEffect(() => {
+    apiFetch('/staff/bootstrap')
+      .then((data) => {
+        const sessions = data?.sessions || []
+        const values = sessions.map(s => s.session).filter(Boolean)
+        const current = sessions.find(s => ['1', 'active', 'current'].includes(String(s.status).toLowerCase()))?.session || values[0] || ''
+        setSession(current)
+        setSessionOptions(values)
+      })
+      .catch((error) => showToast(error.message || 'Unable to load sessions.', 'error'))
+  }, [])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -505,7 +519,7 @@ export default function ClassTeacherReport() {
   }
 
   // ── Fetch report (simulated API call) ──────────────────────────────────────
-  const handleShow = useCallback(() => {
+  const handleShow = useCallback(async () => {
     const err = {}
     if (!session) err.session = 'Please select a session'
     if (Object.keys(err).length) { setErrors(err); return }
@@ -513,15 +527,16 @@ export default function ClassTeacherReport() {
     setLoading(true)
     setSearch('')
 
-    // Simulate API latency
-    setTimeout(() => {
-      const data = CLASS_TEACHER_DATA[session] || []
-      setRows(data)
-      setShownSession(session)
-      setShown(true)
-      setLoading(false)
+    try {
+      const response = await apiFetch(`/staff/reports/class-teachers?session=${encodeURIComponent(session)}`)
+      const data = Array.isArray(response) ? response : (response.rows || response.data || [])
+      setRows(data.map((r) => ({ ...r, class: r.class || r.className || r.class_name || '', name: r.name || r.facultyName || r.faculty_name || '', user_email: r.user_email || r.userEmail || r.userId || r.staff_u_id || '' })))
+      setShownSession(session); setShown(true); setLoading(false)
       showToast(`Loaded ${data.length} class teacher records for session ${session}.`)
-    }, 650)
+    } catch (error) {
+      setRows([]); setShown(false); setLoading(false)
+      showToast(error.message || 'Unable to load class teacher report.', 'error')
+    }
   }, [session])
 
   const handleReset = () => {
@@ -586,7 +601,7 @@ export default function ClassTeacherReport() {
                 placeholder="-- Select Session --"
                 error={errors.session}
               >
-                {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {sessionOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </NativeSelect>
             </Field>
 
@@ -656,6 +671,7 @@ export default function ClassTeacherReport() {
         onShow={handleShow}
         loading={loading}
         errors={errors}
+        sessionOptions={sessionOptions}
       />
 
       {/* ── Loading Skeleton ───────────────────────────────────────────────────── */}

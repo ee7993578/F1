@@ -1,0 +1,25 @@
+
+> school-erp@1.0.0 dev
+> vite --host 0.0.0.0
+
+
+  VITE v6.4.3  ready in 596 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.148.135.98:5173/
+12:17:24 am [vite] (client) hmr update /src/components/pages/Staff/Report/ClassTeacherReport.jsx, /src/index.css
+12:17:25 am [vite] (client) hmr update /src/components/pages/Staff/Report/JobApplicationReport.jsx, /src/index.css
+12:17:39 am [vite] (client) hmr update /src/components/pages/Staff/Report/FacultyInfoDownload.jsx, /src/index.css
+12:18:00 am [vite] (client) hmr update /src/components/pages/Staff/Work/FacultyRegistration.jsx, /src/index.css
+12:18:08 am [vite] (client) hmr update /src/components/pages/Staff/Update/FacultyInfosheet.jsx, /src/index.css
+12:18:12 am [vite] (client) hmr update /src/components/pages/PageRenderer.jsx, /src/index.css
+12:18:20 am [vite] (client) hmr update /src/components/pages/PageRenderer.jsx, /src/index.css
+12:18:45 am [vite] (client) hmr update /src/components/pages/Staff/Report/FacultyIdPassword.jsx, /src/index.css
+12:19:09 am [vite] (client) hmr update /src/components/pages/PageRenderer.jsx, /src/index.css
+12:19:09 am [vite] (client) hmr update /src/components/pages/PageRenderer.jsx, /src/index.css
+12:19:10 am [vite] (client) hmr update /src/components/pages/PageRenderer.jsx, /src/index.css
+12:19:11 am [vite] (client) hmr update /src/components/pages/PageRenderer.jsx, /src/index.css
+12:19:12 am [vite] (client) hmr update /src/components/pages/PageRenderer.jsx, /src/index.css
+12:19:12 am [vite] (client) hmr update /src/components/pages/PageRenderer.jsx, /src/index.css
+12:20:01 am [vite] (client) hmr update /src/components/pages/Staff/Work/FacultyReregistration.jsx, /src/index.css
+12:20:19 am [vite] (client) hmr update /src/components/pages/Staff/Setup/RegistrationOpenConfig.jsx, /src/index.css

@@ -14,7 +14,7 @@
  *  - Loading skeleton & empty state
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   Users, Search, X, Check, AlertCircle, Loader2,
   ChevronDown, Edit2, RefreshCw, Eye, EyeOff,
@@ -22,6 +22,7 @@ import {
   UserCog, KeyRound, GraduationCap, Info,
   SlidersHorizontal, Save, XCircle
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── DUMMY DATA ───────────────────────────────────────────────────────────────
 const INITIAL_FACULTY = [
@@ -480,7 +481,7 @@ function SearchDrawer({ open, onClose, search, setSearch }) {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function FacultyIdPassword() {
-  const [faculty,     setFaculty]     = useState(INITIAL_FACULTY)
+  const [faculty,     setFaculty]     = useState([])
   const [search,      setSearch]      = useState('')
   const [editingId,   setEditingId]   = useState(null)
   const [editDraft,   setEditDraft]   = useState({ user_email: '', password: '' })
@@ -488,6 +489,31 @@ export default function FacultyIdPassword() {
   const [updatingId,  setUpdatingId]  = useState(null)
   const [toast,       setToast]       = useState(null)
   const [drawerOpen,  setDrawerOpen]  = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const bootstrap = await apiFetch('/staff/bootstrap')
+        const sessions = bootstrap?.sessions || []
+        const current = sessions.find(s => String(s.status).toLowerCase() === '1' || String(s.status).toLowerCase() === 'active' || String(s.status).toLowerCase() === 'current')?.session || sessions[0]?.session || ''
+        const [response, report] = await Promise.all([
+          apiFetch(`/staff?withdrawn=false${current ? `&session=${encodeURIComponent(current)}` : ''}`),
+          current ? apiFetch(`/staff/reports/class-teachers?session=${encodeURIComponent(current)}`) : Promise.resolve([]),
+        ])
+        if (cancelled) return
+        const rows = Array.isArray(response) ? response : (response.rows || response.data || [])
+        const teacherRows = Array.isArray(report) ? report : (report.rows || report.data || [])
+        const teachers = new Map(teacherRows.map(r => [String(r.facultyId ?? r.f_id ?? ''), r]))
+        setFaculty(rows.map((r) => {
+          const teacher = teachers.get(String(r.id ?? r.f_id ?? ''))
+          return { ...r, id: r.id || r.f_id, user_email: r.user_email || r.email || '', class_teacher: r.class_teacher || teacher?.class || teacher?.className || '' }
+        }))
+      } catch (error) { if (!cancelled) showToast(error.message || 'Unable to load faculty credentials.', 'error') }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -523,7 +549,7 @@ export default function FacultyIdPassword() {
     setEditErrors(p => ({ ...p, [field]: undefined }))
   }, [])
 
-  const handleUpdate = useCallback((id) => {
+  const handleUpdate = useCallback(async (id) => {
     // Validate
     const errs = {}
     if (!editDraft.user_email.trim()) errs.user_email = 'User ID is required'
@@ -534,8 +560,8 @@ export default function FacultyIdPassword() {
 
     setUpdatingId(id)
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await apiFetch(`/staff/${encodeURIComponent(id)}/credentials`, { method: 'PUT', body: JSON.stringify({ userEmail: editDraft.user_email.trim(), password: editDraft.password.trim() }) })
       setFaculty(prev =>
         prev.map(f =>
           f.id === id ? { ...f, user_email: editDraft.user_email.trim(), password: editDraft.password.trim() } : f
@@ -546,7 +572,9 @@ export default function FacultyIdPassword() {
       setEditDraft({ user_email: '', password: '' })
       setEditErrors({})
       showToast('Faculty credentials updated successfully!')
-    }, 800)
+    } catch (error) {
+      showToast(error.message || 'Credential update failed.', 'error')
+    } finally { setUpdatingId(null) }
   }, [editDraft])
 
   // ── Stats ─────────────────────────────────────────────────────────────────

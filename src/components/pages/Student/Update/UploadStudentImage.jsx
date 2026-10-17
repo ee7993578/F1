@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { fetchStudentSearch } from '../../../../hooks/useStudents'
+import { fetchStudentSearch, useStudents } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
 import {
   Eye, Search, RotateCcw, Camera, Check,
@@ -9,8 +9,6 @@ import {
 } from 'lucide-react'
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
-const SESSIONS = ['2024-25', '2025-26', '2026-27']
-const CLASSES  = ['Nursery','LKG','UKG','Class I','Class II','Class III','Class IV','Class V','Class VI','Class VII','Class VIII','Class IX','Class X','Class XI','Class XII']
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function clx(...args) { return args.filter(Boolean).join(' ') }
 
@@ -169,6 +167,9 @@ function BulkBanner({ onBulkFiles }) {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function UploadStudentImage({ title = 'Upload Student Image' }) {
+  const { data: studentData } = useStudents()
+  const sessionOptions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
+  const classOptions = studentData?.classes?.map(row => ({ id: row.classId, name: row.className })).filter(row => row.name) || []
   const [session,     setSession]     = useState('')
   const [cls,         setCls]         = useState('')
   const [loading,     setLoading]     = useState(false)
@@ -185,6 +186,11 @@ export default function UploadStudentImage({ title = 'Upload Student Image' }) {
   const [viewMode,setViewMode]= useState('table')
   const [toasts,  setToasts]  = useState([])
 
+  useEffect(() => {
+    const current = studentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || sessionOptions[0] || ''
+    if (current && !session) setSession(current)
+  }, [studentData, sessionOptions, session])
+
   // ── Toast helpers ────────────────────────────────────────────────────────
   const addToast = useCallback((msg, type = 'success') => {
     const id = Date.now() + Math.random()
@@ -197,9 +203,10 @@ export default function UploadStudentImage({ title = 'Upload Student Image' }) {
   // ── View ─────────────────────────────────────────────────────────────────
   const handleView = () => {
     setLoading(true); setHasViewed(true); setSearch(''); setFilter('all'); setPage(1); setPhotoMap({})
-    fetchStudentSearch({ session, query: cls }).then(data => {
-      const result = data.filter(r => !cls || r.className === cls || r.class_name === cls).map(r => ({ ...r, uid: r.uid || r.studentId, name: r.name, admNo: r.registrationNo || '' }))
-      setStudents(result); setPhotoMap(Object.fromEntries(result.map(r => [r.uid, null])))
+    const classId = classOptions.find(item => item.name === cls)?.id
+    fetchStudentSearch({ session, classId }).then(data => {
+      const result = data.map(r => ({ ...r, uid: r.uid || r.studentId, name: r.name, admNo: r.registrationNo || '' }))
+      setStudents(result); setPhotoMap(Object.fromEntries(result.map(r => [r.uid, r.studentImage || null])))
     }).catch(error => addToast(error.message || 'Request failed', 'error')).finally(() => setLoading(false))
   }
 
@@ -221,34 +228,18 @@ export default function UploadStudentImage({ title = 'Upload Student Image' }) {
       addToast('Photo saved for ' + (student?.name || 'student') + '!')
     } catch (error) { addToast(error.message || 'Photo upload failed', 'error') } finally { setUploadingId(null) }
   }, [addToast, students])
-  const handleUploadDisabled = useCallback((uid, file) => {
-    setUploadingId(uid)
-    const url = URL.createObjectURL(file)
-    // simulate 800ms server save
-    setTimeout(() => {
-      setPhotoMap(prev => ({ ...prev, [uid]: url }))
-      setUploadingId(null)
-      setStudents(prev => {
-        const s = prev.find(x => x.uid === uid)
-        if (s) addToast(`Photo saved for ${s.name}!`)
-        return prev // no change to students array itself
-      })
-    }, 800)
-  }, [addToast])
-
   // ── Bulk upload ───────────────────────────────────────────────────────────
-  const handleBulkFiles = useCallback((files) => {
-    let matched = 0
-    const updates = {}
+  const handleBulkFiles = useCallback(async (files) => {
+    const matches = []
     files.forEach(file => {
       const name = file.name.toLowerCase().replace(/\.[^.]+$/, '')
       const s = students.find(st => name.includes(st.admNo.toLowerCase()))
-      if (s) { updates[s.uid] = URL.createObjectURL(file); matched++ }
+      if (s) matches.push([s.uid, file])
     })
-    if (!matched) { addToast('No filenames matched any admission number.', 'error'); return }
-    setPhotoMap(prev => ({ ...prev, ...updates }))
-    addToast(`${matched} photo${matched > 1 ? 's' : ''} matched and uploaded!`)
-  }, [students, addToast])
+    if (!matches.length) { addToast('No filenames matched any admission number.', 'error'); return }
+    await Promise.all(matches.map(([uid, file]) => handleUpload(uid, file)))
+    addToast(`${matches.length} photo${matches.length > 1 ? 's' : ''} uploaded successfully!`)
+  }, [students, handleUpload, addToast])
 
   // ── Derived values ────────────────────────────────────────────────────────
   const uploadedCount = students.filter(s => photoMap[s.uid]).length
@@ -288,11 +279,11 @@ export default function UploadStudentImage({ title = 'Upload Student Image' }) {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <FilterSel label="Session" value={session} onChange={e => setSession(e.target.value)}>
               <option value="">— Select Session —</option>
-              {SESSIONS.map(s => <option key={s}>{s}</option>)}
+              {sessionOptions.map(s => <option key={s}>{s}</option>)}
             </FilterSel>
             <FilterSel label="Class" value={cls} onChange={e => setCls(e.target.value)}>
               <option value="">— Select Class —</option>
-              {CLASSES.map(c => <option key={c}>{c}</option>)}
+              {classOptions.map(c => <option key={c.id}>{c.name}</option>)}
             </FilterSel>
             <div className="flex flex-col justify-end">
               <div className="flex gap-2">

@@ -1,2 +1,2 @@
-import TransportModule from '../TransportModule'
-export default function AssignRoute(){return <TransportModule mode="assignReport"/>}
+import TransportReportModule from './TransportReportModule'
+export default function AssignRoute(){return <TransportReportModule mode="assignRoute"/>}

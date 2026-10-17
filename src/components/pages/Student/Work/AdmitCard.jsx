@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react'
-import { fetchStudentSearch } from '../../../../hooks/useStudents'
+import { useEffect, useState } from 'react'
+import { fetchStudentSearch, useStudents } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   AlertCircle, Download, Eye, Printer, ChevronDown,
   GraduationCap, Users, BookOpen, Calendar, FileText,
@@ -7,9 +8,8 @@ import {
 } from 'lucide-react'
 
 // ─── STATIC MOCK DATA ─────────────────────────────────────────────────────────
-const SESSIONS = ['2024-25', '2025-26', '2026-27']
-
-const CLASSES_DATA = {
+/* Legacy class/session/term/exam options are loaded from the database below. */
+/* const CLASSES_DATA = {
   'Nursery': { sections: ['A', 'B'], terms: ['Term 1', 'Term 2'], exams: ['Unit Test 1', 'Half Yearly', 'Unit Test 2', 'Annual'] },
   'LKG':     { sections: ['A', 'B'], terms: ['Term 1', 'Term 2'], exams: ['Unit Test 1', 'Half Yearly', 'Annual'] },
   'UKG':     { sections: ['A', 'B'], terms: ['Term 1', 'Term 2'], exams: ['Unit Test 1', 'Half Yearly', 'Annual'] },
@@ -25,7 +25,7 @@ const CLASSES_DATA = {
   'Class X':  { sections: ['A', 'B'], terms: ['Term 1', 'Term 2'], exams: ['Half Yearly', 'Annual'] },
   'Class XI': { sections: ['Science', 'Commerce', 'Arts'], terms: ['Term 1', 'Term 2'], exams: ['Half Yearly', 'Annual'] },
   'Class XII':{ sections: ['Science', 'Commerce', 'Arts'], terms: ['Term 1', 'Term 2'], exams: ['Half Yearly', 'Annual'] },
-}
+} */
 
 // ─── PRIMITIVES ───────────────────────────────────────────────────────────────
 function Field({ label, required, error, children }) {
@@ -92,7 +92,7 @@ function StudentRow({ student, checked, onToggle }) {
 }
 
 // ─── ADMIT CARD TEMPLATE (single card, visiting card proportions 3.5×2 inch) ─
-function AdmitCardTemplate({ student, filter, index }) {
+function AdmitCardTemplate({ student, filter, index, schoolInfo }) {
   // 3.5 × 2 inch at 96dpi → 336 × 192px — scale up 2.5× for print clarity
   return (
     <div
@@ -117,9 +117,9 @@ function AdmitCardTemplate({ student, filter, index }) {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#fff', letterSpacing: '0.04em', lineHeight: 1.2 }}>
-            {SCHOOL_INFO.name}
+            {schoolInfo.name}
           </p>
-          <p style={{ margin: 0, fontSize: 7, color: 'rgba(255,255,255,0.8)', lineHeight: 1.2 }}>{SCHOOL_INFO.address}</p>
+          <p style={{ margin: 0, fontSize: 7, color: 'rgba(255,255,255,0.8)', lineHeight: 1.2 }}>{schoolInfo.address}</p>
         </div>
         <div style={{ flexShrink: 0, textAlign: 'right' }}>
           <p style={{ margin: 0, fontSize: 8, fontWeight: 800, color: '#fbbf24', letterSpacing: '0.05em' }}>ADMIT CARD</p>
@@ -191,7 +191,7 @@ function AdmitCardTemplate({ student, filter, index }) {
 
 // ─── PDF DOWNLOAD ─────────────────────────────────────────────────────────────
 // Uses browser print with custom CSS — 4 cards per A4 page in a 2×2 grid
-function downloadAdmitCards(students, filter) {
+function downloadAdmitCards(students, filter, schoolInfo) {
   const cardsHTML = students.map((student, i) => `
     <div style="
       width:336px; height:192px;
@@ -206,8 +206,8 @@ function downloadAdmitCards(students, filter) {
           <span style="font-size:10px;font-weight:800;color:#1a56db">DPS</span>
         </div>
         <div style="flex:1;min-width:0">
-          <p style="margin:0;font-size:9px;font-weight:800;color:#fff;letter-spacing:.04em;line-height:1.2">${SCHOOL_INFO.name}</p>
-          <p style="margin:0;font-size:7px;color:rgba(255,255,255,.8);line-height:1.2">${SCHOOL_INFO.address}</p>
+          <p style="margin:0;font-size:9px;font-weight:800;color:#fff;letter-spacing:.04em;line-height:1.2">${schoolInfo.name}</p>
+          <p style="margin:0;font-size:7px;color:rgba(255,255,255,.8);line-height:1.2">${schoolInfo.address}</p>
         </div>
         <div style="flex-shrink:0;text-align:right">
           <p style="margin:0;font-size:8px;font-weight:800;color:#fbbf24;letter-spacing:.05em">ADMIT CARD</p>
@@ -276,7 +276,7 @@ function downloadAdmitCards(students, filter) {
 </head>
 <body>
   <div class="page-title">
-    ${SCHOOL_INFO.name} &nbsp;|&nbsp; Admit Card &nbsp;|&nbsp; ${filter.cls} – Sec ${filter.section} &nbsp;|&nbsp; ${filter.exam} &nbsp;|&nbsp; Session ${filter.session}
+    ${schoolInfo.name} &nbsp;|&nbsp; Admit Card &nbsp;|&nbsp; ${filter.cls} – Sec ${filter.section} &nbsp;|&nbsp; ${filter.exam} &nbsp;|&nbsp; Session ${filter.session}
   </div>
   <div class="grid">
     ${cardsHTML}
@@ -310,14 +310,39 @@ export default function AdmitCard({ title = 'Admit Card' }) {
   const [showPreview,   setShowPreview]   = useState(false)
   const [loading,       setLoading]       = useState(false)
   const [successMsg,    setSuccessMsg]    = useState('')
+  const [academic,      setAcademic]      = useState({ terms: [], exams: [] })
+  const [schoolInfo,    setSchoolInfo]    = useState({ name: '', address: '' })
+  const { data: studentData } = useStudents()
 
   const [errors, setErrors] = useState({})
 
-  // Derived data
-  const classInfo   = CLASSES_DATA[cls] || null
-  const sections    = classInfo?.sections  || []
-  const terms       = classInfo?.terms     || []
-  const exams       = classInfo?.exams     || []
+  const sessions = studentData?.sessions || []
+  const classes = studentData?.classes || []
+  const classRecord = classes.find(item => String(item.classId) === String(cls))
+  const sections = (studentData?.sections || []).filter(item => String(item.classId) === String(cls))
+  const terms = academic.terms || []
+  const exams = academic.exams || []
+
+  useEffect(() => {
+    const current = sessions.find(item => String(item.status).toLowerCase() === 'default')?.session || sessions[0]?.session
+    if (current && session === '0') setSession(current)
+  }, [sessions, session])
+
+  useEffect(() => {
+    apiFetch('/menu').then(menu => setSchoolInfo({
+      name: menu.schoolName || '', address: menu.schoolAddress || '', logo: menu.logoPath || ''
+    })).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    setAcademic({ terms: [], exams: [] })
+    setTerm('0'); setExam('0')
+    if (session === '0' || cls === '0') return
+    const query = new URLSearchParams({ session, classId: cls })
+    apiFetch('/students/academic-options?' + query.toString())
+      .then(data => setAcademic({ terms: data.terms || [], exams: data.exams || [] }))
+      .catch(error => setErrors(previous => ({ ...previous, api: error.message || 'Unable to load terms' })))
+  }, [session, cls])
 
   const filteredStudents = students.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -364,26 +389,30 @@ export default function AdmitCard({ title = 'Admit Card' }) {
   const handleShow = () => {
     if (!validate()) return
     setLoading(true); setSuccessMsg(''); setShowPreview(false)
-    fetchStudentSearch({ session, query: search }).then(data => {
-      const result = data.filter(row => !cls || cls === '0' || row.className === cls || row.class_name === cls)
-        .filter(row => !section || section === '0' || row.sectionName === section || row.section_name === section)
-        .map(row => ({ ...row, id: row.studentId, name: row.name, admNo: row.registrationNo || '', roll: '', father: row.fatherName || '', class: row.className || '', section: row.sectionName || '' }))
+    fetchStudentSearch({ session, classId: cls, sectionId: section }).then(data => {
+      const result = data.map(row => ({ ...row, id: row.studentId, name: row.name, admNo: row.registrationNo || '', roll: row.rollNo || '', father: row.fatherName || '', class: row.className || '', section: row.sectionName || '', photo: row.studentImage || '' }))
       setStudents(result); setSelectedIds(new Set(result.map(row => row.id))); setShowPreview(true)
       setSuccessMsg(result.length + ' students loaded. Select students and click Download.')
     }).catch(err => setErrors({ api: err.message || 'Request failed' })).finally(() => setLoading(false))
   }
 
 
-  const currentFilter = { session, cls, section, term, exam }
+  const currentFilter = {
+    session,
+    cls: classRecord?.className || '',
+    section: sections.find(item => String(item.sectionId) === String(section))?.sectionName || '',
+    term: terms.find(item => String(item.id) === String(term))?.name || '',
+    exam: exams.find(item => String(item.id) === String(exam))?.name || ''
+  }
 
   const handleDownload = () => {
     if (selectedStudents.length === 0) return
-    downloadAdmitCards(selectedStudents, currentFilter)
+    downloadAdmitCards(selectedStudents, currentFilter, schoolInfo)
   }
 
   const handlePrintPreview = () => {
     if (selectedStudents.length === 0) return
-    downloadAdmitCards(selectedStudents, currentFilter)
+    downloadAdmitCards(selectedStudents, currentFilter, schoolInfo)
   }
 
   return (
@@ -413,19 +442,19 @@ export default function AdmitCard({ title = 'Admit Card' }) {
             <Field label="Session" required error={errors.session}>
               <Sel value={session} onChange={e => { setSession(e.target.value); setErrors(p=>({...p,session:''})); setShowPreview(false) }} error={errors.session}>
                 <option value="0">— Select Session —</option>
-                {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {sessions.map(s => <option key={s.session} value={s.session}>{s.session}</option>)}
               </Sel>
             </Field>
             <Field label="Class" required error={errors.cls}>
               <Sel value={cls} onChange={handleClassChange} error={errors.cls}>
                 <option value="0">— Select Class —</option>
-                {Object.keys(CLASSES_DATA).map(c => <option key={c} value={c}>{c}</option>)}
+                {classes.map(c => <option key={c.classId} value={c.classId}>{c.className}</option>)}
               </Sel>
             </Field>
             <Field label="Section" required error={errors.section}>
-              <Sel value={section} onChange={handleSectionChange} disabled={!classInfo} error={errors.section}>
+              <Sel value={section} onChange={handleSectionChange} disabled={!classRecord} error={errors.section}>
                 <option value="0">— Select Section —</option>
-                {sections.map(s => <option key={s} value={s}>{s}</option>)}
+                {sections.map(s => <option key={s.sectionId} value={s.sectionId}>{s.sectionName}</option>)}
               </Sel>
             </Field>
           </div>
@@ -433,15 +462,15 @@ export default function AdmitCard({ title = 'Admit Card' }) {
           {/* Row 2: Term, Exam, Show button */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="Term" required error={errors.term}>
-              <Sel value={term} onChange={e => { setTerm(e.target.value); setErrors(p=>({...p,term:''})); setShowPreview(false) }} disabled={!classInfo} error={errors.term}>
+              <Sel value={term} onChange={e => { setTerm(e.target.value); setExam('0'); setErrors(p=>({...p,term:''})); setShowPreview(false) }} disabled={!classRecord} error={errors.term}>
                 <option value="0">— Select Term —</option>
-                {terms.map(t => <option key={t} value={t}>{t}</option>)}
+                {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </Sel>
             </Field>
             <Field label="Exam" required error={errors.exam}>
-              <Sel value={exam} onChange={e => { setExam(e.target.value); setErrors(p=>({...p,exam:''})); setShowPreview(false) }} disabled={!classInfo} error={errors.exam}>
+              <Sel value={exam} onChange={e => { setExam(e.target.value); setErrors(p=>({...p,exam:''})); setShowPreview(false) }} disabled={!term || term === '0'} error={errors.exam}>
                 <option value="0">— Select Exam —</option>
-                {exams.map(ex => <option key={ex} value={ex}>{ex}</option>)}
+                {exams.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
               </Sel>
             </Field>
             <div className="flex flex-col justify-end">
@@ -585,7 +614,7 @@ export default function AdmitCard({ title = 'Admit Card' }) {
                   <div className="overflow-x-auto">
                     <div className="flex flex-col gap-3 items-center py-2">
                       {selectedStudents.slice(0, 2).map((s, i) => (
-                        <AdmitCardTemplate key={s.id} student={s} filter={currentFilter} index={i} />
+                        <AdmitCardTemplate key={s.id} student={s} filter={currentFilter} schoolInfo={schoolInfo} index={i} />
                       ))}
                       {selectedStudents.length > 2 && (
                         <div className="flex items-center justify-center w-[336px] h-10 rounded-lg border-2 border-dashed border-slate-200 dark:border-white/[0.1]">

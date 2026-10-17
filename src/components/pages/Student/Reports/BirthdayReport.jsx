@@ -7,8 +7,8 @@
  * Responsive: Mobile cards | Tablet adaptive | Desktop table
  */
 
-import { useState, useMemo, useCallback } from 'react'
-import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { fetchStudentReport, useStudents } from '../../../../hooks/useStudents'
 import {
   Cake, Search, Filter, RefreshCw, Download,
   ChevronDown, X, Loader2, SlidersHorizontal,
@@ -458,6 +458,8 @@ function MiniStat({ label, value, icon: Icon, color }) {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function BirthdayReport() {
+  const { data: studentData } = useStudents()
+  const session = studentData?.sessions?.find(item => String(item.status).toLowerCase() === 'default')?.session || studentData?.sessions?.[0]?.session || ''
   // Filter state
   const [fromDay,   setFromDay]   = useState('')
   const [fromMonth, setFromMonth] = useState('')
@@ -494,12 +496,28 @@ export default function BirthdayReport() {
   const handleSearch = useCallback(() => {
     if (!validate()) return
     setLoading(true); setSearch(''); setActiveTab('All')
-    fetchStudentReport('birthday', { month: fromMonth }).then(data => {
-      const from = Number(fromDay || 1), to = Number(toDay || 31), month = Number(fromMonth)
-      const result = data.filter(row => { if (!row.dob) return false; const date = new Date(row.dob); return date.getMonth() + 1 === month && date.getDate() >= from && date.getDate() <= to })
+    fetchStudentReport('birthday', { session, studentType: selType }).then(data => {
+      const from = Number(fromDay || 1), fromMonthNumber = Number(fromMonth), to = Number(toDay || 31), toMonthNumber = Number(toMonth || fromMonth)
+      const result = data.map(row => ({
+        ...row,
+        type: selType,
+        name: row.name || [row.firstName, row.middleName, row.lastName].filter(Boolean).join(' '),
+        class: row.className || row.class_name || row.Department || '',
+        contact: row.contact || row.mobile || row.phone || '',
+      })).filter(row => {
+        if (!row.dob) return false
+        const date = new Date(row.dob)
+        const month = date.getMonth() + 1
+        const day = date.getDate()
+        if (fromMonthNumber === toMonthNumber) return month === fromMonthNumber && day >= from && day <= to
+        const monthInRange = fromMonthNumber < toMonthNumber
+          ? month > fromMonthNumber && month < toMonthNumber || (month === fromMonthNumber && day >= from) || (month === toMonthNumber && day <= to)
+          : month > fromMonthNumber || month < toMonthNumber || (month === fromMonthNumber && day >= from) || (month === toMonthNumber && day <= to)
+        return monthInRange
+      })
       setRows(result); setHasSearched(true); showToast(result.length ? (result.length + ' birthday record(s) found.') : 'No birthdays found in the selected range.', result.length ? 'success' : 'error')
     }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
-  }, [fromDay, fromMonth, toDay, toMonth, selType])
+  }, [fromDay, fromMonth, toDay, toMonth, selType, session])
 
   // ── Reset ──────────────────────────────────────────────────────────────────
   const handleReset = () => {

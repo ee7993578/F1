@@ -6,6 +6,19 @@ import { apiFetch } from '../lib/api'
 const DEFAULT_MODULE = 'dashboard'
 const DEFAULT_GROUP = 'allDashboard'
 
+const pageToken = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+const canonicalPageToken = (value) => {
+  const token = pageToken(value)
+  if (['vehiclemaster', 'vehiclemasteraspx'].includes(token)) return 'vehiclemaster'
+  if (['drivervehicledetails', 'drivervehicledetailsaspx', 'driverdetail', 'driverdetails', 'drivervehiclemaster'].includes(token)) return 'drivervehiclemaster'
+  if (['assigntransport', 'assigntransportaspx'].includes(token)) return 'assigntransport'
+  return token
+}
+const pageMatches = (page, activePage) => {
+  const active = canonicalPageToken(activePage)
+  return [page?.id, page?.pageKey, page?.pageName, page?.url, page?.label].some((value) => canonicalPageToken(value) === active)
+}
+
 export function useERP() {
   const [menuData, setMenuData] = useState(MENU_DATA)
   const [menuMeta, setMenuMeta] = useState({ schoolName: '', session: '' })
@@ -55,7 +68,8 @@ export function useERP() {
   const toggleDrawer = useCallback(() => setDrawerOpen((p) => !p), [])
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
   const currentGroup = moduleData?.groups.find((g) => g.id === activeGroup)
-  const currentPage = currentGroup?.pages.find((p) => p.id === activePage) || null
+    || moduleData?.groups.find((g) => g.pages?.some((p) => pageMatches(p, activePage)))
+  const currentPage = currentGroup?.pages.find((p) => p.id === activePage || pageMatches(p, activePage)) || null
 
   return {
     menuData, menuMeta, activeModule, activeGroup, activePage, moduleData, currentGroup, currentPage,

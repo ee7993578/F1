@@ -14,7 +14,7 @@
  *  - Desktop ERP-style table
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   Search, RefreshCw, Edit2, UserMinus, X, Check,
   Loader2, ChevronDown, AlertCircle, Upload, Eye, EyeOff,
@@ -24,6 +24,7 @@ import {
   FileText, Camera, Home, GraduationCap, BadgeCheck,
   Banknote, Hash
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC / DUMMY DATA ──────────────────────────────────────────────────────
 const DEPARTMENTS = [
@@ -120,6 +121,59 @@ const FACULTY_DATA = [
     ifsc: 'UCO0007891', image: null, status: 'Active'
   },
 ]
+
+const normalizeFaculty = (row = {}) => ({
+  ...row,
+  f_id: row.f_id ?? row.id ?? '',
+  name: row.name || [row.firstName, row.middleName, row.lastName].filter(Boolean).join(' '),
+  e_mail: row.e_mail ?? row.email ?? '',
+  Mobile: row.Mobile ?? row.mobile ?? '',
+  first_name: row.first_name ?? row.firstName ?? '',
+  mid_name: row.mid_name ?? row.middleName ?? '',
+  last_name: row.last_name ?? row.lastName ?? '',
+  father_name: row.father_name ?? row.fatherName ?? '',
+  husband_name: row.husband_name ?? row.husbandName ?? '',
+  blood_group: row.blood_group ?? row.bloodGroup ?? '',
+  edu_grad: row.edu_grad ?? row.graduation ?? '',
+  edu_pg: row.edu_pg ?? row.education ?? '',
+  acc_no: row.acc_no ?? row.accountNo ?? '',
+  ifsc: row.ifsc ?? '',
+  address: row.address ?? row.presentAddress ?? '',
+})
+
+const facultyUpdatePayload = (row = {}) => ({
+  facultyId: row.facultyId ?? row.faculty_id,
+  firstName: row.first_name ?? row.firstName,
+  middleName: row.mid_name ?? row.middleName,
+  lastName: row.last_name ?? row.lastName,
+  fatherName: row.father_name ?? row.fatherName,
+  husbandName: row.husband_name ?? row.husbandName,
+  dob: row.dob,
+  gender: row.gender,
+  bloodGroup: row.blood_group ?? row.bloodGroup,
+  graduation: row.edu_grad ?? row.graduation,
+  education: row.edu_pg ?? row.education,
+  experience: row.experience,
+  department: row.department,
+  designation: row.designation,
+  doj: row.doj,
+  district: row.district,
+  city: row.city,
+  state: row.state,
+  presentAddress: row.address ?? row.presentAddress,
+  permanentAddress: row.permanentAddress,
+  pin: row.pin,
+  telephone: row.telephone,
+  mobile: row.Mobile ?? row.mobile,
+  email: row.e_mail ?? row.email,
+  aadhar: row.aadhar,
+  pan: row.pan,
+  bankName: row.bankName,
+  accountNo: row.acc_no ?? row.accountNo,
+  ifsc: row.ifsc,
+  branch: row.branch,
+  facultyPhoto: row.facultyPhoto,
+})
 
 // ─── DEPT COLOR MAP ───────────────────────────────────────────────────────────
 const DEPT_COLORS = {
@@ -780,12 +834,18 @@ function MobileCard({ row, idx, onEdit, onWithdraw }) {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function FacultyInfosheet() {
-  const [faculty, setFaculty] = useState(FACULTY_DATA)
+  const [faculty, setFaculty] = useState([])
   const [search,  setSearch]  = useState('')
   const [deptFilter, setDeptFilter] = useState('')
   const [editTarget, setEditTarget] = useState(null)
   const [withdrawTarget, setWithdrawTarget] = useState(null)
   const [toast, setToast] = useState(null)
+
+  useEffect(() => {
+    apiFetch('/staff?withdrawn=false')
+      .then((response) => setFaculty((Array.isArray(response) ? response : (response.rows || response.data || [])).map(normalizeFaculty)))
+      .catch((error) => showToast(error.message || 'Unable to load faculty list.', 'error'))
+  }, [])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -798,7 +858,7 @@ export default function FacultyInfosheet() {
       const q = search.toLowerCase()
       const matchesSearch = !q ||
         f.name.toLowerCase().includes(q) ||
-        f.f_id.toLowerCase().includes(q) ||
+        String(f.f_id ?? '').toLowerCase().includes(q) ||
         f.e_mail.toLowerCase().includes(q) ||
         f.Mobile.includes(q)
       const matchesDept = !deptFilter || f.department === deptFilter
@@ -806,20 +866,25 @@ export default function FacultyInfosheet() {
     })
   }, [faculty, search, deptFilter])
 
-  const handleUpdate = useCallback((updatedFaculty) => {
-    setFaculty(prev => prev.map(f => f.f_id === updatedFaculty.f_id
-      ? { ...f, ...updatedFaculty, name: `${updatedFaculty.first_name} ${updatedFaculty.mid_name ? updatedFaculty.mid_name + ' ' : ''}${updatedFaculty.last_name}`.trim() }
-      : f
-    ))
-    setEditTarget(null)
-    showToast(`Faculty "${updatedFaculty.first_name} ${updatedFaculty.last_name}" updated successfully!`)
+  const handleUpdate = useCallback(async (updatedFaculty) => {
+    try {
+      await apiFetch(`/staff/${encodeURIComponent(updatedFaculty.f_id)}`, { method: 'PUT', body: JSON.stringify(facultyUpdatePayload(updatedFaculty)) })
+      setFaculty(prev => prev.map(f => f.f_id === updatedFaculty.f_id
+        ? { ...f, ...updatedFaculty, name: `${updatedFaculty.first_name} ${updatedFaculty.mid_name ? updatedFaculty.mid_name + ' ' : ''}${updatedFaculty.last_name}`.trim() }
+        : f
+      ))
+      setEditTarget(null)
+      showToast(`Faculty "${updatedFaculty.first_name} ${updatedFaculty.last_name}" updated successfully!`)
+    } catch (error) { showToast(error.message || 'Faculty update failed.', 'error') }
   }, [])
 
-  const handleWithdraw = useCallback((fId, reason) => {
+  const handleWithdraw = useCallback(async (fId, reason) => {
     const f = faculty.find(x => x.f_id === fId)
-    setFaculty(prev => prev.filter(x => x.f_id !== fId))
-    setWithdrawTarget(null)
-    showToast(`${f?.name} has been withdrawn.`, 'success')
+    try {
+      await apiFetch(`/staff/${encodeURIComponent(fId)}?session=${encodeURIComponent('')}`, { method: 'DELETE', body: JSON.stringify({ reason }) })
+      setFaculty(prev => prev.filter(x => x.f_id !== fId)); setWithdrawTarget(null)
+      showToast(`${f?.name} has been withdrawn.`, 'success')
+    } catch (error) { showToast(error.message || 'Faculty withdrawal failed.', 'error') }
   }, [faculty])
 
   const handleReset = () => { setSearch(''); setDeptFilter('') }

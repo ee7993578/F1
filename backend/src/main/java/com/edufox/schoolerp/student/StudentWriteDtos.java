@@ -17,7 +17,10 @@ public final class StudentWriteDtos {
         String accHolder, String bank, String branch, String accType, String accNo, String ifsc,
         String sibAdm, String sibClass, String sibSection,
         String prevSchool, String affiliation, String udise, String pen, String apaar,
-        String remark
+        String remark,
+        String previousClass, String transferCertificate, String birthCertificate,
+        String marksheet, String migration, String aadharCard, String castCertificate,
+        String studentImage, String fatherImage, String motherImage
     ) {}
 
     public record WriteResponse(String uid, String registrationNo, String message) {}

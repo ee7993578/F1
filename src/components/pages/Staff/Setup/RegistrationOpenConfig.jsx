@@ -14,16 +14,17 @@
  *  - Toast notifications, loading states, empty states
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   PlusCircle, X, Check, AlertCircle, Loader2, ChevronDown,
   Calendar, IndianRupee, Filter, RefreshCw, Pencil, Save,
   BookOpen, School2, CheckCircle2, XCircle, SlidersHorizontal,
   ChevronRight, Info, Layers, LayoutList,
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC DUMMY DATA ──────────────────────────────────────────────────────
-const SESSIONS = ['2022-23', '2023-24', '2024-25', '2025-26']
+const SESSIONS = []
 
 const INITIAL_RECORDS = [
   { RowID: 1, session: '2023-24', startDate: '2023-04-01', endDate: '2023-04-30', feeAmount: 500,  status: '1' },
@@ -117,7 +118,7 @@ function StatusBadge({ status }) {
 
 // ─── ADD / EDIT FORM ────────────────────────────────────────────────────────
 function RegistrationForm({ onSubmit, onCancel, loading }) {
-  const [form, setForm] = useState({ session: '', startDate: '', endDate: '', feeAmount: '' })
+  const [form, setForm] = useState({ session: SESSIONS[0] || '', startDate: '', endDate: '', feeAmount: '' })
   const [errors, setErrors] = useState({})
 
   const set = (k, v) => {
@@ -132,7 +133,7 @@ function RegistrationForm({ onSubmit, onCancel, loading }) {
     if (!form.endDate)    e.endDate   = 'Select end date'
     if (!form.feeAmount)  e.feeAmount = 'Fee amount is required'
     else if (!/^\d+$/.test(form.feeAmount)) e.feeAmount = 'Only numeric values allowed'
-    if (form.startDate && form.endDate && form.endDate < form.startDate)
+    if (form.startDate && form.endDate && form.endDate <= form.startDate)
       e.endDate = 'End date must be ≥ start date'
     return e
   }
@@ -520,7 +521,7 @@ function FilterDrawer({ open, onClose, sessionFilter, setSessionFilter }) {
 
 // ─── MAIN PAGE COMPONENT ────────────────────────────────────────────────────
 export default function RegistrationOpenConfig() {
-  const [records, setRecords]           = useState(INITIAL_RECORDS)
+  const [records, setRecords]           = useState([])
   const [showForm, setShowForm]         = useState(false)
   const [formLoading, setFormLoading]   = useState(false)
   const [editingId, setEditingId]       = useState(null)
@@ -528,7 +529,18 @@ export default function RegistrationOpenConfig() {
   const [sessionFilter, setSessionFilter] = useState('')
   const [filterOpen, setFilterOpen]     = useState(false)
   const [toast, setToast]               = useState(null)
-  const nextId = useRef(INITIAL_RECORDS.length + 1)
+  const nextId = useRef(1)
+
+  useEffect(() => {
+    Promise.all([apiFetch('/staff/job-config-options'), apiFetch('/staff/job-config')])
+      .then(([options, response]) => {
+        SESSIONS.splice(0, SESSIONS.length, ...(options.sessions || []).map(x => x.value ?? x))
+        setSessionFilter(SESSIONS[0] || '')
+        const loaded = Array.isArray(response) ? response : (response.rows || response.data || [])
+        setRecords(loaded.map(row => ({ ...row, RowID: row.RowID ?? row.id })))
+      })
+      .catch((error) => showToast(error.message || 'Unable to load registration configuration.', 'error'))
+  }, [])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -536,24 +548,16 @@ export default function RegistrationOpenConfig() {
   }
 
   // ── Add new record ──────────────────────────────────────────────────────
-  const handleSubmit = useCallback((form) => {
+  const handleSubmit = useCallback(async (form) => {
     setFormLoading(true)
-    setTimeout(() => {
-      setRecords(prev => [
-        ...prev,
-        {
-          RowID: nextId.current++,
-          session: form.session,
-          startDate: form.startDate,
-          endDate: form.endDate,
-          feeAmount: Number(form.feeAmount),
-          status: '1',
-        }
-      ])
+    try {
+      await apiFetch('/staff/job-config', { method: 'POST', body: JSON.stringify({ ...form, status: '1' }) })
+      const response = await apiFetch('/staff/job-config')
+      setRecords(response.rows || response.data || [])
       setShowForm(false)
       setFormLoading(false)
       showToast('Registration opening added successfully!')
-    }, 600)
+    } catch (error) { setFormLoading(false); showToast(error.message || 'Unable to save configuration.', 'error') }
   }, [])
 
   // ── Start editing ───────────────────────────────────────────────────────
@@ -568,14 +572,12 @@ export default function RegistrationOpenConfig() {
   }
 
   // ── Save edit ───────────────────────────────────────────────────────────
-  const handleUpdate = (id) => {
-    setRecords(prev => prev.map(r =>
-      r.RowID === id
-        ? { ...r, startDate: editForm.startDate, endDate: editForm.endDate, feeAmount: Number(editForm.feeAmount), status: editForm.status }
-        : r
-    ))
-    setEditingId(null)
-    showToast('Record updated successfully!')
+  const handleUpdate = async (id) => {
+    try {
+      await apiFetch(`/staff/job-config/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(editForm) })
+      setRecords(prev => prev.map(r => r.RowID === id || r.id === id ? { ...r, ...editForm, feeAmount: Number(editForm.feeAmount) } : r))
+      setEditingId(null); showToast('Record updated successfully!')
+    } catch (error) { showToast(error.message || 'Unable to update configuration.', 'error') }
   }
 
   // ── Cancel edit ─────────────────────────────────────────────────────────

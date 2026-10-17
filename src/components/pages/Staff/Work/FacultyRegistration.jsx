@@ -5,7 +5,7 @@
  * Fully responsive: desktop table-dense ERP | mobile card/stack layout
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import {
   User, Upload, Camera, ChevronDown, AlertCircle, X, Check,
   Loader2, Building2, Phone, Mail, MapPin, CreditCard, Landmark,
@@ -13,6 +13,7 @@ import {
   ChevronRight, Info, RotateCcw, Save, Eye, EyeOff,
   BookOpen, Award, Home, FileText, BadgeCheck
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
 const SALUTATIONS = ['Mr.', 'Ms.', 'Mrs.', 'Dr.']
@@ -111,10 +112,10 @@ function NativeSelect({ value, onChange, children, error, disabled, className = 
         onChange={onChange}
         disabled={disabled}
         className={`w-full appearance-none pl-3 pr-8 py-2 text-[13px] rounded-lg border outline-none transition-all cursor-pointer
-          bg-white text-slate-800
-          focus:border-blue-400 focus:ring-2 focus:ring-blue-100
+          bg-white text-slate-800 dark:bg-[#1e2238] dark:text-slate-200 dark:border-[rgba(99,102,241,0.25)]
+          focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-500/20
           disabled:opacity-50 disabled:cursor-not-allowed
-          ${error ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200'}
+          ${error ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 dark:border-[rgba(99,102,241,0.25)]'}
           ${className}`}
       >
         {children}
@@ -127,11 +128,11 @@ function NativeSelect({ value, onChange, children, error, disabled, className = 
 function Field({ label, error, required, children, hint }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[12px] font-semibold text-slate-600 uppercase tracking-wide flex items-center gap-1">
+      <label className="text-[12px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1">
         {label}
         {required && <span className="text-rose-500">*</span>}
         {hint && (
-          <span className="text-[10px] font-normal normal-case text-slate-400 tracking-normal ml-1">({hint})</span>
+        <span className="text-[10px] font-normal normal-case text-slate-400 dark:text-slate-500 tracking-normal ml-1">({hint})</span>
         )}
       </label>
       {children}
@@ -155,11 +156,11 @@ function TextInput({ value, onChange, placeholder, error, disabled, maxLength, t
       maxLength={maxLength}
       readOnly={readOnly}
       className={`w-full px-3 py-2 text-[13px] rounded-lg border outline-none transition-all
-        bg-white text-slate-800 placeholder-slate-300
+        bg-white text-slate-800 placeholder-slate-300 dark:bg-[#1e2238] dark:text-slate-200 dark:placeholder-slate-600 dark:border-[rgba(99,102,241,0.25)]
         focus:border-blue-400 focus:ring-2 focus:ring-blue-100
-        disabled:opacity-50 disabled:bg-slate-50 disabled:cursor-not-allowed
-        read-only:bg-slate-50 read-only:cursor-default
-        ${error ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200'}
+        disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-slate-800/50 disabled:cursor-not-allowed
+        read-only:bg-slate-50 dark:read-only:bg-slate-800/50 read-only:cursor-default
+        ${error ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 dark:border-[rgba(99,102,241,0.25)]'}
         ${className}`}
     />
   )
@@ -173,9 +174,9 @@ function TextArea({ value, onChange, placeholder, error, rows = 3 }) {
       placeholder={placeholder}
       rows={rows}
       className={`w-full px-3 py-2 text-[13px] rounded-lg border outline-none transition-all resize-none
-        bg-white text-slate-800 placeholder-slate-300
+        bg-white text-slate-800 placeholder-slate-300 dark:bg-[#1e2238] dark:text-slate-200 dark:placeholder-slate-600 dark:border-[rgba(99,102,241,0.25)]
         focus:border-blue-400 focus:ring-2 focus:ring-blue-100
-        ${error ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200'}`}
+        ${error ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 dark:border-[rgba(99,102,241,0.25)]'}`}
     />
   )
 }
@@ -211,8 +212,8 @@ function SectionCard({ title, icon: Icon, color = 'blue', children, badge }) {
     amber: 'bg-amber-500',
   }
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className={`flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-slate-50/60`}>
+    <div className="rounded-2xl border border-slate-200 dark:border-[rgba(99,102,241,0.2)] bg-white dark:bg-[#1a1f35] shadow-sm overflow-hidden">
+      <div className={`flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-[rgba(99,102,241,0.15)] bg-slate-50/60 dark:bg-white/[0.03]`}>
         <span className={`w-1 h-6 rounded-full flex-shrink-0 ${accent[color]}`} />
         <span className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border ${colors[color]}`}>
           <Icon className="w-4 h-4" />
@@ -230,7 +231,7 @@ function SectionCard({ title, icon: Icon, color = 'blue', children, badge }) {
 // ─── MOBILE TAB NAVIGATION ───────────────────────────────────────────────────
 function MobileTabNav({ tabs, active, onChange }) {
   return (
-    <div className="flex sm:hidden sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm overflow-x-auto no-scrollbar">
+    <div className="flex sm:hidden sticky top-0 z-20 bg-white dark:bg-[#1a1f35] border-b border-slate-200 dark:border-[rgba(99,102,241,0.2)] shadow-sm overflow-x-auto no-scrollbar">
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -271,7 +272,7 @@ function PhotoUploadModal({ open, onClose, onUpload }) {
     <>
       <div className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1a1f35] rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <Camera className="w-4 h-4 text-blue-600" />
@@ -284,7 +285,7 @@ function PhotoUploadModal({ open, onClose, onUpload }) {
           <div className="p-5 space-y-4">
             {/* Preview */}
             <div className="flex justify-center">
-              <div className="w-28 h-28 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden flex items-center justify-center bg-slate-50">
+              <div className="w-28 h-28 rounded-2xl border-2 border-dashed border-slate-200 dark:border-[rgba(99,102,241,0.25)] overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-white/[0.03]">
                 {preview
                   ? <img src={preview} alt="preview" className="w-full h-full object-cover" />
                   : <Camera className="w-8 h-8 text-slate-300" />
@@ -292,7 +293,7 @@ function PhotoUploadModal({ open, onClose, onUpload }) {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[12px] font-semibold text-slate-600 uppercase tracking-wide">Select Image</label>
+              <label className="text-[12px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Select Image</label>
               <input ref={fileRef} type="file" accept="image/*" onChange={handleFile}
                 className="w-full text-[13px] text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0
                   file:text-[12px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
@@ -300,7 +301,7 @@ function PhotoUploadModal({ open, onClose, onUpload }) {
           </div>
           <div className="px-5 pb-5 flex gap-3">
             <button onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">
+              className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors">
               Cancel
             </button>
             <button onClick={handleUpload} disabled={!preview}
@@ -322,11 +323,12 @@ export default function FacultyRegistration() {
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState(null)
   const [errors, setErrors] = useState({})
+  const [lookups, setLookups] = useState({ departments: [], designations: [], education: [], bloodGroups: [], states: [], districts: [], banks: [], subjects: [] })
 
   // ── Faculty Detail State ──────────────────────────────────────────────────
   const [facultyPhoto, setFacultyPhoto] = useState(null)
   const [facultyId, setFacultyId] = useState('')
-  const [salutation, setSalutation] = useState('')
+  const [salutation, setSalutation] = useState('0')
   const [firstName, setFirstName] = useState('')
   const [middleName, setMiddleName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -363,6 +365,22 @@ export default function FacultyRegistration() {
   const [branch, setBranch] = useState('')
   const [accountNo, setAccountNo] = useState('')
   const [ifsc, setIfsc] = useState('')
+
+  useEffect(() => {
+    let mounted = true
+    apiFetch('/staff/bootstrap')
+      .then((data) => {
+        if (!mounted) return
+        setLookups({
+          departments: data.departments || [], designations: data.designations || [], education: data.education || [],
+          bloodGroups: data.bloodGroups || [], states: data.states || [], districts: data.districts || [],
+          banks: data.banks || [], subjects: data.subjects || [],
+        })
+        if (data.nextFacultyId !== undefined && data.nextFacultyId !== null) setFacultyId(String(data.nextFacultyId))
+      })
+      .catch((error) => showToast(error.message || 'Unable to load faculty registration lists.', 'error'))
+    return () => { mounted = false }
+  }, [])
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const showToast = (msg, type = 'success') => {
@@ -401,12 +419,11 @@ export default function FacultyRegistration() {
   const validate = () => {
     const errs = {}
     if (!facultyId.trim()) errs.facultyId = 'Faculty ID is required'
-    if (!salutation) errs.salutation = 'Select salutation'
+    if (!salutation || salutation === '0') errs.salutation = 'Select salutation'
     if (!firstName.trim()) errs.firstName = 'First name is required'
     if (designation === '0') errs.designation = 'Select designation'
     if (!doj) errs.doj = 'Date of joining is required'
     if (!mobile.trim()) errs.mobile = 'Mobile number is required'
-    else if (mobile.length !== 10) errs.mobile = 'Enter valid 10-digit mobile'
     if (!email.trim()) errs.email = 'Email is required'
     else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) errs.email = 'Enter valid email'
     if (Object.keys(errs).length) {
@@ -423,18 +440,29 @@ export default function FacultyRegistration() {
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     if (!validate()) return
     setSubmitting(true)
-    setTimeout(() => {
+    try {
+      await apiFetch('/staff', { method: 'POST', body: JSON.stringify({
+        facultyId, salutation, firstName, middleName, lastName, dob, gender, fatherName, husbandName,
+        maritalStatus, anniversary, graduation: '', education, experience, department, designation,
+        doj, bloodGroup, subjects, presentAddress, permanentAddress, state, district, city, pin,
+        telephone, mobile, email, aadhar, pan,
+        bankName: (lookups.banks.find((bank) => String(bank.id) === String(bankName))?.name || bankName),
+        branch, accountNo, ifsc, facultyPhoto,
+      }) })
       setSubmitting(false)
       showToast('Faculty registered successfully!')
-    }, 1400)
-  }, [facultyId, salutation, firstName, designation, doj, mobile, email])
+    } catch (error) {
+      setSubmitting(false)
+      showToast(error.message || 'Faculty registration failed.', 'error')
+    }
+  }, [facultyId, salutation, firstName, middleName, lastName, dob, gender, fatherName, husbandName, maritalStatus, anniversary, education, experience, department, designation, doj, bloodGroup, subjects, presentAddress, permanentAddress, state, district, city, pin, telephone, mobile, email, aadhar, pan, bankName, lookups.banks, branch, accountNo, ifsc])
 
   // ── Reset ─────────────────────────────────────────────────────────────────
   const handleReset = () => {
-    setFacultyPhoto(null); setFacultyId(''); setSalutation(''); setFirstName(''); setMiddleName('')
+    setFacultyPhoto(null); setFacultyId(''); setSalutation('0'); setFirstName(''); setMiddleName('')
     setLastName(''); setDob(''); setGender('Male'); setFatherName(''); setHusbandName('')
     setMaritalStatus('Single'); setAnniversary(''); setEducation('0'); setExperience('')
     setDepartment('0'); setDesignation('0'); setBloodGroup('0'); setDoj(''); setSubjects([])
@@ -445,7 +473,15 @@ export default function FacultyRegistration() {
     showToast('Form has been reset.')
   }
 
-  const districts = state !== '0' ? (DISTRICTS_BY_STATE[state] || []) : []
+  const departments = lookups.departments.length ? [{ id: '0', name: '-- Select Department --' }, ...lookups.departments] : DEPARTMENTS.map(d => ({ id: d.value, name: d.label }))
+  const designations = lookups.designations.length ? [{ id: '0', name: '-- Select Designation --' }, ...lookups.designations] : DESIGNATIONS.map(d => ({ id: d.value, name: d.label }))
+  const educationOptions = lookups.education.length ? [{ id: '0', name: '-- Select Qualification --' }, ...lookups.education] : EDUCATION_QUALS.map(d => ({ id: d.value, name: d.label }))
+  const stateOptions = lookups.states.length ? [{ id: '0', name: '-- Select State --' }, ...lookups.states] : STATES.map(s => ({ id: s.value, name: s.label }))
+  const bankOptions = lookups.banks.length ? [{ id: '0', name: '-- Select Bank --' }, ...lookups.banks] : BANKS.map(b => ({ id: b.value, name: b.label }))
+  const subjectOptions = lookups.subjects.length ? lookups.subjects : SUBJECTS.map((name, index) => ({ id: name, name }))
+  const districts = lookups.districts.length
+    ? lookups.districts.filter(d => String(d.stateId) === String(state))
+    : (state !== '0' ? (DISTRICTS_BY_STATE[state] || []).map(name => ({ id: name, name })) : [])
 
   const TABS = [
     { id: 'faculty', label: 'Faculty', icon: User },
@@ -465,7 +501,7 @@ export default function FacultyRegistration() {
           <div className="flex flex-col items-center gap-3 flex-shrink-0">
             <div
               className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden
-                flex items-center justify-center bg-slate-50 cursor-pointer hover:border-blue-400 transition-colors relative group"
+                flex items-center justify-center bg-slate-50 dark:bg-white/[0.03] cursor-pointer hover:border-blue-400 transition-colors relative group"
               onClick={() => setPhotoModal(true)}
             >
               {facultyPhoto
@@ -493,7 +529,8 @@ export default function FacultyRegistration() {
             <Field label="Faculty ID" required error={errors.facultyId}>
               <TextInput
                 value={facultyId}
-                onChange={(e) => { setFacultyId(e.target.value); setErrors(p => ({ ...p, facultyId: undefined })) }}
+                readOnly
+                onChange={() => {}}
                 placeholder="e.g. FAC001"
                 error={errors.facultyId}
               />
@@ -504,7 +541,7 @@ export default function FacultyRegistration() {
                 onChange={(e) => { setSalutation(e.target.value); setErrors(p => ({ ...p, salutation: undefined })) }}
                 error={errors.salutation}
               >
-                <option value="">-- Select --</option>
+                <option value="0">Select</option>
                 {SALUTATIONS.map(s => <option key={s} value={s}>{s}</option>)}
               </NativeSelect>
             </Field>
@@ -548,7 +585,7 @@ export default function FacultyRegistration() {
                   >
                     {gender === g && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </div>
-                  <span className="text-[13px] text-slate-700">{g}</span>
+                  <span className="text-[13px] text-slate-700 dark:text-slate-200">{g}</span>
                 </label>
               ))}
             </div>
@@ -566,7 +603,6 @@ export default function FacultyRegistration() {
               value={husbandName}
               onChange={handleOnlyText(setHusbandName)}
               placeholder="Husband's name"
-              disabled={maritalStatus === 'Single'}
             />
           </Field>
 
@@ -575,13 +611,13 @@ export default function FacultyRegistration() {
               {MARITAL_STATUS.map(m => (
                 <label key={m} className="flex items-center gap-2 cursor-pointer">
                   <div
-                    onClick={() => { setMaritalStatus(m); if (m === 'Single') { setHusbandName(''); setAnniversary('') } }}
+                    onClick={() => { setMaritalStatus(m); if (m === 'Single') setAnniversary('') }}
                     className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors
                       ${maritalStatus === m ? 'border-blue-500 bg-blue-500' : 'border-slate-300'}`}
                   >
                     {maritalStatus === m && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </div>
-                  <span className="text-[13px] text-slate-700">{m}</span>
+                  <span className="text-[13px] text-slate-700 dark:text-slate-200">{m}</span>
                 </label>
               ))}
             </div>
@@ -598,7 +634,7 @@ export default function FacultyRegistration() {
 
           <Field label="Education Qualification">
             <NativeSelect value={education} onChange={(e) => setEducation(e.target.value)}>
-              {EDUCATION_QUALS.map(eq => <option key={eq.value} value={eq.value}>{eq.label}</option>)}
+              {educationOptions.map(eq => <option key={eq.id} value={eq.id}>{eq.name}</option>)}
             </NativeSelect>
           </Field>
         </div>
@@ -616,7 +652,7 @@ export default function FacultyRegistration() {
 
           <Field label="Department">
             <NativeSelect value={department} onChange={(e) => setDepartment(e.target.value)}>
-              {DEPARTMENTS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+              {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </NativeSelect>
           </Field>
 
@@ -626,14 +662,14 @@ export default function FacultyRegistration() {
               onChange={(e) => { setDesignation(e.target.value); setErrors(p => ({ ...p, designation: undefined })) }}
               error={errors.designation}
             >
-              {DESIGNATIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+              {designations.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </NativeSelect>
           </Field>
 
           <Field label="Blood Group">
             <NativeSelect value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)}>
               <option value="0">-- Select --</option>
-              {BLOOD_GROUPS.map(bg => <option key={bg} value={bg}>{bg}</option>)}
+              {(lookups.bloodGroups.length ? lookups.bloodGroups : BLOOD_GROUPS.map(name => ({ id: name, name }))).map(bg => <option key={bg.id} value={bg.id}>{bg.name}</option>)}
             </NativeSelect>
           </Field>
         </div>
@@ -650,26 +686,26 @@ export default function FacultyRegistration() {
           </Field>
 
           <Field label="Subjects">
-            <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/50">
+            <div className="border border-slate-200 dark:border-[rgba(99,102,241,0.2)] rounded-lg p-3 bg-slate-50/50 dark:bg-white/[0.03]">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-2 gap-x-3">
-                {SUBJECTS.map(sub => (
-                  <label key={sub} className="flex items-center gap-2 cursor-pointer group">
+                {subjectOptions.map(sub => (
+                  <label key={sub.id} className="flex items-center gap-2 cursor-pointer group">
                     <div
-                      onClick={() => toggleSubject(sub)}
+                      onClick={() => toggleSubject(String(sub.id))}
                       className={`w-4 h-4 rounded flex items-center justify-center border-2 transition-all flex-shrink-0
-                        ${subjects.includes(sub)
+                        ${subjects.includes(String(sub.id))
                           ? 'bg-blue-600 border-blue-600'
                           : 'border-slate-300 group-hover:border-blue-400'
                         }`}
                     >
-                      {subjects.includes(sub) && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+                      {subjects.includes(String(sub.id)) && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
                     </div>
-                    <span className="text-[12px] text-slate-600">{sub}</span>
+                    <span className="text-[12px] text-slate-600 dark:text-slate-300">{sub.name}</span>
                   </label>
                 ))}
               </div>
               {subjects.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-slate-200 flex flex-wrap gap-1">
+                <div className="mt-2 pt-2 border-t border-slate-200 dark:border-[rgba(99,102,241,0.2)] flex flex-wrap gap-1">
                   {subjects.map(s => (
                     <span key={s} className="flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
                       {s}
@@ -706,7 +742,7 @@ export default function FacultyRegistration() {
 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-[12px] font-semibold text-slate-600 uppercase tracking-wide">
+              <label className="text-[12px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
                 Permanent Address
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -732,14 +768,14 @@ export default function FacultyRegistration() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Field label="State">
             <NativeSelect value={state} onChange={(e) => handleStateChange(e.target.value)}>
-              {STATES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {stateOptions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </NativeSelect>
           </Field>
 
           <Field label="District">
             <NativeSelect value={district} onChange={(e) => setDistrict(e.target.value)} disabled={state === '0'}>
               <option value="0">-- Select District --</option>
-              {districts.map(d => <option key={d} value={d}>{d}</option>)}
+              {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </NativeSelect>
           </Field>
 
@@ -845,15 +881,15 @@ export default function FacultyRegistration() {
         </div>
 
         {/* Bank Details */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+        <div className="rounded-xl border border-slate-200 dark:border-[rgba(99,102,241,0.2)] bg-slate-50/50 dark:bg-white/[0.03] p-4">
           <div className="flex items-center gap-2 mb-4">
             <Landmark className="w-4 h-4 text-violet-600" />
-            <span className="text-[13px] font-bold text-slate-700">Bank Details</span>
+            <span className="text-[13px] font-bold text-slate-700 dark:text-slate-200">Bank Details</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Field label="Bank Name">
               <NativeSelect value={bankName} onChange={(e) => setBankName(e.target.value)}>
-                {BANKS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                {bankOptions.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </NativeSelect>
             </Field>
 
@@ -891,7 +927,7 @@ export default function FacultyRegistration() {
   return (
     <div className="min-h-screen bg-slate-100">
       {/* ── Page Header ── */}
-      <div className="bg-white border-b border-slate-200 shadow-sm">
+      <div className="bg-white dark:bg-[#1a1f35] border-b border-slate-200 dark:border-[rgba(99,102,241,0.2)] shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           {/* Breadcrumb */}
           <div className="flex items-center gap-1.5 text-[12px] text-slate-400 mb-3 flex-wrap">
@@ -946,12 +982,12 @@ export default function FacultyRegistration() {
 
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-3 px-5 py-4
-            rounded-2xl border border-slate-200 bg-white shadow-sm">
+            rounded-2xl border border-slate-200 dark:border-[rgba(99,102,241,0.2)] bg-white dark:bg-[#1a1f35] shadow-sm">
             <button
               type="button"
               onClick={handleReset}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold
-                bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors border border-slate-200"
+                bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-[rgba(99,102,241,0.2)]"
             >
               <RotateCcw className="w-4 h-4" /> Reset
             </button>
@@ -982,7 +1018,7 @@ export default function FacultyRegistration() {
                 type="button"
                 onClick={() => setActiveTab(activeTab === 'other' ? 'contact' : 'faculty')}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-semibold
-                  bg-slate-100 text-slate-700 border border-slate-200"
+                  bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-[rgba(99,102,241,0.2)]"
               >
                 <ChevronRight className="w-4 h-4 rotate-180" />
                 Back
@@ -1014,7 +1050,7 @@ export default function FacultyRegistration() {
             type="button"
             onClick={handleReset}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-semibold
-              bg-slate-100 text-slate-700 border border-slate-200"
+              bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-[rgba(99,102,241,0.2)]"
           >
             <RotateCcw className="w-4 h-4" /> Reset Form
           </button>

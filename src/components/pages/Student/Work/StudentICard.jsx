@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useStudents, fetchStudentSearch } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   ChevronDown, Search, CreditCard, Printer,
   CheckSquare, Square, AlertCircle, X, Check,
@@ -7,7 +8,7 @@ import {
 } from 'lucide-react'
  
 // ─── DUMMY DATA ───────────────────────────────────────────────────────────────
-const SESSIONS = ['2024-25', '2025-26', '2026-27']
+/* const SESSIONS = ['2024-25', '2025-26', '2026-27']
  
 const CLASSES = [
   'Nursery', 'LKG', 'UKG',
@@ -41,7 +42,7 @@ const SCHOOL = {
   phone:   '0121-2654321',
   email:   'info@stmarys.edu.in',
   session: '',
-}
+} */
  
 // ─── SMALL COMPONENTS ─────────────────────────────────────────────────────────
 function NativeSelect({ value, onChange, children, placeholder, error }) {
@@ -84,15 +85,15 @@ function Field({ label, error, children }) {
 }
  
 // ─── I-CARD COMPONENT (single card) ──────────────────────────────────────────
-function ICard({ student, cls, section, session }) {
+function ICard({ student, cls, section, session, school }) {
   const initials = student.name.split(' ').map(n => n[0]).join('').slice(0, 2)
   return (
     <div className="w-full max-w-[240px] rounded-2xl border-2 border-blue-200 dark:border-indigo-500/30 overflow-hidden shadow-lg bg-white dark:bg-[#1e2238] flex flex-col text-[11px] select-none">
       {/* Card Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-indigo-700 dark:to-indigo-800 px-3 py-2.5 text-white text-center">
-        <p className="font-bold text-[12px] leading-tight">{SCHOOL.name}</p>
-        <p className="opacity-80 text-[9px] mt-0.5 leading-tight">{SCHOOL.address}</p>
-        <p className="opacity-70 text-[9px]">{SCHOOL.phone}</p>
+        <p className="font-bold text-[12px] leading-tight">{school.name}</p>
+        <p className="opacity-80 text-[9px] mt-0.5 leading-tight">{school.address}</p>
+        <p className="opacity-70 text-[9px]">{school.phone}</p>
       </div>
  
       {/* IDENTITY CARD label */}
@@ -105,7 +106,9 @@ function ICard({ student, cls, section, session }) {
       <div className="flex gap-3 px-3 py-3">
         {/* Photo placeholder */}
         <div className="w-14 h-16 rounded-lg border-2 border-blue-200 dark:border-indigo-500/30 bg-blue-50 dark:bg-indigo-500/10 flex-shrink-0 flex items-center justify-center">
-          <span className="text-[16px] font-black text-blue-500 dark:text-indigo-400">{initials}</span>
+          {student.photo
+            ? <img src={student.photo} alt="" className="w-full h-full object-cover rounded-md" />
+            : <span className="text-[16px] font-black text-blue-500 dark:text-indigo-400">{initials}</span>}
         </div>
  
         {/* Details */}
@@ -141,7 +144,8 @@ function ICard({ student, cls, section, session }) {
 export default function StudentICard() {
   const [session, setSession]     = useState('')
   const { data: studentData } = useStudents()
-  const liveClasses = studentData?.classes?.map(c => c.className).filter(Boolean) || []
+  const [school, setSchool] = useState({ name: '', address: '', phone: '' })
+  const liveClasses = studentData?.classes?.filter(c => c.className).map(c => ({ id: c.classId, name: c.className })) || []
   const liveSessions = studentData?.sessions?.map(s => s.session).filter(Boolean) || []
   const [cls, setCls]             = useState('')
   const [section, setSection]     = useState('')
@@ -151,7 +155,19 @@ export default function StudentICard() {
   const [errors, setErrors]       = useState({})
   const [preview, setPreview]     = useState(false) // show I-card grid
  
-  const sections = cls ? (studentData?.sections?.filter(s => s.className === cls).map(s => s.sectionName) || []) : []
+  const selectedClass = liveClasses.find(item => String(item.id) === String(cls))
+  const sections = cls ? (studentData?.sections?.filter(s => String(s.classId) === String(cls)) || []) : []
+
+  useEffect(() => {
+    const current = studentData?.sessions?.find(item => String(item.status).toLowerCase() === 'default')?.session || liveSessions[0]
+    if (current && !session) setSession(current)
+  }, [studentData, liveSessions, session])
+
+  useEffect(() => {
+    apiFetch('/menu').then(menu => setSchool({
+      name: menu.schoolName || '', address: menu.schoolAddress || '', phone: menu.schoolPhone || ''
+    })).catch(() => {})
+  }, [])
  
   // ── handlers ──────────────────────────────────────────────────────────────
   const handleClassChange = (val) => {
@@ -183,10 +199,10 @@ export default function StudentICard() {
     if (!section) err.section = 'Select section'
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({})
-    const classId = studentData?.classes?.find(c => c.className === cls)?.classId
-    const sectionId = studentData?.sections?.find(s => s.className === cls && s.sectionName === section)?.sectionId
+    const classId = cls
+    const sectionId = sections.find(s => String(s.sectionName) === String(section))?.sectionId
     fetchStudentSearch({ session, classId, sectionId }).then(rows => {
-      const list = rows.map(s => ({ id: s.studentId, name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' '), adm: s.registrationNo || '', roll: '', father: s.fatherName || '', dob: s.dob ? new Date(s.dob).toLocaleDateString('en-IN') : '', blood: '', phone: s.mobile || s.phone || '', address: '' }))
+      const list = rows.map(s => ({ id: s.studentId, name: s.name, adm: s.registrationNo || '', roll: s.rollNo || '', father: s.fatherName || '', dob: s.dob ? new Date(s.dob).toLocaleDateString('en-IN') : '', blood: s.bloodGroup || '', phone: s.mobile || s.phone || '', address: s.address || '', photo: s.studentImage || '' }))
       setAllStudents(list); setSelected(list.map(s => s.id)); setPreview(false)
     }).catch(() => setAllStudents([]))
   }
@@ -240,13 +256,13 @@ export default function StudentICard() {
  
             <Field label="Class" error={errors.cls}>
               <NativeSelect value={cls} onChange={e => handleClassChange(e.target.value)} placeholder="-- Select Class --" error={errors.cls}>
-                {liveClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                {liveClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </NativeSelect>
             </Field>
  
             <Field label="Section" error={errors.section}>
               <NativeSelect value={section} onChange={e => handleSectionChange(e.target.value)} placeholder={cls ? '-- Select Section --' : '-- Select Class First --'} error={errors.section}>
-                {sections.map(s => <option key={s} value={s}>{s}</option>)}
+                {sections.map(s => <option key={s.sectionId} value={s.sectionName}>{s.sectionName}</option>)}
               </NativeSelect>
             </Field>
  
@@ -276,7 +292,7 @@ export default function StudentICard() {
               <span className="w-1 h-5 rounded-full bg-emerald-500 flex-shrink-0" />
               <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
               <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200 truncate">
-                {cls} – {section} &nbsp;·&nbsp; {session}
+                {selectedClass?.name || ''} – {section} &nbsp;·&nbsp; {session}
               </span>
               <span className="flex-shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">
                 {selected.length} / {allStudents.length}
@@ -440,7 +456,7 @@ export default function StudentICard() {
           <div className="p-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 justify-items-center">
               {selectedStudents.map(s => (
-                <ICard key={s.id} student={s} cls={cls} section={section} session={session} />
+                <ICard key={s.id} student={s} cls={selectedClass?.name || ''} section={section} session={session} school={school} />
               ))}
             </div>
           </div>

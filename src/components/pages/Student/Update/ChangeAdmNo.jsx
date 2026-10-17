@@ -4,8 +4,8 @@
  * Dependencies: lucide-react (already in project)
  */
 
-import { useState, useMemo } from 'react'
-import { fetchStudentSearch } from '../../../../hooks/useStudents'
+import { useState, useMemo, useEffect } from 'react'
+import { fetchStudentSearch, useStudents } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
 import {
   ChevronDown, Search, Hash, CheckSquare, Square,
@@ -14,15 +14,6 @@ import {
 } from 'lucide-react'
 
 // ─── STATIC DATA (replace with API) ─────────────────────────────────────────
-const SESSIONS = ['2023-24', '2024-25', '2025-26']
-
-const CLASSES = [
-  'Nursery', 'LKG', 'UKG',
-  'Class I', 'Class II', 'Class III', 'Class IV', 'Class V',
-  'Class VI', 'Class VII', 'Class VIII', 'Class IX', 'Class X',
-  'Class XI', 'Class XII',
-]
-
 // ─── AVATAR COLOR ─────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
   ['#1d4ed8','#dbeafe'],['#7c3aed','#ede9fe'],['#0891b2','#cffafe'],
@@ -141,6 +132,9 @@ function Toast({ message, type, onClose }) {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function ChangeAdmNo() {
+  const { data: studentData } = useStudents()
+  const sessionOptions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
+  const classOptions = studentData?.classes?.map(row => ({ id: row.classId, name: row.className })).filter(row => row.name) || []
   const [session,      setSession]      = useState('')
   const [cls,          setCls]          = useState('')
   const [loading,      setLoading]      = useState(false)
@@ -150,6 +144,11 @@ export default function ChangeAdmNo() {
   const [search,       setSearch]       = useState('')
   const [errors,       setErrors]       = useState({})
   const [toast,        setToast]        = useState(null)
+
+  useEffect(() => {
+    const current = studentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || sessionOptions[0] || ''
+    if (current && !session) setSession(current)
+  }, [studentData, sessionOptions, session])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -161,8 +160,9 @@ export default function ChangeAdmNo() {
     const err = {}; if (!session) err.session = 'Required'; if (!cls) err.cls = 'Required'
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setCheckedIds([]); setSearch('')
-    fetchStudentSearch({ session, query: cls }).then(data => {
-      const result = data.filter(r => !cls || r.className === cls || r.class_name === cls).map(r => ({ ...r, uid: r.uid || r.studentId, stu_id: r.studentId, name: r.name, registration_no: r.registrationNo || '', _origAdm: r.registrationNo || '' }))
+    const classId = classOptions.find(item => item.name === cls)?.id
+    fetchStudentSearch({ session, classId }).then(data => {
+      const result = data.map(r => ({ ...r, uid: r.uid || r.studentId, stu_id: String(r.studentId || ''), name: r.name, registration_no: r.registrationNo || '', _origAdm: r.registrationNo || '' }))
       setRows(result)
     }).catch(error => showToast(error.message || 'Request failed', 'error')).finally(() => setLoading(false))
   }
@@ -220,25 +220,6 @@ export default function ChangeAdmNo() {
       showToast(checkedIds.length + ' record' + (checkedIds.length > 1 ? 's' : '') + ' saved successfully.')
     } catch (error) { showToast(error.message || 'Admission number update failed', 'error') } finally { setSaving(false) }
   }
-  const handleSaveDisabled = () => {
-    if (checkedIds.length === 0) {
-      showToast('Check at least one student to save.', 'error'); return
-    }
-    // Validate: checked rows must have non-empty adm no
-    const empty = rows.filter(r => checkedIds.includes(r.uid) && !r.registration_no.trim())
-    if (empty.length > 0) {
-      showToast(`Admission No. cannot be empty (${empty.map(r=>r.name).join(', ')})`, 'error'); return
-    }
-    setSaving(true)
-    // Simulate API save
-    setTimeout(() => {
-      setRows(p => p.map(r => ({ ...r, _origAdm: r.registration_no })))
-      setCheckedIds([])
-      setSaving(false)
-      showToast(`${checkedIds.length} record${checkedIds.length > 1 ? 's' : ''} saved successfully.`)
-    }, 800)
-  }
-
   // ── desktop table row ─────────────────────────────────────────────────────
   const DesktopRow = ({ r, idx }) => {
     const enabled = isEnabled(r.uid)
@@ -429,13 +410,13 @@ export default function ChangeAdmNo() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Field label="Session" error={errors.session}>
               <NativeSelect value={session} onChange={e => { setSession(e.target.value); setErrors(p=>({...p,session:undefined})) }} placeholder="-- Select Session --" error={errors.session}>
-                {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {sessionOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </NativeSelect>
             </Field>
 
             <Field label="Class" error={errors.cls}>
               <NativeSelect value={cls} onChange={e => { setCls(e.target.value); setErrors(p=>({...p,cls:undefined})) }} placeholder="-- Select Class --" error={errors.cls}>
-                {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                {classOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
               </NativeSelect>
             </Field>
 

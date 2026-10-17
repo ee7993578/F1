@@ -38,6 +38,36 @@ public class StudentController {
         return service.search(school(claims(authentication)), query, classId, sectionId, status, session);
     }
 
+    @GetMapping("/academic-options")
+    public Map<String, Object> academicOptions(Authentication authentication,
+                                                @RequestParam String session,
+                                                @RequestParam Integer classId,
+                                                @RequestParam(required = false) String termId) {
+        return service.academicOptions(school(claims(authentication)), session, classId, termId);
+    }
+
+    @GetMapping("/registration-options")
+    public Map<String, Object> registrationOptions(Authentication authentication) {
+        return service.registrationOptions(school(claims(authentication)));
+    }
+
+    @GetMapping("/terms")
+    public List<Map<String, Object>> terms() {
+        return service.terms();
+    }
+
+    @GetMapping("/registration/{rowId}")
+    public Map<String, Object> registrationDetail(Authentication authentication, @PathVariable long rowId) {
+        return service.registrationDetail(school(claims(authentication)), rowId);
+    }
+
+    @GetMapping("/admission-allotment-options")
+    public Map<String, Object> admissionAllotmentOptions(Authentication authentication,
+                                                          @RequestParam String session,
+                                                          @RequestParam Integer classId) {
+        return service.admissionAllotmentOptions(school(claims(authentication)), session, classId);
+    }
+
     @GetMapping("/{studentId}")
     public Map<String, Object> findOne(Authentication authentication,
                                         @PathVariable String studentId) {
@@ -52,8 +82,11 @@ public class StudentController {
                                              @RequestParam(required = false) Integer sectionId,
                                              @RequestParam(required = false) String status,
                                              @RequestParam(required = false) String session,
-                                             @RequestParam(required = false) Integer month) {
-        return service.report(school(claims(authentication)), type, query, classId, sectionId, status, session, month);
+                                             @RequestParam(required = false) Integer month,
+                                             @RequestParam(required = false) String studentType,
+                                             @RequestParam(required = false) String fromDate,
+                                             @RequestParam(required = false) String toDate) {
+        return service.report(school(claims(authentication)), type, query, classId, sectionId, status, session, month, studentType, fromDate, toDate);
     }
 
     private static Claims claims(Authentication authentication) {

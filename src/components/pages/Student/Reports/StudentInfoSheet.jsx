@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useSessionsClasses } from '../../../../lib/useStudentReport'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { studentApi as api } from '../../../../lib/studentApi'
 import {
   Search, Download, FileSpreadsheet, RefreshCw, Filter,
   ChevronDown, ChevronUp, Check, X, Eye, SlidersHorizontal,

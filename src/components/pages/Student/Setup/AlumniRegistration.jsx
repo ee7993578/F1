@@ -24,6 +24,7 @@ import {
   GraduationCap, Briefcase, Hash, User, ChevronRight,
   BookOpen, TrendingUp, Eye, EyeOff, Upload
 } from 'lucide-react'
+import { downloadCsv } from '../../../../lib/exportCsv'
 
 // ─── STATIC DUMMY DATA ────────────────────────────────────────────────────────
 const INITIAL_ALUMNI = []
@@ -570,10 +571,23 @@ export default function AlumniRegistration() {
   const handleExcel = () => {
     if (alumni.length === 0) { showToast('No data to export.', 'error'); return }
     setExporting(true)
-    setTimeout(() => {
+    try {
+      const exported = downloadCsv('alumni-registration.csv', alumni.map(row => ({
+        Name: row.fullName ?? row.FullName ?? '',
+        'Student ID': row.studentId ?? row.StudentId ?? '',
+        Batch: row.batch ?? row.Batch ?? '',
+        DOB: row.dob ?? row.DOB ?? '',
+        Qualification: row.qualification ?? row.Qualification ?? '',
+        Status: row.currentStatus ?? row.CurrentStatus ?? '',
+        Email: row.emailAddress ?? row.EmailAddress ?? '',
+        Mobile: row.phoneNumber ?? row.PhoneNumber ?? '',
+        Gender: row.gender ?? row.Gender ?? '',
+        Address: row.address ?? row.PermanentAddress ?? '',
+      })))
+      showToast(exported ? 'Alumni export downloaded.' : 'No data to export.', exported ? 'success' : 'error')
+    } finally {
       setExporting(false)
-      showToast('Excel export ready! (API integration pending)')
-    }, 1200)
+    }
   }
 
   // ── Search filtered list ──────────────────────────────────────────────────
@@ -581,11 +595,11 @@ export default function AlumniRegistration() {
     if (!search.trim()) return alumni
     const q = search.toLowerCase()
     return alumni.filter(a =>
-      a.FullName.toLowerCase().includes(q) ||
-      a.StudentId.toLowerCase().includes(q) ||
-      a.Batch.toLowerCase().includes(q) ||
-      a.CurrentStatus.toLowerCase().includes(q) ||
-      a.Qualification.toLowerCase().includes(q)
+      String(a.FullName ?? '').toLowerCase().includes(q) ||
+      String(a.StudentId ?? '').toLowerCase().includes(q) ||
+      String(a.Batch ?? '').toLowerCase().includes(q) ||
+      String(a.CurrentStatus ?? '').toLowerCase().includes(q) ||
+      String(a.Qualification ?? '').toLowerCase().includes(q)
     )
   }, [alumni, search])
 

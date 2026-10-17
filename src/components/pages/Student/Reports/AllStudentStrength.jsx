@@ -16,6 +16,8 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useStudents, fetchStudentReport } from '../../../../hooks/useStudents'
+import { downloadCsv } from '../../../../lib/exportCsv'
+import { useSchoolInfo } from '../../../../lib/useSchoolInfo'
 import {
   Filter, RefreshCw, Eye,
   AlertCircle, X, Check, Loader2, ChevronDown,
@@ -126,18 +128,18 @@ function SummaryCard({ icon: Icon, label, value, color }) {
 }
 
 // ─── SCHOOL HEADER BANNER ─────────────────────────────────────────────────────
-function SchoolHeader({ session }) {
+function SchoolHeader({ session, schoolInfo }) {
   return (
     <div className="rounded-2xl border border-blue-100 dark:border-[rgba(99,102,241,0.2)] bg-gradient-to-r from-blue-50 via-white to-indigo-50 dark:from-[#1a1f35] dark:via-[#1e2238] dark:to-[#1a1f35] px-6 py-5 text-center shadow-sm">
       <div className="flex items-center justify-center gap-2 mb-1">
         <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
         <h2 className="text-[16px] sm:text-[18px] font-extrabold text-slate-800 dark:text-slate-100 tracking-tight leading-snug">
-          {SCHOOL_INFO.name}
+          {schoolInfo.name}
         </h2>
       </div>
       <div className="flex items-center justify-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400 mb-2">
         <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>{SCHOOL_INFO.address}</span>
+        <span>{schoolInfo.address}</span>
       </div>
       <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/25">
         <span className="text-[12px] font-bold text-amber-700 dark:text-amber-400">Session: {session}</span>
@@ -387,6 +389,7 @@ function FilterDrawer({ open, onClose, session, setSession, onShow, loading, err
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function AllStudentStrength() {
+  const schoolInfo = useSchoolInfo()
   const { data: studentData } = useStudents()
   const sessionOptions = studentData?.sessions?.map(item => item.session).filter(Boolean) || []
   const [session,    setSession]    = useState('')
@@ -421,14 +424,13 @@ export default function AllStudentStrength() {
     setErrors({}); setShown(false); setShownSession('')
   }
 
-  // ── Excel Export placeholder ──────────────────────────────────────────────
+  // Export the currently loaded live report rows.
   const handleExcel = () => {
     if (rows.length === 0) { showToast('No data to export. Show report first.', 'error'); return }
     setExporting(true)
-    setTimeout(() => {
-      setExporting(false)
-      showToast('Excel export ready! (API integration pending)')
-    }, 1200)
+    const ok = downloadCsv(`student-strength-${shownSession || 'report'}.csv`, rows)
+    setExporting(false)
+    showToast(ok ? 'Excel export downloaded!' : 'No data to export.', ok ? 'success' : 'error')
   }
 
   // ── Search filter ─────────────────────────────────────────────────────────
@@ -573,7 +575,7 @@ export default function AllStudentStrength() {
       {hasResults && !loading && (
         <>
           {/* School Header */}
-          <SchoolHeader session={shownSession} />
+          <SchoolHeader session={shownSession} schoolInfo={schoolInfo} />
 
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

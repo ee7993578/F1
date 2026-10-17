@@ -36,6 +36,7 @@ public class StudentMutationRepository {
         add(regSet, regArgs, "religion", request.religion());
         add(regSet, regArgs, "status", request.status());
         add(regSet, regArgs, "session", request.session());
+        add(regSet, regArgs, "Admission_date", request.admissionDate());
         if (!regSet.isEmpty()) {
             regArgs.add(uid); regArgs.add(schoolId);
             jdbc.update("UPDATE student_reg SET " + String.join(", ", regSet) + " WHERE uid=? AND school_id=?", regArgs.toArray());
@@ -59,6 +60,23 @@ public class StudentMutationRepository {
         add(otherSet, otherArgs, "Mobile", request.mobile());
         add(otherSet, otherArgs, "student_aadhar", request.studentAadhar());
         add(otherSet, otherArgs, "Religion", request.religion());
+        add(otherSet, otherArgs, "student_E_mail", request.email());
+        add(otherSet, otherArgs, "F_Ocp_Code", request.fatherOccupation());
+        add(otherSet, otherArgs, "M_Ocp_Code", request.motherOccupation());
+        add(otherSet, otherArgs, "F_whats_no", request.fatherWhatsapp());
+        add(otherSet, otherArgs, "M_whats_no", request.motherWhatsapp());
+        add(otherSet, otherArgs, "District_id", request.cityId());
+        add(otherSet, otherArgs, "State_id", request.stateId());
+        add(otherSet, otherArgs, "PEN_No", request.penNo());
+        add(otherSet, otherArgs, "APAAR_ID", request.apaarId());
+        add(otherSet, otherArgs, "UDISE", request.udise());
+        add(otherSet, otherArgs, "att_date", request.attendanceDate());
+        add(otherSet, otherArgs, "TransferCertificate", request.transferCertificate());
+        add(otherSet, otherArgs, "BirthCertificate", request.birthCertificate());
+        add(otherSet, otherArgs, "Marksheet", request.marksheet());
+        add(otherSet, otherArgs, "Migration", request.migration());
+        add(otherSet, otherArgs, "Aadhar_Card", request.aadharCard());
+        add(otherSet, otherArgs, "Cast_Certificate", request.castCertificate());
         if (!otherSet.isEmpty()) {
             otherArgs.add(uid); otherArgs.add(schoolId);
             jdbc.update("UPDATE student_other_info SET " + String.join(", ", otherSet) + " WHERE uid=? AND school_id=?", otherArgs.toArray());
@@ -69,12 +87,15 @@ public class StudentMutationRepository {
         add(masterSet, masterArgs, "registration_no", request.registrationNo());
         add(masterSet, masterArgs, "status", request.status());
         add(masterSet, masterArgs, "session", request.session());
+        add(masterSet, masterArgs, "RollNo", request.rollNo());
+        add(masterSet, masterArgs, "FeeBookNo", request.feeBookNo());
         if (request.status() != null) {
             masterSet.add("Withdrawn_date=CASE WHEN ? <> 'Registered' THEN GETDATE() ELSE NULL END");
             masterArgs.add(request.status().trim());
         }
         add(masterSet, masterArgs, "Withdrawn_reason", request.remark());
         if (request.sectionId() != null) { masterSet.add("sec_id=?"); masterArgs.add(request.sectionId()); }
+        if (request.houseId() != null && !request.houseId().isBlank()) { masterSet.add("House_id=?"); masterArgs.add(request.houseId()); }
         if (request.className() != null && !request.className().isBlank()) {
             Integer classId = findClassId(schoolId, request.className());
             if (classId != null) { masterSet.add("class_id=?"); masterArgs.add(classId); }

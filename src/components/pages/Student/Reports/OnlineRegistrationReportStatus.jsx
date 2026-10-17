@@ -19,6 +19,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { studentApi as api, normalizeOnlineRegistration } from '../../../../lib/studentApi'
 import {
   Filter, RefreshCw, Eye, X, Check, Loader2, ChevronDown,
   FileSpreadsheet, SlidersHorizontal, Search, Info,
@@ -462,7 +463,7 @@ function FilterDrawer({ open, onClose, filters, setFilters, onShow, loading, ses
 
 // ─── MOBILE ROW CARD ──────────────────────────────────────────────────────────
 
-function MobileCard({ row, idx, onAccept, onReject }) {
+function MobileCard({ row, idx, onAccept, onReject, onDownload }) {
   const [expanded, setExpanded] = useState(false)
   const { fg, bg } = classColor(row.class)
   return (
@@ -536,7 +537,7 @@ function MobileCard({ row, idx, onAccept, onReject }) {
 
           {/* Action buttons */}
           <div className="flex gap-2 pt-1">
-            <button onClick={() => window.alert(`Download form: ${row.registrationNO}`)}
+            <button onClick={() => onDownload(row)}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-semibold
                 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 transition-colors">
               <Download className="w-3.5 h-3.5" /> Form
@@ -610,10 +611,44 @@ export default function OnlineRegistrationReportStatus() {
     setTimeout(() => setToast(null), 3500)
   }
 
+  const handleDownload = async (row) => {
+    try {
+      const detail = await api(`/admission/registrations/${row.id}/${encodeURIComponent(row.form_no || row.registrationNO)}?session=${encodeURIComponent(filters.session)}`)
+      const fields = detail?.fields || {}
+      const esc = value => String(value ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      const body = Object.entries(fields)
+        .map(([key, value]) => `<tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold">${esc(key)}</td><td style="border:1px solid #999;padding:4px 8px">${esc(value)}</td></tr>`)
+        .join('')
+      const blob = new Blob([`<html><head><meta charset="utf-8"><title>Registration ${esc(row.registrationNO)}</title></head><body><h2>Registration Form: ${esc(row.registrationNO)}</h2><table cellspacing="0">${body}</table></body></html>`], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `RegistrationForm_${row.registrationNO || row.id}.html`
+      link.click()
+      URL.revokeObjectURL(url)
+      showToast(`Form for ${row.Name || row.registrationNO} downloaded.`)
+    } catch (error) {
+      showToast(error.message || 'Download failed', 'error')
+    }
+  }
+
   // ── Show (mirrors onlineStudentRegistrationLog grid bind) ───────────────────
   const handleShow = useCallback(() => {
     setLoading(true); setSearch('')
-    fetchStudentReport('registration', { session: filters.session }).then(data => { const result = filters.cls && filters.cls !== 'All Classes' ? data.filter(r => r.className === filters.cls || r.class_name === filters.cls) : data; setRows(result); setShown(true); showToast('Loaded ' + result.length + ' registration record(s).') }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
+    fetchStudentReport('registration', { session: filters.session }).then(data => {
+      const normalized = data.map(normalizeOnlineRegistration)
+      const month = filters.month ? MONTHS.indexOf(filters.month) + 1 : 0
+      const result = normalized.filter(row => {
+        const date = new Date(row.applicationDate)
+        const matchesClass = !filters.cls || filters.cls === 'All Classes' || row.class === filters.cls
+        const matchesApp = !filters.appStatus || row.formStatus === filters.appStatus
+        const matchesPay = !filters.payStatus || row.paymentStatus === filters.payStatus
+        const matchesMonth = !month || (Number.isNaN(date.getTime()) ? false : date.getMonth() + 1 === month)
+        const matchesType = !filters.studentType || row.studentType.toLowerCase() === filters.studentType.toLowerCase()
+        return matchesClass && matchesApp && matchesPay && matchesMonth && matchesType
+      })
+      setRows(result); setShown(true); showToast('Loaded ' + result.length + ' registration record(s).')
+    }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
   }, [filters])
 
   const handleReset = () => {
@@ -748,7 +783,7 @@ export default function OnlineRegistrationReportStatus() {
         )
       case 'form':
         return (
-          <button onClick={() => window.alert(`Download form: ${row.registrationNO}`)}
+            <button onClick={() => handleDownload(row)}
             className="flex items-center gap-1 text-[12px] font-semibold text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap">
             <Download className="w-3.5 h-3.5" />Download
           </button>
@@ -999,7 +1034,7 @@ export default function OnlineRegistrationReportStatus() {
                   Tap a card to expand details and take actions.
                 </p>
                 {filtered.map((row, i) => (
-                  <MobileCard key={row.id} row={row} idx={i} onAccept={handleAccept} onReject={handleReject} />
+                  <MobileCard key={row.id} row={row} idx={i} onAccept={handleAccept} onReject={handleReject} onDownload={handleDownload} />
                 ))}
               </>
             )}

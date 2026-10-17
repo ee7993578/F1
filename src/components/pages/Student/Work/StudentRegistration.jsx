@@ -4,36 +4,14 @@ import { apiFetch } from '../../../../lib/api'
 import { ChevronDown, Upload, Camera, AlertCircle, Save, Printer, X, Check, GraduationCap, User, Users, CreditCard, Heart, FileText, Building2, Sparkles } from 'lucide-react'
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
-const CLASSES     = ['Nursery','LKG','UKG','Class I','Class II','Class III','Class IV','Class V','Class VI','Class VII','Class VIII','Class IX','Class X','Class XI','Class XII']
-const SESSIONS    = ['2024-25','2025-26','2026-27']
-const STUD_TYPES  = ['Regular','New Admission','Transfer','RTE']
-const MOP         = ['Cash','Cheque','Online','DD']
-const BLOOD       = ['A+','A-','B+','B-','AB+','AB-','O+','O-']
-const RELIGIONS   = ['Hindu','Muslim','Christian','Sikh','Jain','Buddhist','Other']
-const CATEGORIES  = ['General','OBC','SC','ST','EWS']
-const QUOTAS      = ['None','Sports','NCC','Management','Staff Ward','RTE']
-const OCCUPATIONS = ['Business','Service','Farming','Doctor','Engineer','Lawyer','Teacher','Other']
-const STATES      = ['Uttar Pradesh','Delhi','Maharashtra','Bihar','Rajasthan','Madhya Pradesh','Gujarat','Punjab','Haryana','Uttarakhand']
-const CITIES      = {
-  'Uttar Pradesh': ['Meerut','Lucknow','Agra','Varanasi','Kanpur','Prayagraj','Noida','Ghaziabad'],
-  'Delhi':         ['New Delhi','Dwarka','Rohini','Pitampura'],
-  'Maharashtra':   ['Mumbai','Pune','Nagpur','Nashik'],
-  'Bihar':         ['Patna','Gaya','Muzaffarpur'],
-  'Rajasthan':     ['Jaipur','Jodhpur','Udaipur'],
-  'Madhya Pradesh':['Bhopal','Indore','Gwalior'],
-  'Gujarat':       ['Ahmedabad','Surat','Vadodara'],
-  'Punjab':        ['Amritsar','Ludhiana','Chandigarh'],
-  'Haryana':       ['Gurugram','Faridabad','Hisar'],
-  'Uttarakhand':   ['Dehradun','Haridwar','Nainital'],
-}
-const BANKS       = ['SBI','HDFC Bank','ICICI Bank','PNB','Bank of Baroda','Axis Bank','Canara Bank','Union Bank']
+// Classes and sessions are read from the configured school database below.
+const STUD_TYPES = []; const MOP = []; const BLOOD = []; const RELIGIONS = []; const CATEGORIES = []; const QUOTAS = []; const OCCUPATIONS = []; const STATES = []; const CITIES = {}; const BANKS = []
 const AFFILIATIONS= ['CBSE','ICSE','U.P. BOARD','Other']
 const GROUPS      = ['Alaabhit Samooh','Durbal Varg']
-const PREV_CLASSES= ['Nursery','LKG','UKG','Class I','Class II','Class III','Class IV','Class V','Class VI','Class VII','Class VIII','Class IX','Class X','Class XI','Class XII']
 const DOCUMENTS   = ['Transfer Certificate','Birth Certificate','Marksheet','Migration Certificate','Aadhar Card','Caste Certificate']
 const MONTHS      = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DAYS        = Array.from({ length: 31 }, (_, i) => i + 1)
-const YEARS       = Array.from({ length: 30 }, (_, i) => 2015 - i)
+const YEARS       = []
 
 // ─── FIELD WRAPPER ────────────────────────────────────────────────────────────
 function Field({ label, required, error, children }) {
@@ -82,9 +60,30 @@ function NativeSelect({ className = '', children, ...props }) {
 }
 
 // ─── IMAGE UPLOADER ───────────────────────────────────────────────────────────
-function ImageUploader({ label }) {
+function ImageUploader({ label, value, onChange }) {
   const [preview, setPreview] = useState(null)
   const ref = useRef()
+  useEffect(() => { setPreview(value || null) }, [value])
+  const handleFile = file => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = event => {
+      const image = new Image()
+      image.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = 150; canvas.height = 150
+        const context = canvas.getContext('2d')
+        context.clearRect(0, 0, 150, 150)
+        const scale = Math.max(150 / image.width, 150 / image.height)
+        const width = image.width * scale; const height = image.height * scale
+        context.drawImage(image, (150 - width) / 2, (150 - height) / 2, width, height)
+        const data = canvas.toDataURL('image/jpeg', 0.82)
+        setPreview(data); onChange?.(data)
+      }
+      image.src = event.target.result
+    }
+    reader.readAsDataURL(file)
+  }
   return (
     <div className="flex flex-col items-center gap-2 p-4 border-2 border-dashed rounded-xl transition-colors
       border-slate-200 dark:border-[rgba(99,102,241,0.2)]
@@ -105,10 +104,7 @@ function ImageUploader({ label }) {
           dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20">
         <Upload className="w-3 h-3" /> Upload
       </button>
-      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={e => {
-        const f = e.target.files[0]
-        if (f) setPreview(URL.createObjectURL(f))
-      }} />
+      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={e => handleFile(e.target.files[0])} />
     </div>
   )
 }
@@ -203,21 +199,40 @@ function CollapsibleCard({ icon: Icon, title, badge, accent = 'blue', open, onTo
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function StudentRegistration({ title = 'Student Registration' }) {
   const { data: studentData } = useStudents()
+  const [registrationOptions, setRegistrationOptions] = useState({ mops: [], quota: [], blood: [], categories: [], religions: [], types: [], states: [], cities: [], banks: [], occupations: [], dobYears: [], registrationDefaults: [] })
+  useEffect(() => {
+    apiFetch('/students/registration-options').then(next => {
+      setRegistrationOptions(next)
+      const defaults = next.registrationDefaults?.[0] || {}
+      const state = (next.states || []).find(item => String(item.id) === String(defaults.selectState))
+      setForm(previous => ({
+        ...previous,
+        formNo: next.nextFormNo ? String(next.nextFormNo) : previous.formNo,
+        studType: ['1', '2'].includes(String(defaults.schoolType)) ? String(defaults.schoolType) : previous.studType,
+        mop: previous.mop || '',
+        regFee: previous.regFee || '',
+        quota: previous.quota || '',
+        state: state?.name || previous.state,
+        city: defaults.selectCity ? String(defaults.selectCity) : previous.city,
+      }))
+    }).catch(() => {})
+  }, [])
   const liveClasses = studentData?.classes?.map(c => c.className).filter(Boolean) || []
   const liveSessions = studentData?.sessions?.map(s => s.session).filter(Boolean) || []
   const [form, setForm] = useState({
-    formNo: '', class_: '', session: '', studType: 'Regular',
-    mop: 'Cash', regFee: '500', regDate: new Date().toISOString().split('T')[0],
+    formNo: '', class_: '', session: '', studType: '1',
+    mop: '', regFee: '', regDate: new Date().toISOString().split('T')[0],
     firstName: '', middleName: '', lastName: '',
     dobDay: '', dobMonth: '', dobYear: '',
-    gender: 'Male', blood: '', religion: '', category: '', quota: 'None', ncc: '0',
-    address: '', state: 'Uttar Pradesh', city: '', pin: '', aadhar: '', group: '',
+    gender: 'Male', blood: '', religion: '', category: '', quota: '', ncc: '0',
+    address: '', state: '', city: '', pin: '', aadhar: '', group: '',
     fName: '', fQual: '', fOcc: '', fMobile: '', fEmail: '', fAadhar: '', fIncome: '', fWa: '',
     mName: '', mQual: '', mOcc: '', mMobile: '', mEmail: '', mAadhar: '', mIncome: '', mWa: '',
     accHolder: '', bank: '', branch: '', accType: '', accNo: '', ifsc: '',
     sibAdm: '', sibName: '', sibClass: '', sibSection: '',
     docs: [],
     prevSchool: '', affiliation: '', udise: '', pen: '', apaar: '', remark: '', prevClass: [],
+    studentImage: '', fatherImage: '', motherImage: '',
   })
 
   const [errors, setErrors]                   = useState({})
@@ -244,7 +259,9 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
     if (!form.class_)           e.class_    = 'Required'
     if (!form.firstName.trim()) e.firstName = 'Required'
     if (!form.regDate)          e.regDate   = 'Required'
-    if (!form.regFee.trim())    e.regFee    = 'Required'
+    const registrationMopRequired = String(registrationOptions.registrationDefaults?.[0]?.registrationMop ?? '0') === '1'
+    if (registrationMopRequired && !form.mop) e.mop = 'Required'
+    if (registrationMopRequired && !form.regFee.trim()) e.regFee = 'Required'
     if (form.fEmail  && !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(form.fEmail))  e.fEmail  = 'Invalid email'
     if (form.mEmail  && !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(form.mEmail))  e.mEmail  = 'Invalid email'
     if (form.fMobile && !/^\d{10}$/.test(form.fMobile)) e.fMobile = '10 digits only'
@@ -263,10 +280,19 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
     e.preventDefault()
     if (!validate()) return
     try {
-      const { class_: className, sibName: _sibName, docs: _docs, prevClass: _prevClass, ...payload } = form
+      const { class_: className, sibName: _sibName, docs, prevClass, ...payload } = form
+      const documentPayload = {
+        previousClass: prevClass.join(','),
+        transferCertificate: docs.includes('Transfer Certificate') ? 'Yes' : 'No',
+        birthCertificate: docs.includes('Birth Certificate') ? 'Yes' : 'No',
+        marksheet: docs.includes('Marksheet') ? 'Yes' : 'No',
+        migration: docs.includes('Migration Certificate') ? 'Yes' : 'No',
+        aadharCard: docs.includes('Aadhar Card') ? 'Yes' : 'No',
+        castCertificate: docs.includes('Caste Certificate') ? 'Yes' : 'No',
+      }
       const result = await apiFetch('/students/registration', {
         method: 'POST',
-        body: JSON.stringify({ ...payload, className }),
+        body: JSON.stringify({ ...payload, ...documentPayload, className }),
       })
       setForm(previous => ({ ...previous, formNo: result.registrationNo || previous.formNo }))
       setErrors({})
@@ -276,7 +302,27 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
     }
   }
 
-  const cities = CITIES[form.state] || []
+  const typeOptions = registrationOptions.types || []
+  const mopOptions = registrationOptions.mops || []
+  const bloodOptions = registrationOptions.blood || []
+  const religionOptions = registrationOptions.religions || []
+  const categoryOptions = registrationOptions.categories || []
+  const quotaOptions = registrationOptions.quota || []
+  const stateOptions = registrationOptions.states || []
+  const occupationOptions = registrationOptions.occupations || []
+  const bankOptions = registrationOptions.banks || []
+  const showGroup = String(registrationOptions.schoolId || '').toLowerCase() === 'shps_sw'
+  const cities = registrationOptions.cities?.filter(city => {
+    const state = stateOptions.find(item => item.name === form.state || String(item.id) === String(form.state))
+    return !state || String(city.stateId) === String(state.id)
+  }) || []
+  const dobYears = registrationOptions.dobYears?.map(item => item.year) || []
+  const dobDays = form.dobYear && form.dobMonth
+    ? Array.from({ length: new Date(Number(form.dobYear), Number(form.dobMonth), 0).getDate() }, (_, index) => index + 1)
+    : []
+  useEffect(() => {
+    if (form.dobDay && dobDays.length && Number(form.dobDay) > dobDays.length) setV('dobDay', '')
+  }, [form.dobDay, dobDays.length])
 
   // ── Success Screen ──────────────────────────────────────────────────────────
   if (submitted) {
@@ -294,7 +340,7 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
           <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-0.5">{form.class_} · Session {form.session}</p>
         </div>
         <div className="flex gap-3 flex-wrap justify-center">
-          <button type="button"
+          <button type="button" onClick={() => window.print()}
             className="flex items-center gap-2 px-5 py-2 text-[13px] font-semibold rounded-xl transition-colors
               bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
             <Printer className="w-4 h-4" /> Print Form
@@ -344,15 +390,16 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
             </Field>
             <Field label="Student Type">
               <NativeSelect value={form.studType} onChange={set('studType')}>
-                {STUD_TYPES.map(t => <option key={t}>{t}</option>)}
+                {typeOptions.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </NativeSelect>
             </Field>
-            <Field label="MOP" required>
+            <Field label="MOP" required={String(registrationOptions.registrationDefaults?.[0]?.registrationMop ?? '0') === '1'} error={errors.mop}>
               <NativeSelect value={form.mop} onChange={set('mop')}>
-                {MOP.map(m => <option key={m}>{m}</option>)}
+                <option value="">-- Select --</option>
+                {mopOptions.map(m => <option key={m.name}>{m.name}</option>)}
               </NativeSelect>
             </Field>
-            <Field label="Reg. Fee" required error={errors.regFee}>
+            <Field label="Reg. Fee" required={String(registrationOptions.registrationDefaults?.[0]?.registrationMop ?? '0') === '1'} error={errors.regFee}>
               <Input value={form.regFee} onChange={e => setV('regFee', e.target.value.replace(/[^0-9.]/g,''))} placeholder="500" error={errors.regFee} />
             </Field>
             <Field label="Reg. Date" required error={errors.regDate}>
@@ -384,7 +431,7 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
                   <div className="flex gap-2">
                     <NativeSelect value={form.dobDay}   onChange={set('dobDay')}   className="flex-1">
                       <option value="">Day</option>
-                      {DAYS.map(d => <option key={d}>{d}</option>)}
+                      {dobDays.map(d => <option key={d}>{d}</option>)}
                     </NativeSelect>
                     <NativeSelect value={form.dobMonth} onChange={set('dobMonth')} className="flex-1">
                       <option value="">Month</option>
@@ -392,7 +439,7 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
                     </NativeSelect>
                     <NativeSelect value={form.dobYear}  onChange={set('dobYear')}  className="flex-1">
                       <option value="">Year</option>
-                      {YEARS.map(y => <option key={y}>{y}</option>)}
+                      {dobYears.map(y => <option key={y}>{y}</option>)}
                     </NativeSelect>
                   </div>
                 </Field>
@@ -412,24 +459,24 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
               <Field label="Blood Group">
                 <NativeSelect value={form.blood} onChange={set('blood')}>
                   <option value="">-- Select --</option>
-                  {BLOOD.map(b => <option key={b}>{b}</option>)}
+                  {bloodOptions.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </NativeSelect>
               </Field>
               <Field label="Religion">
                 <NativeSelect value={form.religion} onChange={set('religion')}>
                   <option value="">-- Select --</option>
-                  {RELIGIONS.map(r => <option key={r}>{r}</option>)}
+                  {religionOptions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </NativeSelect>
               </Field>
               <Field label="Category">
                 <NativeSelect value={form.category} onChange={set('category')}>
                   <option value="">-- Select --</option>
-                  {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  {categoryOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </NativeSelect>
               </Field>
               <Field label="Quota">
                 <NativeSelect value={form.quota} onChange={set('quota')}>
-                  {QUOTAS.map(q => <option key={q}>{q}</option>)}
+                  {quotaOptions.map(q => <option key={q.id} value={q.id}>{q.name}</option>)}
                 </NativeSelect>
               </Field>
               <Field label="NCC">
@@ -438,12 +485,12 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
                   <option value="1">Yes</option>
                 </NativeSelect>
               </Field>
-              <Field label="Group">
+              {showGroup && <Field label="Group">
                 <NativeSelect value={form.group} onChange={set('group')}>
                   <option value="">-- Select --</option>
                   {GROUPS.map(g => <option key={g}>{g}</option>)}
                 </NativeSelect>
-              </Field>
+              </Field>}
             </div>
 
             <SectionDivider label="Address" />
@@ -457,13 +504,13 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
               </div>
               <Field label="State">
                 <NativeSelect value={form.state} onChange={e => { setV('state', e.target.value); setV('city','') }}>
-                  {STATES.map(s => <option key={s}>{s}</option>)}
+                  {stateOptions.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </NativeSelect>
               </Field>
               <Field label="City">
                 <NativeSelect value={form.city} onChange={set('city')}>
                   <option value="">-- Select --</option>
-                  {cities.map(c => <option key={c}>{c}</option>)}
+                  {cities.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </NativeSelect>
               </Field>
               <Field label="PIN Code" error={errors.pin}>
@@ -479,9 +526,9 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
 
             <SectionDivider label="Photo Upload" />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <ImageUploader label="Student Photo" />
-              <ImageUploader label="Father Photo" />
-              <ImageUploader label="Mother Photo" />
+              <ImageUploader label="Student Photo" value={form.studentImage} onChange={value => setV('studentImage', value)} />
+              <ImageUploader label="Father Photo" value={form.fatherImage} onChange={value => setV('fatherImage', value)} />
+              <ImageUploader label="Mother Photo" value={form.motherImage} onChange={value => setV('motherImage', value)} />
             </div>
           </div>
         </CollapsibleCard>
@@ -492,7 +539,7 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
             <ParentSection title="Father's Detail" accent="blue" fields={<>
               <Field label="Name"><Input value={form.fName} onChange={e => setV('fName', e.target.value.replace(/[^a-zA-Z .]/g,''))} placeholder="Father's full name" /></Field>
               <Field label="Qualification"><Input value={form.fQual} onChange={set('fQual')} placeholder="e.g. B.Tech" /></Field>
-              <Field label="Occupation"><NativeSelect value={form.fOcc} onChange={set('fOcc')}><option value="">-- Select --</option>{OCCUPATIONS.map(o=><option key={o}>{o}</option>)}</NativeSelect></Field>
+              <Field label="Occupation"><NativeSelect value={form.fOcc} onChange={set('fOcc')}><option value="">-- Select --</option>{occupationOptions.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</NativeSelect></Field>
               <Field label="Mobile No." error={errors.fMobile}><Input value={form.fMobile} onChange={e=>setV('fMobile',e.target.value.replace(/\D/g,''))} placeholder="10-digit" maxLength={10} error={errors.fMobile}/></Field>
               <Field label="Email Id" error={errors.fEmail}><Input type="email" value={form.fEmail} onChange={set('fEmail')} placeholder="father@email.com" error={errors.fEmail}/></Field>
               <Field label="Aadhar No." error={errors.fAadhar}><Input value={form.fAadhar} onChange={e=>setV('fAadhar',e.target.value.replace(/\D/g,''))} placeholder="12-digit" maxLength={12} error={errors.fAadhar}/></Field>
@@ -502,7 +549,7 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
             <ParentSection title="Mother's Detail" accent="pink" fields={<>
               <Field label="Name"><Input value={form.mName} onChange={e=>setV('mName',e.target.value.replace(/[^a-zA-Z .]/g,''))} placeholder="Mother's full name"/></Field>
               <Field label="Qualification"><Input value={form.mQual} onChange={set('mQual')} placeholder="e.g. M.A."/></Field>
-              <Field label="Occupation"><NativeSelect value={form.mOcc} onChange={set('mOcc')}><option value="">-- Select --</option>{OCCUPATIONS.map(o=><option key={o}>{o}</option>)}</NativeSelect></Field>
+              <Field label="Occupation"><NativeSelect value={form.mOcc} onChange={set('mOcc')}><option value="">-- Select --</option>{occupationOptions.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</NativeSelect></Field>
               <Field label="Mobile No." error={errors.mMobile}><Input value={form.mMobile} onChange={e=>setV('mMobile',e.target.value.replace(/\D/g,''))} placeholder="10-digit" maxLength={10} error={errors.mMobile}/></Field>
               <Field label="Email Id" error={errors.mEmail}><Input type="email" value={form.mEmail} onChange={set('mEmail')} placeholder="mother@email.com" error={errors.mEmail}/></Field>
               <Field label="Aadhar No." error={errors.mAadhar}><Input value={form.mAadhar} onChange={e=>setV('mAadhar',e.target.value.replace(/\D/g,''))} placeholder="12-digit" maxLength={12} error={errors.mAadhar}/></Field>
@@ -516,7 +563,7 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
         <CollapsibleCard icon={CreditCard} title="Parents Bank Account Detail" badge="Scholarship / refund account" accent="emerald" open={openSection === 4} onToggle={() => toggle(4)}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Field label="Account Holder Name"><Input value={form.accHolder} onChange={e=>setV('accHolder',e.target.value.replace(/[^a-zA-Z .]/g,''))} placeholder="As per bank records"/></Field>
-            <Field label="Bank Name"><NativeSelect value={form.bank} onChange={set('bank')}><option value="">-- Select --</option>{BANKS.map(b=><option key={b}>{b}</option>)}</NativeSelect></Field>
+            <Field label="Bank Name"><NativeSelect value={form.bank} onChange={set('bank')}><option value="">-- Select --</option>{bankOptions.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</NativeSelect></Field>
             <Field label="Branch"><Input value={form.branch} onChange={set('branch')} placeholder="Branch name"/></Field>
             <Field label="Account Type"><NativeSelect value={form.accType} onChange={set('accType')}><option value="">-- Select --</option><option>Saving</option><option>Current</option></NativeSelect></Field>
             <Field label="Account No."><Input value={form.accNo} onChange={e=>setV('accNo',e.target.value.replace(/\D/g,''))} placeholder="Account number"/></Field>
@@ -591,7 +638,7 @@ export default function StudentRegistration({ title = 'Student Registration' }) 
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {PREV_CLASSES.map(cls => (
+                      {liveClasses.map(cls => (
                         <button key={cls} type="button" onClick={() => togglePC(cls)}
                           className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all
                             ${form.prevClass.includes(cls)

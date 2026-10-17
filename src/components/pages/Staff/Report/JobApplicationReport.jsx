@@ -11,7 +11,7 @@
  * Mobile: Smart card layout with expandable details + bottom-drawer filters
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   Filter, RefreshCw, Eye, AlertCircle, X, Check, Loader2,
   ChevronDown, ChevronRight, SlidersHorizontal, Search,
@@ -21,6 +21,7 @@ import {
   TrendingUp, BarChart3, Info, CheckCircle, Clock,
   GraduationCap, Users, ChevronUp, MoreHorizontal
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
 
@@ -517,8 +518,7 @@ function DesktopRow({ row, idx }) {
 
 // ─── FILTER DRAWER (Mobile) ───────────────────────────────────────────────────
 
-function FilterDrawer({ open, onClose, appliedPost, setAppliedPost, subject, setSubject, month, setMonth, onShow, onReset, loading, errors }) {
-  const subjects = SUBJECTS_BY_POST[appliedPost] || []
+function FilterDrawer({ open, onClose, appliedPost, setAppliedPost, subject, setSubject, month, setMonth, onShow, onReset, loading, errors, posts, subjects, months }) {
 
   if (!open) return null
   return (
@@ -544,7 +544,7 @@ function FilterDrawer({ open, onClose, appliedPost, setAppliedPost, subject, set
         <div className="px-5 py-5 space-y-4">
           <Field label="Applied Post">
             <NativeSelect value={appliedPost} onChange={e => { setAppliedPost(e.target.value); setSubject('') }} placeholder="-- Select All --">
-              {APPLIED_POSTS.map(p => <option key={p} value={p}>{p}</option>)}
+              {posts.map(p => <option key={p} value={p}>{p}</option>)}
             </NativeSelect>
           </Field>
           <Field label="Subject">
@@ -554,7 +554,7 @@ function FilterDrawer({ open, onClose, appliedPost, setAppliedPost, subject, set
           </Field>
           <Field label="Month">
             <NativeSelect value={month} onChange={e => setMonth(e.target.value)} placeholder="-- Select All --">
-              {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+              {months.map(m => <option key={m.value ?? m} value={m.value ?? m}>{m.label ?? m}</option>)}
             </NativeSelect>
           </Field>
         </div>
@@ -590,35 +590,43 @@ export default function JobApplicationReport() {
   const [errors,      setErrors]      = useState({})
   const [toast,       setToast]       = useState(null)
   const [shown,       setShown]       = useState(false)
+  const [options,     setOptions]     = useState({ posts: [], subjects: [], months: [] })
 
-  const subjects = SUBJECTS_BY_POST[appliedPost] || []
+  const subjects = options.subjects || []
+  const posts = options.posts || []
+  const months = options.months || []
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
   }
 
+  useEffect(() => {
+    apiFetch(`/staff/job-options${appliedPost ? `?appliedPost=${encodeURIComponent(appliedPost)}` : ''}`)
+      .then(data => setOptions({ posts: (data.posts || []).map(x => x.value ?? x), subjects: (data.subjects || []).map(x => x.value ?? x), months: data.months || [] }))
+      .catch(error => showToast(error.message || 'Unable to load job application options.', 'error'))
+  }, [appliedPost])
+
   // ── Show Report ────────────────────────────────────────────────────────────
-  const handleShow = useCallback(() => {
+  const handleShow = useCallback(async () => {
     setErrors({})
     setLoading(true)
     setSearch('')
 
-    setTimeout(() => {
-      let data = [...DUMMY_DATA]
-
-      if (appliedPost) data = data.filter(r => r.AppliedPost === appliedPost)
-      if (subject)     data = data.filter(r => r.Department === subject)
-      if (month)       data = data.filter(r => {
-        const m = getMonthFromDate(r.DateOfApplication)
-        return MONTH_MAP[m] === month
-      })
-
-      setRows(data)
-      setShown(true)
-      setLoading(false)
+    try {
+      const query = new URLSearchParams()
+      if (appliedPost) query.set('appliedPost', appliedPost)
+      if (subject) query.set('subject', subject)
+      if (month) query.set('month', month)
+      query.set('status', 'Complete')
+      const response = await apiFetch(`/staff/job-applications?${query.toString()}`)
+      const data = Array.isArray(response) ? response : (response.rows || response.data || [])
+      setRows(data); setShown(true); setLoading(false)
       showToast(`Found ${data.length} application${data.length !== 1 ? 's' : ''}.`)
-    }, 700)
+    } catch (error) {
+      setRows([]); setShown(false); setLoading(false)
+      showToast(error.message || 'Unable to load job applications.', 'error')
+    }
   }, [appliedPost, subject, month])
 
   const handleReset = () => {
@@ -630,7 +638,11 @@ export default function JobApplicationReport() {
   const handleExcel = () => {
     if (rows.length === 0) { showToast('No data to export. Show report first.', 'error'); return }
     setExporting(true)
-    setTimeout(() => { setExporting(false); showToast('Excel export ready! (API integration pending)') }, 1200)
+    const cols = ['registrationno','FullName','MobileNumber','Email','City','State','AppliedPost','Department','ApplicationStatus','DateOfApplication','FeePaymentDate','settlementDate','RegistrationFees','orderId','FeeTransactionID']
+    const csv = [cols.join(','), ...rows.map(row => cols.map(c => `"${String(row[c] ?? '').replaceAll('"', '""')}"`).join(','))].join('\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const link = document.createElement('a'); link.href = url; link.download = 'Job Application Report.csv'; link.click(); URL.revokeObjectURL(url)
+    setExporting(false); showToast('Job Application Report downloaded successfully!')
   }
 
   // ── Search filter ─────────────────────────────────────────────────────────
@@ -711,7 +723,7 @@ export default function JobApplicationReport() {
             {/* Applied Post */}
             <Field label="Applied Post">
               <NativeSelect value={appliedPost} onChange={e => { setAppliedPost(e.target.value); setSubject('') }} placeholder="-- Select All --">
-                {APPLIED_POSTS.map(p => <option key={p} value={p}>{p}</option>)}
+                {posts.map(p => <option key={p} value={p}>{p}</option>)}
               </NativeSelect>
             </Field>
 
@@ -725,7 +737,7 @@ export default function JobApplicationReport() {
             {/* Month */}
             <Field label="Month">
               <NativeSelect value={month} onChange={e => setMonth(e.target.value)} placeholder="-- Select All --">
-                {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+                {months.map(m => <option key={m.value ?? m} value={m.value ?? m}>{m.label ?? m}</option>)}
               </NativeSelect>
             </Field>
 
@@ -794,6 +806,9 @@ export default function JobApplicationReport() {
         onReset={handleReset}
         loading={loading}
         errors={errors}
+        posts={posts}
+        subjects={subjects}
+        months={months}
       />
 
       {/* ── Loading Skeleton ───────────────────────────────────────────────── */}

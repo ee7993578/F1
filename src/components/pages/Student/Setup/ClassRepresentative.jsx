@@ -24,28 +24,6 @@ import {
 
 // ─── STATIC / DUMMY DATA ───────────────────────────────────────────────────────
 
-const CURRENT_SESSION = '2025-26'
-
-// Classes list (mirrors class_id + class_name from DB)
-const CLASSES = [
-  { class_id: 1,  class_name: 'Nursery'    },
-  { class_id: 2,  class_name: 'LKG'        },
-  { class_id: 3,  class_name: 'UKG'        },
-  { class_id: 4,  class_name: 'Class I'    },
-  { class_id: 5,  class_name: 'Class II'   },
-  { class_id: 6,  class_name: 'Class III'  },
-  { class_id: 7,  class_name: 'Class IV'   },
-  { class_id: 8,  class_name: 'Class V'    },
-  { class_id: 9,  class_name: 'Class VI'   },
-  { class_id: 10, class_name: 'Class VII'  },
-  { class_id: 11, class_name: 'Class VIII' },
-  { class_id: 12, class_name: 'Class IX'   },
-  { class_id: 13, class_name: 'Class X'    },
-  { class_id: 14, class_name: 'Class XI'   },
-  { class_id: 15, class_name: 'Class XII'  },
-]
-
-// Students per class (simulate API response per class_id)
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 const CLASS_COLORS = [
@@ -275,7 +253,7 @@ export default function ClassRepresentative() {
     if (key) (acc[key] ||= []).push({ id: student.studentId ?? student.id, name: student.name })
     return acc
   }, {}), [studentData])
-  const currentSession = studentData?.sessions?.[0]?.session || '—'
+  const currentSession = studentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || studentData?.sessions?.[0]?.session || '—'
   useEffect(() => { if (currentSession && currentSession !== '—') apiFetch('/student-settings/class-representatives?session=' + encodeURIComponent(currentSession)).then(data => { setRepData(data); setReps(Object.fromEntries((data.classes || []).filter(row => row.representativeId != null).map(row => [row.classId, String(row.representativeId)]))) }).catch(error => showToast(error.message || 'Unable to load representatives', 'error')) }, [currentSession])
   const [reps, setReps] = useState({})
 
@@ -380,7 +358,7 @@ export default function ClassRepresentative() {
             <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200">
               Class Representative Assignment
             </span>
-            <span className="text-[13px] text-slate-400 dark:text-slate-500">· {CURRENT_SESSION}</span>
+            <span className="text-[13px] text-slate-400 dark:text-slate-500">· {currentSession}</span>
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400 flex-shrink-0">
               {totalClasses} classes
             </span>

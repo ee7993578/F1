@@ -4,7 +4,7 @@
  * Dependencies: lucide-react (already in project)
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useStudents, fetchStudentReport } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
 import {
@@ -15,15 +15,6 @@ import {
 } from 'lucide-react'
 
 // ─── STATIC DATA (replace with API calls) ────────────────────────────────────
-const SESSIONS = ['2023-24', '2024-25', '2025-26']
-
-const CLASSES = [
-  'Nursery', 'LKG', 'UKG',
-  'Class I', 'Class II', 'Class III', 'Class IV', 'Class V',
-  'Class VI', 'Class VII', 'Class VIII', 'Class IX', 'Class X',
-  'Class XI', 'Class XII',
-]
-
 // ─── AVATAR COLOR ─────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
   ['#1d4ed8','#dbeafe'], ['#7c3aed','#ede9fe'], ['#0891b2','#cffafe'],
@@ -152,7 +143,7 @@ function StatusToggle({ value, onChange }) {
 }
 
 // ─── MOBILE FILTER DRAWER ─────────────────────────────────────────────────────
-function FilterDrawer({ open, onClose, session, setSession, cls, setCls, regNo, setRegNo, stuName, setStuName, onShow, loading, errors }) {
+function FilterDrawer({ open, onClose, session, setSession, cls, setCls, regNo, setRegNo, stuName, setStuName, onShow, loading, errors, sessionOptions, classOptions }) {
   if (!open) return null
   return (
     <>
@@ -192,7 +183,7 @@ function FilterDrawer({ open, onClose, session, setSession, cls, setCls, regNo, 
           </Field>
           <Field label="Class" error={errors.cls}>
             <NativeSelect value={cls} onChange={e => setCls(e.target.value)} placeholder="-- All Classes --">
-              {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+              {classOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
             </NativeSelect>
           </Field>
           <Field label="Registration No.">
@@ -432,11 +423,19 @@ function MobileCard({ row, onStatusChange, onReasonChange, onDateChange, onSaveR
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function StudentWithdrawn() {
+  const { data: studentData } = useStudents()
+  const sessionOptions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
+  const classOptions = studentData?.classes?.map(row => ({ id: row.classId, name: row.className })).filter(row => row.name) || []
   // Filter state
   const [session,  setSession]  = useState('')
   const [cls,      setCls]      = useState('')
   const [regNo,    setRegNo]    = useState('')
   const [stuName,  setStuName]  = useState('')
+
+  useEffect(() => {
+    const current = studentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || sessionOptions[0] || ''
+    if (current && !session) setSession(current)
+  }, [studentData, sessionOptions, session])
 
   // Data state
   const [rows,     setRows]     = useState([])
@@ -462,7 +461,8 @@ export default function StudentWithdrawn() {
     if (!session) err.session = 'Select a session'
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch(''); setStatusTab('All')
-    fetchStudentReport('withdrawn', { session, query: regNo || stuName }).then(result => {
+    const classId = classOptions.find(item => item.name === cls)?.id
+    fetchStudentReport('withdrawn-management', { session, classId, query: regNo || stuName }).then(result => {
       const data = result.map((s, i) => ({ id: s.studentId, uid: s.uid || s.studentId, name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' '), class: s.className || '', adm: s.registrationNo || '', status: String(s.status || '').toLowerCase().includes('withdraw') ? 'Withdrawn' : 'Registered', reason: '', date: '', _idx: i + 1, _dirty: false }))
       setRows(data.filter(r => !cls || r.class === cls));
     }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
@@ -518,22 +518,6 @@ export default function StudentWithdrawn() {
       showToast(error.message || 'Withdrawal update failed', 'error')
     } finally { setSavingAll(false) }
   }
-  const handleSaveAllDisabled = () => {
-    const dirtyRows = rows.filter(r => r._dirty)
-    if (dirtyRows.length === 0) { showToast('No changes to save.', 'error'); return }
-
-    const invalid = dirtyRows.filter(r => r.status === 'Withdrawn' && !r.reason.trim())
-    if (invalid.length > 0) {
-      showToast(`Missing reason for: ${invalid.map(r => r.name).join(', ')}`, 'error'); return
-    }
-    setSavingAll(true)
-    setTimeout(() => {
-      setRows(p => p.map(r => ({ ...r, _dirty: false })))
-      setSavingAll(false)
-      showToast(`${dirtyRows.length} record${dirtyRows.length > 1 ? 's' : ''} saved successfully.`)
-    }, 900)
-  }
-
   // ── Filtered + search + tab ───────────────────────────────────────────────
   const filtered = useMemo(() => {
     let r = rows
@@ -603,12 +587,12 @@ export default function StudentWithdrawn() {
           <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             <Field label="Session" error={errors.session} required>
               <NativeSelect value={session} onChange={e => { setSession(e.target.value); setErrors(p => ({...p, session: undefined})) }} placeholder="-- Select --" error={errors.session}>
-                {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              {sessionOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </NativeSelect>
             </Field>
             <Field label="Class">
               <NativeSelect value={cls} onChange={e => setCls(e.target.value)} placeholder="-- All Classes --">
-                {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+              {classOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
               </NativeSelect>
             </Field>
             <Field label="Registration No.">
@@ -663,6 +647,7 @@ export default function StudentWithdrawn() {
         stuName={stuName} setStuName={setStuName}
         onShow={handleShow} loading={loading}
         errors={errors}
+        sessionOptions={sessionOptions} classOptions={classOptions}
       />
 
       {/* ── Results ──────────────────────────────────────────────────────── */}

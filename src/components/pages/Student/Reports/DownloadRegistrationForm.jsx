@@ -17,6 +17,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { studentApi as api } from '../../../../lib/studentApi'
 import {
   Filter, RefreshCw, Download, AlertCircle, X, Check,
   Loader2, ChevronDown, Search, SlidersHorizontal, Info,
@@ -664,7 +665,7 @@ export default function DownloadRegistrationForm() {
     return data.filter(r =>
       r.name.toLowerCase().includes(q) ||
       r.father.toLowerCase().includes(q) ||
-      r.id.toLowerCase().includes(q) ||
+      String(r.id ?? '').toLowerCase().includes(q) ||
       r.mobile.includes(q) ||
       r.class.toLowerCase().includes(q)
     )

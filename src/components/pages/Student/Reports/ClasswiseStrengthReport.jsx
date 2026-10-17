@@ -28,10 +28,12 @@ import {
 
 // Sessions/classes load live (see main component below).
 
-// Classwise aggregated dummy data (summed across all sections per class)
-const CLASS_DATA = {
-  'Nursery':    { no_of_student: 56,  no_of_boysstudent: 30, no_of_girlstudent: 26, new_students: 56,  old_students: 0  },
-  'LKG':        { no_of_student: 64,  no_of_boysstudent: 34, no_of_girlstudent: 30, new_students: 40,  old_students: 24 },
+// Classwise rows are loaded from the report API; no seeded report data is used.
+// Live API aggregation replaces the legacy seeded values below.
+const CLASS_DATA = {}
+/*
+  // live report rows are fetched below
+  // static seed removed
   'UKG':        { no_of_student: 60,  no_of_boysstudent: 32, no_of_girlstudent: 28, new_students: 28,  old_students: 32 },
   'Class I':    { no_of_student: 105, no_of_boysstudent: 57, no_of_girlstudent: 48, new_students: 36,  old_students: 69 },
   'Class II':   { no_of_student: 114, no_of_boysstudent: 60, no_of_girlstudent: 54, new_students: 24,  old_students: 90 },
@@ -48,6 +50,7 @@ const CLASS_DATA = {
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
+*/
 const CLASS_COLORS = [
   { fg: '#1d4ed8', bg: '#dbeafe' },
   { fg: '#7c3aed', bg: '#ede9fe' },

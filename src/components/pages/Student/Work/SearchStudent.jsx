@@ -9,12 +9,12 @@ import {
 } from 'lucide-react'
 
 // ─── STATIC MOCK DATA ─────────────────────────────────────────────────────────
-const SESSIONS = ['2024-25', '2025-26', '2026-27']
+/* const SESSIONS = ['2024-25', '2025-26', '2026-27']
 const CLASSES  = [
   'All Classes','Nursery','LKG','UKG',
   'Class I','Class II','Class III','Class IV','Class V',
   'Class VI','Class VII','Class VIII','Class IX','Class X','Class XI','Class XII',
-]
+ ] */
 
 // ─── PRIMITIVES ───────────────────────────────────────────────────────────────
 function Sel({ value, onChange, disabled, children, className = '' }) {
@@ -265,6 +265,11 @@ export default function SearchStudent({ title = 'Search Students' }) {
 
   const searchRef = useRef(null)
 
+  useEffect(() => {
+    const current = studentData?.sessions?.find(item => String(item.status).toLowerCase() === 'default')?.session || sessionOptions[0]
+    if (current && !session) setSession(current)
+  }, [studentData, sessionOptions, session])
+
   // ── Autocomplete suggestions ───────────────────────────────────────────────
   useEffect(() => {
     if (searchInput.length < 1) { setSuggestions([]); setShowSug(false); return }
@@ -291,10 +296,10 @@ export default function SearchStudent({ title = 'Search Students' }) {
     const classId = classOptions.find(c => c.name === cls)?.id
     fetchStudentSearch({ session, classId, query: nameSearch }).then(rows => {
       setResults(rows.map(s => ({
-        id: s.studentId, regNo: s.registrationNo || '', name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' '),
-        rte: 'No', status: String(s.status || '').toLowerCase() === 'registered' ? 'Active' : (s.status || 'Inactive'),
+        id: s.studentId, regNo: s.registrationNo || '', name: s.name,
+        rte: s.rte || s.quota || 'No', status: String(s.status || '').toLowerCase() === 'registered' ? 'Active' : (s.status || 'Inactive'),
         cls: [s.className, s.sectionName ? '(' + s.sectionName + ')' : ''].filter(Boolean).join(' '), session: s.session || '',
-        feeBook: s.feeBookNo || '', fatherName: s.fatherName || '', motherName: '', fatherMobile: s.mobile || s.phone || '', motherMobile: '', address: '',
+        feeBook: s.feeBookNo || '', fatherName: s.fatherName || '', motherName: s.motherName || '', fatherMobile: s.mobile || s.phone || '', motherMobile: '', address: s.address || '',
         dob: s.dob ? new Date(s.dob).toLocaleDateString('en-IN') : '', photo: s.studentImage || null,
       })))
       setTableSearch('')

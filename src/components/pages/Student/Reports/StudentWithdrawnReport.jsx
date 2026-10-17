@@ -22,6 +22,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useSessionsClasses } from '../../../../lib/useStudentReport'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { studentApi as api } from '../../../../lib/studentApi'
 import {
   Filter, RefreshCw, Eye,
   AlertCircle, X, Check, Loader2, ChevronDown,

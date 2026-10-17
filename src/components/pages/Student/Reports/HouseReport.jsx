@@ -17,6 +17,8 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { studentApi as api } from '../../../../lib/studentApi'
+import { useSchoolInfo } from '../../../../lib/useSchoolInfo'
 import {
   Filter, RefreshCw, Eye,
   AlertCircle, X, Check, Loader2, ChevronDown,
@@ -49,6 +51,14 @@ const HOUSE_ACCENT_CLASSES = {
   green:  'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20',
   yellow: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20',
 }
+
+const HOUSE_ACCENTS = ['rose', 'blue', 'green', 'yellow']
+const HOUSE_COLORS = new Proxy({}, {
+  get: (_, house) => {
+    if (!house || typeof house !== 'string') return undefined
+    return { accent: HOUSE_ACCENTS[house.charCodeAt(0) % HOUSE_ACCENTS.length] }
+  },
+})
 
 const getHouseAccent = (house) => {
   const h = HOUSE_COLORS[house]
@@ -139,19 +149,19 @@ function SummaryCard({ icon: Icon, label, value, color }) {
 }
 
 // ─── SCHOOL HEADER BANNER ─────────────────────────────────────────────────────
-function SchoolHeader({ session, cls, section, house }) {
+function SchoolHeader({ session, cls, section, house, schoolInfo }) {
   const houseInfo = HOUSE_COLORS[house]
   return (
     <div className="rounded-2xl border border-blue-100 dark:border-[rgba(99,102,241,0.2)] bg-gradient-to-r from-blue-50 via-white to-indigo-50 dark:from-[#1a1f35] dark:via-[#1e2238] dark:to-[#1a1f35] px-6 py-5 text-center shadow-sm">
       <div className="flex items-center justify-center gap-2 mb-1">
         <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
         <h2 className="text-[16px] sm:text-[18px] font-extrabold text-slate-800 dark:text-slate-100 tracking-tight leading-snug">
-          {SCHOOL_INFO.name}
+          {schoolInfo.name}
         </h2>
       </div>
       <div className="flex items-center justify-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400 mb-3">
         <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>{SCHOOL_INFO.address}</span>
+        <span>{schoolInfo.address}</span>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/25 text-[12px] font-bold text-amber-700 dark:text-amber-400">
@@ -457,6 +467,7 @@ function HouseDistribution({ rows }) {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function HouseReport() {
+  const schoolInfo = useSchoolInfo()
   const [session,    setSession]    = useState('')
   const [cls,        setCls]        = useState('')
   const [section,    setSection]    = useState('')
@@ -518,7 +529,7 @@ export default function HouseReport() {
   const handleShow = useCallback(() => {
     const err = {}; if (!session) err.session = 'Please select a session'; if (!cls) err.cls = 'Please select a class'; if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch('')
-    fetchStudentReport('house', { session }).then(data => { let result = data.filter(r => r.className === cls || r.class_name === cls); if (section) result = result.filter(r => r.sectionName === section || r.section_name === section); setRows(result); setMeta({ session, cls, section: section || 'All', house: house || 'All' }); setShown(true); showToast('Loaded ' + result.length + ' student(s) for ' + cls + '.') }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
+    fetchStudentReport('house', { session }).then(data => { let result = data.filter(r => r.className === cls || r.class_name === cls); if (section) result = result.filter(r => r.sectionName === section || r.section_name === section); if (house) result = result.filter(r => (r.house || r.houseName || '').toLowerCase() === house.toLowerCase()); setRows(result); setMeta({ session, cls, section: section || 'All', house: house || 'All' }); setShown(true); showToast('Loaded ' + result.length + ' student(s) for ' + cls + '.') }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
   }, [session, cls, section, house])
 
 
@@ -727,6 +738,7 @@ export default function HouseReport() {
             cls={meta.cls}
             section={meta.section !== 'All' ? meta.section : ''}
             house={meta.house !== 'All' ? meta.house : ''}
+            schoolInfo={schoolInfo}
           />
 
           {/* Summary Stat Cards */}

@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { useState, useRef, useEffect } from 'react'
+import { fetchStudentReport, useStudents } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
 import {
   Search, Save, RotateCcw, ChevronDown, AlertCircle,
@@ -10,17 +10,6 @@ import {
 } from 'lucide-react'
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
-const SESSIONS  = ['2024-25','2025-26','2026-27']
-const CLASSES   = ['Nursery','LKG','UKG','Class I','Class II','Class III','Class IV','Class V','Class VI','Class VII','Class VIII','Class IX','Class X','Class XI','Class XII']
-const BLOOD     = ['A+','A-','B+','B-','AB+','AB-','O+','O-']
-const CATEGORIES= ['General','OBC','SC','ST','EWS']
-const HOUSES    = ['Red House','Blue House','Green House','Yellow House']
-const OCCUPATIONS=['Business','Service','Farming','Doctor','Engineer','Lawyer','Teacher','Other']
-const QUOTAS    = ['None','R.T.E.','Management','Staff Ward','Other']
-const STATES    = ['Uttar Pradesh','Delhi','Maharashtra','Bihar','Rajasthan','Gujarat','Punjab','Haryana']
-const CITIES    = { 'Uttar Pradesh':['Meerut','Lucknow','Agra','Noida','Kanpur'], 'Delhi':['New Delhi','Dwarka','Rohini'], 'Maharashtra':['Mumbai','Pune','Nagpur'], 'Bihar':['Patna','Gaya'], 'Rajasthan':['Jaipur','Jodhpur'], 'Gujarat':['Ahmedabad','Surat'], 'Punjab':['Amritsar','Ludhiana'], 'Haryana':['Gurugram','Faridabad'] }
-const STREAMS   = ['N/A','Science','Commerce','Arts','Vocational']
-const OPT_SUBS  = ['N/A','Mathematics','Biology','Computer Science','Physical Education','Fine Arts','Music','Home Science']
 const DOCS      = ['Transfer Certificate','Birth Certificate','Marksheet','Aadhar Card','Caste Certificate','Migration Certificate']
 
 // ─── PRIMITIVES ───────────────────────────────────────────────────────────────
@@ -116,13 +105,24 @@ function SectionDiv({ label }) {
 }
 
 // ─── EDIT MODAL ───────────────────────────────────────────────────────────────
-function EditModal({ student, onSave, onClose }) {
+function EditModal({ student, onSave, onClose, lookups }) {
   const [draft, setDraft] = useState({ ...student })
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState('basic')
 
   const set = (k) => (e) => setDraft(p => ({ ...p, [k]: typeof e === 'string' ? e : e.target.value }))
-  const cities = CITIES[draft.state] || []
+  const cities = (lookups?.cities || []).filter(city => {
+    const selectedState = (lookups?.states || []).find(item => item.name === draft.state || String(item.id) === String(draft.state))
+    return !selectedState || String(city.stateId) === String(selectedState.id)
+  })
+  const bloodOptions = lookups?.blood || []
+  const categoryOptions = lookups?.categories || []
+  const quotaOptions = lookups?.quota || []
+  const occupationOptions = lookups?.occupations || []
+  const stateOptions = lookups?.states || []
+  const streamOptions = lookups?.streams || []
+  const optionalSubjectOptions = lookups?.optionalSubjects || []
+  const houseOptions = lookups?.houses || []
 
   const handleSave = () => {
     setSaving(true)
@@ -222,19 +222,19 @@ function EditModal({ student, onSave, onClose }) {
               <div className="field">
                 <label className="lbl">Blood Group</label>
                 <Sel value={draft.bloodgroup} onChange={set('bloodgroup')}>
-                  {BLOOD.map(b => <option key={b}>{b}</option>)}
+                  {bloodOptions.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                 </Sel>
               </div>
               <div className="field">
                 <label className="lbl">Category</label>
                 <Sel value={draft.category} onChange={set('category')}>
-                  {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  {categoryOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </Sel>
               </div>
               <div className="field">
                 <label className="lbl">House</label>
                 <Sel value={draft.house} onChange={set('house')}>
-                  {HOUSES.map(h => <option key={h}>{h}</option>)}
+                  {houseOptions.map(h => <option key={h.houseId} value={h.houseName}>{h.houseName}</option>)}
                 </Sel>
               </div>
               <div className="field">
@@ -248,7 +248,7 @@ function EditModal({ student, onSave, onClose }) {
               <div className="field">
                 <label className="lbl">Quota</label>
                 <Sel value={draft.quota} onChange={set('quota')}>
-                  {QUOTAS.map(q => <option key={q}>{q}</option>)}
+                  {quotaOptions.map(q => <option key={q.id} value={q.name}>{q.name}</option>)}
                 </Sel>
               </div>
 
@@ -293,7 +293,7 @@ function EditModal({ student, onSave, onClose }) {
                   <div className="field">
                     <label className="lbl">Occupation</label>
                     <Sel value={draft.fOcc} onChange={set('fOcc')}>
-                      {OCCUPATIONS.map(o => <option key={o}>{o}</option>)}
+                      {occupationOptions.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                     </Sel>
                   </div>
                   <div className="field">
@@ -324,7 +324,7 @@ function EditModal({ student, onSave, onClose }) {
                   <div className="field">
                     <label className="lbl">Occupation</label>
                     <Sel value={draft.mOcc} onChange={set('mOcc')}>
-                      {OCCUPATIONS.map(o => <option key={o}>{o}</option>)}
+                      {occupationOptions.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                     </Sel>
                   </div>
                   <div className="field">
@@ -355,7 +355,7 @@ function EditModal({ student, onSave, onClose }) {
               <div className="field">
                 <label className="lbl">State</label>
                 <Sel value={draft.state} onChange={e => { set('state')(e); setDraft(p => ({...p, city: ''})) }}>
-                  {STATES.map(s => <option key={s}>{s}</option>)}
+                  {stateOptions.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </Sel>
               </div>
               <div className="field">
@@ -409,13 +409,13 @@ function EditModal({ student, onSave, onClose }) {
               <div className="field">
                 <label className="lbl">Stream</label>
                 <Sel value={draft.stream} onChange={set('stream')}>
-                  {STREAMS.map(s => <option key={s}>{s}</option>)}
+                  {streamOptions.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </Sel>
               </div>
               <div className="field">
                 <label className="lbl">Optional Subject</label>
                 <Sel value={draft.optSub} onChange={set('optSub')}>
-                  {OPT_SUBS.map(s => <option key={s}>{s}</option>)}
+                  {optionalSubjectOptions.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </Sel>
               </div>
               <div className="field">
@@ -425,7 +425,8 @@ function EditModal({ student, onSave, onClose }) {
               <div className="field">
                 <label className="lbl">Quota</label>
                 <Sel value={draft.quota} onChange={set('quota')}>
-                  {QUOTAS.map(q => <option key={q}>{q}</option>)}
+                  <option value="">-- Select Quota --</option>
+                  {quotaOptions.map(q => <option key={q.id} value={q.name}>{q.name}</option>)}
                 </Sel>
               </div>
             </div>
@@ -568,6 +569,15 @@ function TableRow({ student, idx, onEdit }) {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
+  const { data: studentData } = useStudents()
+  const [lookups, setLookups] = useState({ blood: [], categories: [], quota: [], states: [], cities: [], occupations: [], houses: [] })
+  useEffect(() => {
+    apiFetch('/students/registration-options').then(options => {
+      setLookups({ ...options, houses: studentData?.houses || [] })
+    }).catch(() => {})
+  }, [studentData])
+  const sessionOptions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
+  const classOptions = studentData?.classes?.map(row => row.className).filter(Boolean) || []
   const [session,   setSession]   = useState('')
   const [cls,       setCls]       = useState('')
   const [regNo,     setRegNo]     = useState('')
@@ -580,6 +590,11 @@ export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
   const [toasts,      setToasts]      = useState([])
   const PER_PAGE = 6
 
+  useEffect(() => {
+    const current = studentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || sessionOptions[0] || ''
+    if (current && !session) setSession(current)
+  }, [studentData, sessionOptions, session])
+
   const addToast = (msg, type = 'success') => {
     const id = Date.now()
     setToasts(p => [...p, { id, msg, type }])
@@ -589,7 +604,22 @@ export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
   const handleView = () => {
     setLoading(true); setHasViewed(true); setPage(1)
     fetchStudentReport('student-list', { session, query: regNo }).then(data => {
-      const result = data.filter(r => !cls || r.className === cls || r.class_name === cls).map(r => ({ ...r, uid: r.uid || r.studentId, admNo: r.registrationNo || '', firstName: r.firstName || '', lastName: r.lastName || '', fatherName: r.fatherName || '' }))
+    const result = data.filter(r => !cls || r.className === cls || r.class_name === cls).map(r => ({
+      ...r,
+      uid: r.uid || r.studentId,
+      admNo: r.registrationNo || '',
+      firstName: r.firstName || '', middleName: r.middleName || '', midName: r.middleName || '', lastName: r.lastName || '',
+      fatherName: r.fatherName || '', motherName: r.motherName || '', rollNo: r.rollNo || '',
+      dob: r.dob ? String(r.dob).slice(0, 10) : '', gender: r.gender || 'Male',
+      bloodgroup: r.bloodGroup || r.bloodgroup || '', category: r.category || r.childcat || '',
+      house: r.houseName || r.house || '', houseId: r.houseId || '', doa: r.admissionDate ? String(r.admissionDate).slice(0, 10) : '',
+      feeBook: r.feeBookNo || '', quota: r.quota || '', phone: r.phone || '', mobile: r.mobile || '',
+      email: r.studentEmail || '', aadhar: r.studentAadhar || '', doat: r.attendanceDate || '',
+      fOcc: r.fatherOccupation || '', mOcc: r.motherOccupation || '', fatherWhatsapp: r.fatherWhatsapp || '', motherWhatsapp: r.motherWhatsapp || '',
+      resAddress: r.address || '', state: r.stateName || r.stateId || '', city: r.cityName || r.cityId || '',
+      tc: r.transferCertificate || 'No', bc: r.birthCertificate || 'No', marksheet: r.marksheet || 'No',
+      migration: r.migration || 'No', aadharCard: r.aadharCard || 'No', castCert: r.castCertificate || 'No',
+    }))
       setRecords(result)
     }).catch(error => addToast(error.message || 'Request failed', 'error')).finally(() => setLoading(false))
   }
@@ -624,6 +654,27 @@ export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
           className: updated.className,
           session: updated.session,
           sectionId: updated.sectionId,
+          rollNo: updated.rollNo,
+          feeBookNo: updated.feeBook,
+          houseId: updated.houseId,
+          penNo: updated.penNo,
+          apaarId: updated.apaarId,
+          udise: updated.udise,
+          email: updated.email,
+          fatherOccupation: updated.fOcc,
+          motherOccupation: updated.mOcc,
+          fatherWhatsapp: updated.fatherWhatsapp,
+          motherWhatsapp: updated.motherWhatsapp,
+          stateId: updated.stateId,
+          cityId: updated.cityId,
+          admissionDate: updated.doa,
+          attendanceDate: updated.doat,
+          transferCertificate: updated.tc,
+          birthCertificate: updated.bc,
+          marksheet: updated.marksheet,
+          migration: updated.migration,
+          aadharCard: updated.aadharCard,
+          castCertificate: updated.castCert,
         }),
       })
       setRecords(prev => prev.map(s => s.uid === updated.uid ? updated : s))
@@ -633,12 +684,6 @@ export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
       addToast(error.message || 'Student update failed', 'error')
     }
   }
-  const handleSaveDisabled = (updated) => {
-    setRecords(prev => prev.map(s => s.uid === updated.uid ? updated : s))
-    setEditStudent(null)
-    addToast(`${updated.firstName} ${updated.lastName}'s record updated successfully!`)
-  }
-
   const filtered = records.filter(s => {
     const q = tableSearch.toLowerCase()
     return !q || s.firstName.toLowerCase().includes(q) || s.admNo.toLowerCase().includes(q) || s.fatherName.toLowerCase().includes(q)
@@ -668,11 +713,11 @@ export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <FilterSel label="Session" value={session} onChange={e => setSession(e.target.value)}>
               <option value="">All Sessions</option>
-              {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              {sessionOptions.map(s => <option key={s} value={s}>{s}</option>)}
             </FilterSel>
             <FilterSel label="Class" value={cls} onChange={e => setCls(e.target.value)}>
               <option value="">All Classes</option>
-              {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+              {classOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </FilterSel>
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -813,7 +858,7 @@ export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
       )}
 
       {/* Edit Modal */}
-      {editStudent && <EditModal student={editStudent} onSave={handleSave} onClose={() => setEditStudent(null)} />}
+      {editStudent && <EditModal student={editStudent} onSave={handleSave} onClose={() => setEditStudent(null)} lookups={{ ...lookups, houses: studentData?.houses || [] }} />}
 
       {/* Toasts */}
       <Toast items={toasts} onRemove={id => setToasts(p => p.filter(t => t.id !== id))} />

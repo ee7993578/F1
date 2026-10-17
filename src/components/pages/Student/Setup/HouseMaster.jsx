@@ -396,6 +396,8 @@ export default function HouseMaster() {
   // ── Records ────────────────────────────────────────────────────────────────
   const [houses, setHouses] = useState(INITIAL_HOUSES)
   useEffect(() => { apiFetch('/student-settings/houses').then(setHouses).catch(error => showToast(error.message || 'Unable to load houses', 'error')) }, [])
+  const [incharges, setIncharges] = useState([])
+  useEffect(() => { apiFetch('/staff').then(rows => setIncharges((rows || []).map(row => ({ id: row.id ?? row.f_id, name: row.name || [row.firstName, row.middleName, row.lastName].filter(Boolean).join(' ') }))).filter(row => row.id && row.name)).catch(() => setIncharges([])) }, [])
   const nextId = useRef(INITIAL_HOUSES.length + 1)
 
   // ── UI state ───────────────────────────────────────────────────────────────
@@ -560,7 +562,7 @@ export default function HouseMaster() {
                 placeholder="-- Select Incharge --"
                 error={errors.inchargeId}
               >
-                {INCHARGE_OPTIONS.map(o => (
+                {incharges.map(o => (
                   <option key={o.id} value={o.id}>{o.name}</option>
                 ))}
               </NativeSelect>

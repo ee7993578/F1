@@ -1,0 +1,42 @@
+10:15:59 pm [vite] (client) warning: Duplicate "color" attribute in JSX element
+634|              value={`₹${totals.charges.toLocaleString('en-IN')}`}
+635|              color="orange"
+636|              color="amber" />
+   |              ^
+637|            
+638|              <SummaryCard
+
+  Plugin: vite:esbuild
+  File: D:/Codex/New/src/components/pages/Canteen/Report/TuckshopAssignExpenseReport.jsx
+
+
+#
+# Fatal process out of memory: Zone
+#
+----- Native stack trace -----
+
+ 1: 00007FF7B875BA4B 
+ 2: 00007FF7B864163F 
+ 3: 00007FF7B9804BF6 
+ 4: 00007FF7B923F991 
+ 5: 00007FF7B8D0312E 
+ 6: 00007FF7B9D55731 
+ 7: 00007FF7B9D6865D 
+ 8: 00007FF7B9915ACF 
+ 9: 00007FF7B990F83A 
+runtime: VirtualAlloc of 131072 bytes failed with errno=1455
+10: 00007FF7B91B9884 
+fatal error: out of memory
+11: 00007FF7B9172DFF 
+12: 00007FF7B9444515 
+13: 00007FF7B8643F29 
+14: 00007FF7B87BD153 
+15: 00007FF7B9ECA1AE 
+16: 00007FFD4677DDA7 BaseThreadInitThunk+23
+17: 00007FFD4861EE4C 
+
+runtime stack:
+runtime.throw({0xa376e2?, 0xc00052d000?})
+	runtime/panic.go:1073 +0x4d fp=0x801e9ffa70 sp=0x801e9ffa40 pc=0x47f4cd
+runtime.sysUsedOS(0xc000528000, 0x20000)
+	runtime/mem_windows.go:83 +0x1bb

@@ -1,0 +1,385 @@
+12:05:00 am [vite] (client) warning: Duplicate "color" attribute in JSX element
+634|              value={`₹${totals.charges.toLocaleString('en-IN')}`}
+635|              color="orange"
+636|              color="amber" />
+   |              ^
+637|            
+638|              <SummaryCard
+
+  Plugin: vite:esbuild
+  File: D:/Codex/New/src/components/pages/Canteen/Report/TuckshopAssignExpenseReport.jsx
+12:17:25 am [vite] Internal server error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/ClassTeacherReport.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/ClassTeacherReport.jsx:30:25
+  44 |    EyeOff
+  45 |  } from "lucide-react";
+  46 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  47 |  const SESSIONS = ["2022-23", "2023-24", "2024-25", "2025-26"];
+  48 |  const SCHOOL_INFO = {
+      at TransformPluginContext._formatLog (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41)
+      at TransformPluginContext.error (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16)
+      at normalizeUrl (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18)
+      at async loadAndTransform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27)
+      at async viteTransformMiddleware (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:37369:24)
+12:17:25 am [vite] Internal server error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/JobApplicationReport.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/JobApplicationReport.jsx:24:25
+  54 |    MoreHorizontal
+  55 |  } from "lucide-react";
+  56 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  57 |  const APPLIED_POSTS = ["PGT", "TGT", "PRT", "Non Teaching"];
+  58 |  const SUBJECTS_BY_POST = {
+      at TransformPluginContext._formatLog (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41)
+      at TransformPluginContext.error (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16)
+      at normalizeUrl (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18)
+      at async loadAndTransform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27)
+      at async viteTransformMiddleware (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:37369:24)
+12:17:39 am [vite] Internal server error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/FacultyInfoDownload.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/FacultyInfoDownload.jsx:22:25
+  48 |    LayoutGrid
+  49 |  } from "lucide-react";
+  50 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  51 |  const SCHOOL_INFO = {
+  52 |    name: "Saraswati Vidya Mandir Senior Secondary School",
+      at TransformPluginContext._formatLog (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41)
+      at TransformPluginContext.error (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16)
+      at normalizeUrl (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18)
+      at async loadAndTransform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27)
+      at async viteTransformMiddleware (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:37369:24)
+12:18:00 am [vite] Internal server error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Work/FacultyRegistration.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Work/FacultyRegistration.jsx:16:25
+  50 |    BadgeCheck
+  51 |  } from "lucide-react";
+  52 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  53 |  const SALUTATIONS = ["Mr.", "Ms.", "Mrs.", "Dr."];
+  54 |  const GENDERS = ["Male", "Female"];
+      at TransformPluginContext._formatLog (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41)
+      at TransformPluginContext.error (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16)
+      at normalizeUrl (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18)
+      at async loadAndTransform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27)
+      at async viteTransformMiddleware (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:37369:24)
+12:18:08 am [vite] Internal server error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Update/FacultyInfosheet.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Update/FacultyInfosheet.jsx:27:25
+  53 |    Hash
+  54 |  } from "lucide-react";
+  55 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  56 |  const DEPARTMENTS = [
+  57 |    "Mathematics",
+      at TransformPluginContext._formatLog (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41)
+      at TransformPluginContext.error (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16)
+      at normalizeUrl (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18)
+      at async loadAndTransform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27)
+      at async viteTransformMiddleware (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:37369:24)
+12:18:12 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/ClassTeacherReport.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/ClassTeacherReport.jsx:30:25
+  44 |    EyeOff
+  45 |  } from "lucide-react";
+  46 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  47 |  const SESSIONS = ["2022-23", "2023-24", "2024-25", "2025-26"];
+  48 |  const SCHOOL_INFO = {
+12:18:12 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/FacultyInfoDownload.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/FacultyInfoDownload.jsx:22:25
+  48 |    LayoutGrid
+  49 |  } from "lucide-react";
+  50 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  51 |  const SCHOOL_INFO = {
+  52 |    name: "Saraswati Vidya Mandir Senior Secondary School",
+12:18:12 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/JobApplicationReport.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/JobApplicationReport.jsx:24:25
+  54 |    MoreHorizontal
+  55 |  } from "lucide-react";
+  56 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  57 |  const APPLIED_POSTS = ["PGT", "TGT", "PRT", "Non Teaching"];
+  58 |  const SUBJECTS_BY_POST = {
+12:18:12 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Work/FacultyRegistration.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Work/FacultyRegistration.jsx:16:25
+  50 |    BadgeCheck
+  51 |  } from "lucide-react";
+  52 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  53 |  const SALUTATIONS = ["Mr.", "Ms.", "Mrs.", "Dr."];
+  54 |  const GENDERS = ["Male", "Female"];
+12:18:12 am [vite] Internal server error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Update/FacultyInfosheet.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Update/FacultyInfosheet.jsx:27:25
+  53 |    Hash
+  54 |  } from "lucide-react";
+  55 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  56 |  const DEPARTMENTS = [
+  57 |    "Mathematics",
+      at TransformPluginContext._formatLog (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41)
+      at TransformPluginContext.error (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16)
+      at normalizeUrl (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18)
+      at async loadAndTransform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27)
+12:18:12 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Update/FacultyInfosheet.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Update/FacultyInfosheet.jsx:27:25
+  53 |    Hash
+  54 |  } from "lucide-react";
+  55 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  56 |  const DEPARTMENTS = [
+  57 |    "Mathematics",
+12:18:21 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Update/FacultyInfosheet.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Update/FacultyInfosheet.jsx:27:25
+  53 |    Hash
+  54 |  } from "lucide-react";
+  55 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  56 |  const DEPARTMENTS = [
+  57 |    "Mathematics",
+12:18:21 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/FacultyInfoDownload.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/FacultyInfoDownload.jsx:22:25
+  48 |    LayoutGrid
+  49 |  } from "lucide-react";
+  50 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  51 |  const SCHOOL_INFO = {
+  52 |    name: "Saraswati Vidya Mandir Senior Secondary School",
+12:18:21 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/ClassTeacherReport.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/ClassTeacherReport.jsx:30:25
+  44 |    EyeOff
+  45 |  } from "lucide-react";
+  46 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  47 |  const SESSIONS = ["2022-23", "2023-24", "2024-25", "2025-26"];
+  48 |  const SCHOOL_INFO = {
+12:18:21 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/JobApplicationReport.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/JobApplicationReport.jsx:24:25
+  54 |    MoreHorizontal
+  55 |  } from "lucide-react";
+  56 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  57 |  const APPLIED_POSTS = ["PGT", "TGT", "PRT", "Non Teaching"];
+  58 |  const SUBJECTS_BY_POST = {
+12:18:21 am [vite] Internal server error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Work/FacultyRegistration.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Work/FacultyRegistration.jsx:16:25
+  50 |    BadgeCheck
+  51 |  } from "lucide-react";
+  52 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  53 |  const SALUTATIONS = ["Mr.", "Ms.", "Mrs.", "Dr."];
+  54 |  const GENDERS = ["Male", "Female"];
+      at TransformPluginContext._formatLog (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41)
+      at TransformPluginContext.error (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16)
+      at normalizeUrl (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18)
+      at async loadAndTransform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27)
+12:18:21 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Work/FacultyRegistration.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Work/FacultyRegistration.jsx:16:25
+  50 |    BadgeCheck
+  51 |  } from "lucide-react";
+  52 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  53 |  const SALUTATIONS = ["Mr.", "Ms.", "Mrs.", "Dr."];
+  54 |  const GENDERS = ["Male", "Female"];
+12:18:45 am [vite] Internal server error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/FacultyIdPassword.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/FacultyIdPassword.jsx:25:25
+  41 |    XCircle
+  42 |  } from "lucide-react";
+  43 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  44 |  const INITIAL_FACULTY = [
+  45 |    { id: 1, name: "Ramesh Kumar Sharma", user_email: "ramesh.sharma@school.in", password: "Ram@1234", class_teacher: "Class VI-A" },
+      at TransformPluginContext._formatLog (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41)
+      at TransformPluginContext.error (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16)
+      at normalizeUrl (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7)
+      at async EnvironmentPluginContainer.transform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18)
+      at async loadAndTransform (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27)
+      at async viteTransformMiddleware (file:///D:/Codex/New/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:37369:24)
+12:19:09 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Work/FacultyRegistration.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Work/FacultyRegistration.jsx:16:25
+  50 |    BadgeCheck
+  51 |  } from "lucide-react";
+  52 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  53 |  const SALUTATIONS = ["Mr.", "Ms.", "Mrs.", "Dr."];
+  54 |  const GENDERS = ["Male", "Female"];
+12:19:09 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/JobApplicationReport.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/JobApplicationReport.jsx:24:25
+  54 |    MoreHorizontal
+  55 |  } from "lucide-react";
+  56 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  57 |  const APPLIED_POSTS = ["PGT", "TGT", "PRT", "Non Teaching"];
+  58 |  const SUBJECTS_BY_POST = {
+12:19:09 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/FacultyIdPassword.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/FacultyIdPassword.jsx:25:25
+  41 |    XCircle
+  42 |  } from "lucide-react";
+  43 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  44 |  const INITIAL_FACULTY = [
+  45 |    { id: 1, name: "Ramesh Kumar Sharma", user_email: "ramesh.sharma@school.in", password: "Ram@1234", class_teacher: "Class VI-A" },
+12:19:09 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/FacultyInfoDownload.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/FacultyInfoDownload.jsx:22:25
+  48 |    LayoutGrid
+  49 |  } from "lucide-react";
+  50 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  51 |  const SCHOOL_INFO = {
+  52 |    name: "Saraswati Vidya Mandir Senior Secondary School",
+12:19:09 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Update/FacultyInfosheet.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Update/FacultyInfosheet.jsx:27:25
+  53 |    Hash
+  54 |  } from "lucide-react";
+  55 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  56 |  const DEPARTMENTS = [
+  57 |    "Mathematics",
+12:19:10 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Work/FacultyRegistration.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Work/FacultyRegistration.jsx:16:25
+  50 |    BadgeCheck
+  51 |  } from "lucide-react";
+  52 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  53 |  const SALUTATIONS = ["Mr.", "Ms.", "Mrs.", "Dr."];
+  54 |  const GENDERS = ["Male", "Female"];
+12:19:10 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/FacultyIdPassword.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/FacultyIdPassword.jsx:25:25
+  41 |    XCircle
+  42 |  } from "lucide-react";
+  43 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  44 |  const INITIAL_FACULTY = [
+  45 |    { id: 1, name: "Ramesh Kumar Sharma", user_email: "ramesh.sharma@school.in", password: "Ram@1234", class_teacher: "Class VI-A" },
+12:19:10 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/JobApplicationReport.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/JobApplicationReport.jsx:24:25
+  54 |    MoreHorizontal
+  55 |  } from "lucide-react";
+  56 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  57 |  const APPLIED_POSTS = ["PGT", "TGT", "PRT", "Non Teaching"];
+  58 |  const SUBJECTS_BY_POST = {
+12:19:10 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Update/FacultyInfosheet.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Update/FacultyInfosheet.jsx:27:25
+  53 |    Hash
+  54 |  } from "lucide-react";
+  55 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  56 |  const DEPARTMENTS = [
+  57 |    "Mathematics",
+12:19:10 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Update/FacultyInfosheet.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Update/FacultyInfosheet.jsx:27:25
+  53 |    Hash
+  54 |  } from "lucide-react";
+  55 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  56 |  const DEPARTMENTS = [
+  57 |    "Mathematics",
+12:19:10 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Report/FacultyIdPassword.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Report/FacultyIdPassword.jsx:25:25
+  41 |    XCircle
+  42 |  } from "lucide-react";
+  43 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  44 |  const INITIAL_FACULTY = [
+  45 |    { id: 1, name: "Ramesh Kumar Sharma", user_email: "ramesh.sharma@school.in", password: "Ram@1234", class_teacher: "Class VI-A" },
+12:19:10 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Work/FacultyRegistration.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Work/FacultyRegistration.jsx:16:25
+  50 |    BadgeCheck
+  51 |  } from "lucide-react";
+  52 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  53 |  const SALUTATIONS = ["Mr.", "Ms.", "Mrs.", "Dr."];
+  54 |  const GENDERS = ["Male", "Female"];
+12:19:11 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Work/FacultyRegistration.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Work/FacultyRegistration.jsx:16:25
+  50 |    BadgeCheck
+  51 |  } from "lucide-react";
+  52 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  53 |  const SALUTATIONS = ["Mr.", "Ms.", "Mrs.", "Dr."];
+  54 |  const GENDERS = ["Male", "Female"];
+12:19:11 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Update/FacultyInfosheet.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Update/FacultyInfosheet.jsx:27:25
+  53 |    Hash
+  54 |  } from "lucide-react";
+  55 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  56 |  const DEPARTMENTS = [
+  57 |    "Mathematics",
+12:19:12 am [vite] (client) Pre-transform error: Failed to resolve import "../../../lib/api" from "src/components/pages/Staff/Work/FacultyRegistration.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: D:/Codex/New/src/components/pages/Staff/Work/FacultyRegistration.jsx:16:25
+  50 |    BadgeCheck
+  51 |  } from "lucide-react";
+  52 |  import { apiFetch } from "../../../lib/api";
+     |                            ^
+  53 |  const SALUTATIONS = ["Mr.", "Ms.", "Mrs.", "Dr."];
+  54 |  const GENDERS = ["Male", "Female"];

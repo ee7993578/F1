@@ -28,6 +28,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useSessionsClasses } from '../../../../lib/useStudentReport'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { studentApi as api, normalizeOnlineRegistration } from '../../../../lib/studentApi'
 import {
   Filter, RefreshCw, Eye, AlertCircle, X, Check, Loader2,
   ChevronDown, ChevronRight, SlidersHorizontal, Search,
@@ -667,7 +668,7 @@ export default function OnlineRegistrationReport() {
       try {
         const secs = await api(`/admission/sections?classId=${cid}&session=${encodeURIComponent(filters.session)}`)
         setConfirmSections(secs || [])
-      } catch { setSections([]) }
+      } catch { setConfirmSections([]) }
     }
   }, [classes, filters.session])
 
@@ -680,7 +681,21 @@ export default function OnlineRegistrationReport() {
   const handleShow = useCallback(() => {
     const err = {}; if (!filters.session) err.session = 'Please select a session'; if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch('')
-    fetchStudentReport('registration', { session: filters.session }).then(data => { const result = filters.class ? data.filter(r => r.className === filters.class || r.class_name === filters.class) : data; setRows(result); setShown(true); showToast(result.length + ' registration(s) loaded for ' + filters.session + '.') }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
+    fetchStudentReport('registration', { session: filters.session }).then(data => {
+      const normalized = data.map(normalizeOnlineRegistration)
+      const month = filters.month ? Number(filters.month) : 0
+      const result = normalized.filter(row => {
+        const date = new Date(row.applicationDate)
+        const matchesClass = !filters.class || row.class === filters.class
+        const matchesApp = !filters.appStatus || row.formStatus === filters.appStatus
+        const matchesPay = !filters.payStatus || row.paymentStatus === filters.payStatus
+        const matchesMonth = !month || (Number.isNaN(date.getTime()) ? false : date.getMonth() + 1 === month)
+        const matchesReg = !filters.regStatus || filters.regStatus === 'All' || row.registrationStatus === filters.regStatus
+        const matchesType = !filters.studentType || row.studentType.toLowerCase() === filters.studentType.toLowerCase()
+        return matchesClass && matchesApp && matchesPay && matchesMonth && matchesReg && matchesType
+      })
+      setRows(result); setShown(true); showToast(result.length + ' registration(s) loaded for ' + filters.session + '.')
+    }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
   }, [filters])
 
   const handleReset = () => {

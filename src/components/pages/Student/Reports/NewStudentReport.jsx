@@ -3,7 +3,8 @@
  * New admissions report (server-driven).
  */
 
-import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { fetchStudentReport, useStudents } from '../../../../hooks/useStudents'
+import { studentApi as api } from '../../../../lib/studentApi'
 
 // LIVE DATA (server-driven; tb_studentmaster via API)
 
@@ -435,7 +436,7 @@ function FilterDrawer({ open, onClose, values, setters, onShow, loading, errors,
           </Field>
           <Field label="Class">
             <NativeSelect value={selectedClass} onChange={e => setSelectedClass(e.target.value)} placeholder="-- All Classes --">
-              {classes.map(c => <option key={c.id} value={c.className}>{c.className}</option>)}
+              {classes.map(c => <option key={c.id} value={c.id}>{c.className}</option>)}
             </NativeSelect>
           </Field>
           <Field label="From Date">
@@ -464,6 +465,7 @@ function FilterDrawer({ open, onClose, values, setters, onShow, loading, errors,
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function NewStudentReport() {
+  const { data: studentData } = useStudents()
   // Filter state
   const [session,       setSession]       = useState('')
   const [selectedClass, setSelectedClass] = useState('All')
@@ -482,6 +484,10 @@ export default function NewStudentReport() {
   const [shownMeta,   setShownMeta]   = useState({ session: '', fromDate: '', toDate: '' })
   const [sessions,    setSessions]    = useState([])
   const [classes,     setClasses]     = useState([])
+  const sectionOptions = (studentData?.sections || []).map(section => ({
+    id: String(section.sectionId ?? section.sec_id),
+    className: `${section.className || ''} (${section.sectionName || section.section || ''})`.trim(),
+  })).filter(section => section.id && section.className)
 
   // Sessions + classes (mirrors Page_Load)
   useEffect(() => {
@@ -508,8 +514,27 @@ export default function NewStudentReport() {
   const handleShow = useCallback(() => {
     const err = {}; if (!session) err.session = 'Please select a session'; if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch('')
-    fetchStudentReport('new-student', { session }).then(data => { const result = selectedClass && selectedClass !== 'All' ? data.filter(r => r.className === selectedClass || r.class_name === selectedClass) : data; setRows(result.map((r, i) => ({ ...r, sno: i + 1 }))); setShownMeta({ session, fromDate, toDate }); setShown(true); showToast('Loaded ' + result.length + ' records for session ' + session + '.') }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
-  }, [session, selectedClass, fromDate, toDate])
+    const sectionId = selectedClass && selectedClass !== 'All' ? selectedClass : ''
+    const sectionLabel = sectionOptions.find(item => item.id === String(sectionId))?.className || ''
+    fetchStudentReport('new-student', { session, sectionId, fromDate, toDate }).then(data => {
+      const result = data.map((r, i) => ({
+        ...r,
+        sno: i + 1,
+        registration_no: r.admissionNo || r.registrationNo || '',
+        name: r.name || [r.firstName, r.middleName, r.lastName].filter(Boolean).join(' '),
+        father_name: r.fatherName || '',
+        DOB: r.dob || '',
+        R_Address: r.address || '',
+        class: r.className || '',
+        section: r.sectionName || '',
+        registration_date: r.registrationDate || '',
+        doa: r.admissionDate || '',
+        mobile: r.mobile || r.phone || '',
+        reg_fee: Number(r.regFee ?? r.reg_fee ?? 0) || 0,
+      }))
+      setRows(result); setShownMeta({ session, fromDate, toDate, selectedClass: sectionLabel }); setShown(true); showToast('Loaded ' + result.length + ' records for session ' + session + '.')
+    }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
+  }, [session, selectedClass, fromDate, toDate, sectionOptions])
 
   const handleReset = () => {
     setSession(''); setSelectedClass('All')
@@ -568,8 +593,9 @@ export default function NewStudentReport() {
   const activeFilters = [session, selectedClass !== 'All' && selectedClass, fromDate, toDate].filter(Boolean).length
 
   // ── Filter labels for mobile button ──────────────────────────────────────
+  const selectedSectionLabel = sectionOptions.find(item => item.id === String(selectedClass))?.className || ''
   const filterLabel = session
-    ? `${session}${selectedClass !== 'All' ? ` · ${selectedClass}` : ''}`
+    ? `${session}${selectedClass !== 'All' ? ` | ${selectedSectionLabel}` : ''}`
     : 'Select Filters'
 
   return (
@@ -630,7 +656,7 @@ export default function NewStudentReport() {
                 onChange={e => setSelectedClass(e.target.value)}
                 placeholder="-- All Classes --"
               >
-                {classes.map(c => <option key={c.id} value={c.className}>{c.className}</option>)}
+                {sectionOptions.map(c => <option key={c.id} value={c.id}>{c.className}</option>)}
               </NativeSelect>
             </Field>
 
@@ -702,7 +728,7 @@ export default function NewStudentReport() {
         loading={loading}
         errors={errors}
         sessions={sessions}
-        classes={classes}
+        classes={sectionOptions}
       />
 
       {/* ── Loading Skeleton ──────────────────────────────────────────────── */}

@@ -1,4 +1,32 @@
 import GenericPage from './GenericPage'
+
+// The legacy menu returns ASPX file names in different fields depending on
+// the school/menu record. Resolve those names at render time as a second line
+// of defence, so a page can never fall through merely because its database
+// id was not normalized by menuResolver.
+const legacyTransportPageIds = {
+  vehiclemaster: 'VehicleMaster',
+  vehiclemasteraspx: 'VehicleMaster',
+  drivervehicledetails: 'DriverVehicleMaster',
+  drivervehicledetailsaspx: 'DriverVehicleMaster',
+  driverdetail: 'DriverVehicleMaster',
+  driverdetails: 'DriverVehicleMaster',
+  drivervehiclemaster: 'DriverVehicleMaster',
+  assigntransport: 'AssignTransport',
+  assigntransportaspx: 'AssignTransport',
+}
+
+const resolvedPageId = (page) => {
+  const values = [page?.id, page?.pageId, page?.pageKey, page?.pageName, page?.url, page?.label]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase().replace(/[^a-z0-9]/g, ''))
+  for (const value of values) {
+    if (legacyTransportPageIds[value]) return legacyTransportPageIds[value]
+    const file = value.split('aspx')[0]
+    if (legacyTransportPageIds[file]) return legacyTransportPageIds[file]
+  }
+  return page?.id
+}
 import StudentRegistration from './Student/Work/StudentRegistration'
 import AdmNoAllotment from './Student/Work/AdmNoAllotment'
 import NewClassAllotment from './Student/Work/newClassAllotment'
@@ -104,6 +132,7 @@ import AssignRoute from './Transport/Report/AssignRoute'
 import MonthwiseTransportReport from './Transport/Report/MonthwiseTransportReport'
 import StudentTransportReport from './Transport/Report/StudentTransportReport'
 import TransportPrivateStudentsReport from './Transport/Report/TransportPrivateStudentsReport'
+import TransportReportModule from './Transport/Report/TransportReportModule'
 
 import DefineTransportType from './Transport/Setup/DefineTransportType'
 import RouteMaster from './Transport/Setup/RouteMaster'
@@ -329,7 +358,7 @@ export default function PageRenderer({ moduleData, currentGroup, currentPage, on
     )
   }
 
-  const pageId      = currentPage.id
+  const pageId      = resolvedPageId(currentPage)
   const pageLabel   = currentPage.label
   const groupLabel  = currentGroup.label
   const moduleLabel = moduleData.label
@@ -456,13 +485,15 @@ export default function PageRenderer({ moduleData, currentGroup, currentPage, on
 //Transport work from here
 
 if (pageId === 'AssignTransport') return <AssignTransport />
-if (pageId === 'DriverVehicleMaster') return <DriverVehicleMaster />
-if (pageId === 'VehicleMaster') return <VehicleMaster />
+if (['DriverVehicleMaster', 'DriverDetail', 'DriverVehicleDetails', 'driver_vehicle_details'].includes(pageId)) return <DriverVehicleMaster />
+if (['VehicleMaster', 'vehicleMaster', 'vehicle_master'].includes(pageId)) return <VehicleMaster />
 
 if (pageId === 'AssignRoute') return <AssignRoute />
 if (pageId === 'MonthwiseTransportReport') return <MonthwiseTransportReport />
 if (pageId === 'StudentTransportReport') return <StudentTransportReport />
 if (pageId === 'TransportPrivateStudentsReport') return <TransportPrivateStudentsReport />
+if (pageId === 'RouteWiseCollectionReport' || pageId === 'feecollection_routewise') return <TransportReportModule mode="routeCollection" />
+if (pageId === 'RouteWiseTotalCollectionReport') return <TransportReportModule mode="totalCollection" />
 
 
 if (pageId === 'DefineTransportType') return <DefineTransportType />

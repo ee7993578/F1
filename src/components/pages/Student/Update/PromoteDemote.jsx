@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useStudents } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
 import {
@@ -9,23 +9,6 @@ import {
 } from 'lucide-react'
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
-const SESSIONS = ['2023-24', '2024-25', '2025-26', '2026-27']
-
-const CLASSES = [
-  'Nursery','LKG','UKG',
-  'Class I','Class II','Class III','Class IV','Class V',
-  'Class VI','Class VII','Class VIII','Class IX','Class X','Class XI','Class XII',
-]
-
-// Promote mode: each class goes to next
-const PROMOTE_MAP = {
-  'Nursery':'LKG','LKG':'UKG','UKG':'Class I',
-  'Class I':'Class II','Class II':'Class III','Class III':'Class IV',
-  'Class IV':'Class V','Class V':'Class VI','Class VI':'Class VII',
-  'Class VII':'Class VIII','Class VIII':'Class IX','Class IX':'Class X',
-  'Class X':'Class XI','Class XI':'Class XII','Class XII':'Alumni',
-}
-
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function cx(...args) { return args.filter(Boolean).join(' ') }
 
@@ -47,7 +30,7 @@ function Sel({ label, value, onChange, options, placeholder = '— Select —', 
           )}
         >
           <option value="">{placeholder}</option>
-          {options.map(o => <option key={o} value={o}>{o}</option>)}
+          {options.map(o => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
         </select>
         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
       </div>
@@ -312,15 +295,20 @@ function MobileTransferView({ mode, leftPanel, rightPanel, onRight, onLeft, canR
 export default function PromoteDemote({ title = 'Promote / Change Section' }) {
   const { data: liveStudentData } = useStudents()
   const liveSessions = liveStudentData?.sessions?.map(item => item.session).filter(Boolean) || []
-  const liveClasses = liveStudentData?.classes?.map(item => item.className).filter(Boolean) || []
-  const liveStudentsForClass = cls => (liveStudentData?.students || []).filter(row => row.className === cls || row.class_name === cls).map(row => ({ ...row, id: row.studentId, name: row.name, roll: row.rollNo || '', gender: row.gender }))
+  const liveSections = liveStudentData?.sections?.map(item => ({
+    value: String(item.sectionId),
+    label: item.className && item.sectionName ? `${item.className} (${item.sectionName})` : (item.className || item.sectionName || ''),
+  })).filter(item => item.value && item.label) || []
+  const liveStudentsForSection = (sectionId, session) => (liveStudentData?.students || []).filter(row =>
+    String(row.sectionId) === String(sectionId) && (!session || !row.session || row.session === session)
+  ).map(row => ({ ...row, id: row.studentId, name: row.name, roll: row.rollNo || '', gender: row.gender }))
   // Mode: 'promote' | 'section'
   const [mode, setMode]   = useState('section')
   const [saving, setSaving] = useState(false)
   const [toasts, setToasts] = useState([])
 
   // Left panel
-  const [leftSession,  setLeftSession]  = useState('2024-25')
+  const [leftSession,  setLeftSession]  = useState('')
   const [leftClass,    setLeftClass]    = useState('')
   const [leftStudents, setLeftStudents] = useState([])
   const [leftSelected, setLeftSelected] = useState(new Set())
@@ -328,12 +316,23 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
   const [leftClsErr,   setLeftClsErr]   = useState('')
 
   // Right panel
-  const [rightSession,  setRightSession]  = useState('2025-26')
+  const [rightSession,  setRightSession]  = useState('')
   const [rightClass,    setRightClass]    = useState('')
   const [rightStudents, setRightStudents] = useState([])
   const [rightSelected, setRightSelected] = useState(new Set())
+  const [pendingMoves, setPendingMoves] = useState([])
   const [rightSessErr,  setRightSessErr]  = useState('')
   const [rightClsErr,   setRightClsErr]   = useState('')
+
+  useEffect(() => {
+    if (!liveSessions.length) return
+    const current = liveStudentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || liveSessions[0]
+    if (!leftSession) setLeftSession(current)
+    if (!rightSession) {
+      const index = liveSessions.indexOf(current)
+      setRightSession(liveSessions[index + 1] || current)
+    }
+  }, [liveStudentData, liveSessions, leftSession, rightSession])
 
   // ── Toast ──────────────────────────────────────────────────────────────────
   const addToast = useCallback((msg, type = 'success') => {
@@ -349,6 +348,7 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
     setLeftClass(''); setRightClass('')
     setLeftStudents([]); setRightStudents([])
     setLeftSelected(new Set()); setRightSelected(new Set())
+    setPendingMoves([])
   }
 
   // ── Left class change ──────────────────────────────────────────────────────
@@ -356,14 +356,16 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
     setLeftClass(cls)
     setLeftClsErr('')
     setLeftSelected(new Set())
+    setPendingMoves([])
     if (cls) {
-      const students = liveStudentsForClass(cls)
+      const students = liveStudentsForSection(cls, leftSession)
       setLeftStudents(students)
       // In promote mode, auto-set right class to next class
-      if (mode === 'promote' && PROMOTE_MAP[cls]) {
-        const nextCls = PROMOTE_MAP[cls]
-        setRightClass(nextCls)
-        setRightStudents(liveStudentsForClass(nextCls))
+      if (mode === 'promote') {
+        const currentIndex = liveSections.findIndex(item => item.value === String(cls))
+        const nextSection = liveSections[currentIndex + 1]?.value || ''
+        setRightClass(nextSection)
+        setRightStudents(nextSection ? liveStudentsForSection(nextSection, rightSession) : [])
         setRightSelected(new Set())
       }
     } else {
@@ -376,7 +378,8 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
     setRightClass(cls)
     setRightClsErr('')
     setRightSelected(new Set())
-    setRightStudents(cls ? liveStudentsForClass(cls) : [])
+    setRightStudents(cls ? liveStudentsForSection(cls, rightSession) : [])
+    setPendingMoves([])
   }
 
   // ── Toggles ────────────────────────────────────────────────────────────────
@@ -407,6 +410,7 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
       const existIds = new Set(p.map(s => s.id))
       return [...p, ...moving.filter(s => !existIds.has(s.id))]
     })
+    setPendingMoves(p => [...p.filter(old => !moving.some(next => next.id === old.id)), ...moving])
   }
 
   // ── Move Left ← ─────────────────────────────────────────────────────────────
@@ -420,35 +424,27 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
       const existIds = new Set(p.map(s => s.id))
       return [...p, ...moving.filter(s => !existIds.has(s.id))]
     })
+    setPendingMoves(p => p.filter(old => !moving.some(next => next.id === old.id)))
   }
 
   // ── Save / Change ──────────────────────────────────────────────────────────
   const handleChange = async () => {
     if (!validate()) return
-    const selected = [...leftSelected].map(id => leftStudents.find(s => s.id === id)).filter(Boolean)
+    const selected = pendingMoves
     if (!selected.length) { addToast('Select at least one student from source.', 'error'); return }
     setSaving(true)
     try {
-      await Promise.all(selected.map(student => apiFetch('/students/' + encodeURIComponent(student.uid || student.id), { method: 'PUT', body: JSON.stringify({ className: rightClass, session: rightSession }) })))
+      await Promise.all(selected.map(student => apiFetch('/students/' + encodeURIComponent(student.uid || student.id), { method: 'PUT', body: JSON.stringify({ sectionId: Number(rightClass), session: rightSession }) })))
       addToast((mode === 'promote' ? 'Promotion' : 'Section change') + ' saved for ' + selected.length + ' student(s).')
-      setLeftStudents(p => p.filter(s => !leftSelected.has(s.id))); setLeftSelected(new Set())
+      setLeftStudents(p => p.filter(s => !selected.some(moved => moved.id === s.id))); setLeftSelected(new Set()); setPendingMoves([])
     } catch (error) { addToast(error.message || 'Student movement failed', 'error') } finally { setSaving(false) }
   }
-  const handleChangeDisabled = () => {
-    if (!validate()) return
-    setSaving(true)
-    setTimeout(() => {
-      setSaving(false)
-      const label = mode === 'promote' ? 'Promotion' : 'Section change'
-      addToast(`${label} saved! ${leftClass} → ${rightClass}`)
-    }, 900)
-  }
-
   // ── Reset ──────────────────────────────────────────────────────────────────
   const handleReset = () => {
     setLeftClass(''); setRightClass('')
     setLeftStudents([]); setRightStudents([])
     setLeftSelected(new Set()); setRightSelected(new Set())
+    setPendingMoves([])
     setLeftClsErr(''); setRightClsErr('')
     setLeftSessErr(''); setRightSessErr('')
   }
@@ -466,7 +462,7 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
       sessions={liveSessions}
       cls={leftClass}
       onClassChange={handleLeftClass}
-      classes={liveClasses}
+      classes={liveSections}
       students={leftStudents}
       selectedIds={leftSelected}
       onToggle={toggleLeft}
@@ -484,10 +480,10 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
       accent="rose"
       session={rightSession}
       onSessionChange={s => { setRightSession(s); setRightSessErr('') }}
-      sessions={SESSIONS}
+      sessions={liveSessions}
       cls={rightClass}
       onClassChange={handleRightClass}
-      classes={mode === 'promote' && leftClass ? [PROMOTE_MAP[leftClass]].filter(value => value && liveClasses.includes(value)) : liveClasses}
+      classes={liveSections}
       students={rightStudents}
       selectedIds={rightSelected}
       onToggle={toggleRight}

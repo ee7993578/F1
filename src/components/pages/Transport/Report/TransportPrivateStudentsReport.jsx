@@ -1,2 +1,2 @@
-import TransportModule from '../TransportModule'
-export default function TransportPrivateStudentsReport(){return <TransportModule mode="private"/>}
+import TransportReportModule from './TransportReportModule'
+export default function TransportPrivateStudentsReport(){return <TransportReportModule mode="private"/>}

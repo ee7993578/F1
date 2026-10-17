@@ -15,8 +15,10 @@
  *  - Desktop: dense ERP-style table
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useStudents, fetchStudentReport } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
+import { downloadCsv } from '../../../../lib/exportCsv'
 import {
   Filter, RefreshCw, Eye, AlertCircle, X, Check, Loader2,
   ChevronDown, ChevronRight, Users, FileSpreadsheet, Search,
@@ -26,20 +28,6 @@ import {
 } from 'lucide-react'
 
 // ─── STATIC / DUMMY DATA ──────────────────────────────────────────────────────
-
-const SESSIONS = ['2022-23', '2023-24', '2024-25', '2025-26']
-
-const CLASSES = [
-  'All Classes', 'Nursery', 'LKG', 'UKG',
-  'Class I', 'Class II', 'Class III', 'Class IV', 'Class V',
-  'Class VI', 'Class VII', 'Class VIII', 'Class IX', 'Class X',
-  'Class XI', 'Class XII',
-]
-
-const SCHOOL_INFO = {
-  name: 'Saraswati Vidya Mandir Senior Secondary School',
-  address: 'Civil Lines, Dehradun, Uttarakhand – 248001',
-}
 
 // ─── CLASS COLOR HELPERS (same as StrengthReport) ─────────────────────────────
 const CLASS_COLORS = [
@@ -136,18 +124,18 @@ function SummaryCard({ icon: Icon, label, value, color, prefix }) {
 }
 
 // ─── SCHOOL HEADER BANNER ─────────────────────────────────────────────────────
-function SchoolHeader({ session, selectedClass, regDate }) {
+function SchoolHeader({ schoolInfo, session, selectedClass, regDate }) {
   return (
     <div className="rounded-2xl border border-blue-100 dark:border-[rgba(99,102,241,0.2)] bg-gradient-to-r from-blue-50 via-white to-indigo-50 dark:from-[#1a1f35] dark:via-[#1e2238] dark:to-[#1a1f35] px-6 py-5 text-center shadow-sm">
       <div className="flex items-center justify-center gap-2 mb-1">
         <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
         <h2 className="text-[16px] sm:text-[18px] font-extrabold text-slate-800 dark:text-slate-100 tracking-tight leading-snug">
-          {SCHOOL_INFO.name}
+          {schoolInfo.name || 'School'}
         </h2>
       </div>
       <div className="flex items-center justify-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400 mb-3">
         <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>{SCHOOL_INFO.address}</span>
+        <span>{schoolInfo.address || ''}</span>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
         <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/25">
@@ -388,6 +376,7 @@ function FilterDrawer({ open, onClose, session, setSession, selectedClass, setSe
           </Field>
           <Field label="Class">
             <NativeSelect value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+              <option value="All Classes">All Classes</option>
               {(studentData?.classes || []).map(c => <option key={c.classId} value={c.className}>{c.className}</option>)}
             </NativeSelect>
           </Field>
@@ -425,6 +414,11 @@ function FilterDrawer({ open, onClose, session, setSession, selectedClass, setSe
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function StudentRegistrationDetails() {
+  const { data: studentData } = useStudents()
+  const sessionOptions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
+  const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '' })
+  useEffect(() => { apiFetch('/menu').then(menu => setSchoolInfo({ name: menu.schoolName || '', address: menu.schoolAddress || '' })).catch(() => {}) }, [])
+
   // Filter state
   const [session,       setSession]       = useState('')
   const [selectedClass, setSelectedClass] = useState('All Classes')
@@ -454,7 +448,21 @@ export default function StudentRegistrationDetails() {
     setErrors({}); setLoading(true); setSearch('')
     const classId = studentData?.classes?.find(c => c.className === selectedClass)?.classId
     fetchStudentReport('registration-details', { session, classId, query: regDate }).then(rows => {
-      const data = rows.map(s => ({ id: s.studentId, session: s.session, class_name: s.className || '', name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' '), registration_no: s.registrationNo || '', registration_date: '', status: s.status || '' }))
+      const data = rows.map(s => ({
+        id: s.studentId,
+        session: s.session,
+        form_no: s.formNo || s.registrationNo || '',
+        class_name: s.className || '',
+        name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' '),
+        father_name: s.fatherName || '',
+        mother_name: s.motherName || '',
+        address: s.address || '',
+        mobile: s.mobile || s.phone || '',
+        registration_no: s.registrationNo || '',
+        registration_date: s.registrationDate || '',
+        reg_fee: Number(s.regFee ?? s.reg_fee ?? 0) || 0,
+        status: s.status || '',
+      }))
       setRows(data); setShownFilters({ session, selectedClass, regDate }); setShown(true); showToast(data.length + ' student(s) found for session ' + session + '.')
     }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
   }, [session, selectedClass, regDate, studentData])
@@ -463,14 +471,13 @@ export default function StudentRegistrationDetails() {
     setRows([]); setSearch(''); setErrors({}); setShown(false); setShownFilters({})
   }
 
-  // ── Excel Export placeholder ─────────────────────────────────────────────
+  // Export the currently loaded live report rows.
   const handleExcel = () => {
     if (rows.length === 0) { showToast('No data to export. Show report first.', 'error'); return }
     setExporting(true)
-    setTimeout(() => {
-      setExporting(false)
-      showToast('Excel export ready! (API integration pending)')
-    }, 1200)
+    const ok = downloadCsv(`student-registration-details-${shownFilters.session || 'report'}.csv`, filtered)
+    setExporting(false)
+    showToast(ok ? 'Excel export downloaded!' : 'No data to export.', ok ? 'success' : 'error')
   }
 
   // ── Live search filter ───────────────────────────────────────────────────
@@ -548,6 +555,7 @@ export default function StudentRegistrationDetails() {
             {/* Class */}
             <Field label="Class">
               <NativeSelect value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+                <option value="All Classes">All Classes</option>
                 {(studentData?.classes || []).map(c => <option key={c.classId} value={c.className}>{c.className}</option>)}
               </NativeSelect>
             </Field>
@@ -658,6 +666,7 @@ export default function StudentRegistrationDetails() {
         <>
           {/* School Header */}
           <SchoolHeader
+            schoolInfo={schoolInfo}
             session={shownFilters.session}
             selectedClass={shownFilters.selectedClass}
             regDate={shownFilters.regDate}

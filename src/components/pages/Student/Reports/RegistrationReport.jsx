@@ -17,6 +17,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useStudents, fetchStudentReport } from '../../../../hooks/useStudents'
+import { downloadCsv } from '../../../../lib/exportCsv'
 import {
   Filter, RefreshCw, Eye,
   AlertCircle, X, Check, Loader2, ChevronDown,
@@ -536,7 +537,15 @@ export default function RegistrationReport() {
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch('')
     fetchStudentReport('registration', { session, query: regDate, status: status !== '0' ? status : '' }).then(rows => {
-      const data = rows.map(s => ({ id: s.studentId, form_no: s.registrationNo || '', class_name: s.className || '', name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' '), status: s.status || '', Registration_date: '', registration_no: s.registrationNo || '' }))
+      const data = rows.map(s => ({
+        id: s.studentId,
+        form_no: s.formNo || s.registrationNo || '',
+        class_name: s.className || '',
+        name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' '),
+        status: s.status || '',
+        Registration_date: s.registrationDate || '',
+        registration_no: s.admissionNo || '',
+      }))
       setRows(data); setShownSession(session); setShown(true); showToast('Loaded ' + data.length + ' records for session ' + session + '.')
     }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
   }, [session, regDate, status])
@@ -546,14 +555,13 @@ export default function RegistrationReport() {
     setShown(false); setShownSession('')
   }
 
-  // ── Excel export placeholder ──────────────────────────────────────────────
+  // Export the currently loaded live report rows.
   const handleExcel = () => {
     if (rows.length === 0) { showToast('No data to export. Show report first.', 'error'); return }
     setExporting(true)
-    setTimeout(() => {
-      setExporting(false)
-      showToast('Excel export ready! (API integration pending)')
-    }, 1200)
+    const ok = downloadCsv(`registration-report-${shownSession || 'report'}.csv`, filtered)
+    setExporting(false)
+    showToast(ok ? 'Excel export downloaded!' : 'No data to export.', ok ? 'success' : 'error')
   }
 
   // ── Reprint handler ───────────────────────────────────────────────────────

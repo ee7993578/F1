@@ -19,6 +19,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useSessionsClasses, csvDownload } from '../../../../lib/useStudentReport'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { studentApi as api } from '../../../../lib/studentApi'
 import {
   Filter, RefreshCw, Eye, AlertCircle, X, Check,
   Loader2, ChevronDown, ChevronRight, Users, TrendingUp,
@@ -710,7 +711,8 @@ export default function UDISEPromotionReport() {
   const handleShow = useCallback(() => {
     const err = {}; if (!filters.session) err.session = 'Please select a session'; if (!filters.cls) err.cls = 'Please select a class'; if (!filters.term) err.term = 'Please select a term'; if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch('')
-    fetchStudentReport('student-list', { session: filters.session }).then(data => { let result = data.filter(r => !filters.cls || r.className === filters.cls || r.class_name === filters.cls); if (filters.sections.length) result = result.filter(r => filters.sections.includes(r.sectionName) || filters.sections.includes(r.section_name)); setRows(result.map((r, i) => ({ ...r, sno: i + 1, overallPer: 0 }))); setShownMeta({ session: filters.session, cls: filters.cls, term: filters.term }); setShown(true); showToast('Loaded ' + result.length + ' student record(s) successfully.') }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
+    const classId = classIdOf(filters.cls)
+    fetchStudentReport('udise-promotion', { session: filters.session, classId }).then(data => { let result = data.filter(r => !filters.cls || r.className === filters.cls || r.class_name === filters.cls); if (filters.sections.length) result = result.filter(r => filters.sections.includes(r.sectionName) || filters.sections.includes(r.section_name)); const aggregated = aggregateBySection(result); setRows(aggregated.map((r, i) => ({ ...r, sno: i + 1 }))); setShownMeta({ session: filters.session, cls: filters.cls, term: filters.term }); setShown(true); showToast('Loaded ' + aggregated.length + ' section record(s) successfully.') }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
   }, [filters])
 
   const handleReset = () => {

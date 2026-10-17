@@ -4,7 +4,7 @@
  * Dependencies: lucide-react
  */
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useStudents, fetchStudentSearch, fetchStudentDetails } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
 import {
@@ -15,20 +15,8 @@ import {
 } from 'lucide-react'
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
-const SESSIONS    = ['2023-24', '2024-25', '2025-26']
-const CLASSES     = ['Nursery','LKG','UKG','Class I','Class II','Class III','Class IV','Class V','Class VI','Class VII','Class VIII','Class IX','Class X','Class XI','Class XII']
 const AFFILIATIONS= ['CBSE','ICSE','U.P. BOARD','Other']
-const BLOOD       = ['A+','A-','B+','B-','AB+','AB-','O+','O-']
-const CATEGORIES  = ['General','OBC','SC','ST','EWS']
-const RELIGIONS   = ['Hindu','Muslim','Christian','Sikh','Jain','Buddhist','Other']
-const QUOTAS      = ['None','Sports','NCC','Management','Staff Ward','RTE']
-const OCCUPATIONS = ['Business','Service','Farming','Doctor','Engineer','Lawyer','Teacher','Other']
 const GROUPS      = ['Alaabhit Samooh','Durbal Varg']
-const BANKS       = ['SBI','HDFC Bank','ICICI Bank','PNB','Bank of Baroda','Axis Bank','Canara Bank','Union Bank']
-const HOUSES      = ['Red House','Blue House','Green House','Yellow House']
-const STATES      = ['Uttar Pradesh','Delhi','Maharashtra','Bihar','Rajasthan','Punjab','Haryana','Uttarakhand']
-const CITIES      = { 'Uttar Pradesh':['Meerut','Lucknow','Agra','Varanasi','Kanpur'], 'Delhi':['New Delhi','Dwarka','Rohini'], 'Maharashtra':['Mumbai','Pune','Nagpur'], 'Bihar':['Patna','Gaya'], 'Rajasthan':['Jaipur','Jodhpur'], 'Punjab':['Amritsar','Ludhiana'], 'Haryana':['Gurugram','Faridabad'], 'Uttarakhand':['Dehradun','Haridwar'] }
-const PREV_CLASSES= CLASSES
 const DOCUMENTS   = ['Transfer Certificate','Birth Certificate','Marksheet','Migration Certificate','Aadhar Card','Cast Certificate']
 
 // Students by class (for dropdown)
@@ -172,13 +160,13 @@ function Toast({ msg, type, onClose }) {
 
 // ─── DEFAULT EMPTY FORM ────────────────────────────────────────────────────────
 const EMPTY_FORM = {
-  session:'2024-25', regNo:'', feebook:'', class_:'', studentId:'',
+  session:'', regNo:'', feebook:'', class_:'', studentId:'',
   prevSchool:'', affiliation:'', remark:'', prevClass:[], rollNo:'',
   docs:[],
   firstName:'', midName:'', lastName:'',
   dobDay:'', dobMonth:'', dobYear:'',
-  gender:'Male', blood:'', category:'', religion:'', quota:'None',
-  address:'', state:'Uttar Pradesh', city:'', ncc:'0', house:'', aadhar:'', pen:'', udise:'', apaar:'',
+  gender:'Male', blood:'', category:'', religion:'', quota:'',
+  address:'', state:'', city:'', ncc:'0', house:'', aadhar:'', pen:'', udise:'', apaar:'',
   admDate:'', admClass:'', group:'',
   fName:'', fQual:'', fOcc:'', fMobile:'', fEmail:'', fIncome:'', fWhats:'', fAadhar:'',
   mName:'', mQual:'', mOcc:'', mMobile:'', mEmail:'', mIncome:'', mWhats:'', mAadhar:'',
@@ -188,11 +176,12 @@ const EMPTY_FORM = {
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DAYS   = Array.from({length:31},(_,i)=>i+1)
-const YEARS  = Array.from({length:30},(_,i)=>2015-i)
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function UpdateStudentInfosheet() {
   const { data: liveStudentData } = useStudents()
+  const liveSessions = liveStudentData?.sessions?.map(row => row.session).filter(Boolean) || []
+  const liveClasses = liveStudentData?.classes?.map(row => row.className).filter(Boolean) || []
   const [form,         setForm]         = useState({ ...EMPTY_FORM })
   const [errors,       setErrors]       = useState({})
   const [loading,      setLoading]      = useState(false)
@@ -203,6 +192,18 @@ export default function UpdateStudentInfosheet() {
   const [toast,        setToast]        = useState(null)
   const [photos, setPhotos] = useState({ stu: null, father: null, mother: null })
   const [showSuccessScreen, setShowSuccessScreen] = useState(false)
+  const [lookups, setLookups] = useState({ blood: [], categories: [], religions: [], quota: [], occupations: [], banks: [], states: [], cities: [] })
+
+  useEffect(() => {
+    const current = liveStudentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || liveSessions[0] || ''
+    if (current && !form.session) setV('session', current)
+  }, [liveStudentData, liveSessions, form.session])
+
+  useEffect(() => {
+    Promise.all([
+      apiFetch('/students/registration-options'),
+    ]).then(([options]) => setLookups(options || {})).catch(() => {})
+  }, [])
 
   const showToast = (msg, type='success') => {
     setToast({ msg, type }); setTimeout(() => setToast(null), 3500)
@@ -227,7 +228,32 @@ export default function UpdateStudentInfosheet() {
   }
 
   // When student selected — load their full record
-  const applyLiveStudent = row => ({ ...EMPTY_FORM, studentId: String(row.studentId || row.id || ''), regNo: row.registrationNo || '', class_: row.className || row.class_name || '', firstName: row.firstName || '', midName: row.middleName || '', lastName: row.lastName || '', dobDay: row.dob ? String(new Date(row.dob).getDate()).padStart(2,'0') : '', dobMonth: row.dob ? String(new Date(row.dob).getMonth()+1) : '', dobYear: row.dob ? String(new Date(row.dob).getFullYear()) : '', gender: row.gender || '', fName: row.fatherName || '' })
+  const applyLiveStudent = row => {
+    const date = row.dob ? new Date(row.dob) : null
+    const docs = [
+      ['Transfer Certificate', row.transferCertificate],
+      ['Birth Certificate', row.birthCertificate],
+      ['Marksheet', row.marksheet],
+      ['Migration Certificate', row.migration],
+      ['Aadhar Card', row.aadharCard],
+      ['Cast Certificate', row.castCertificate],
+    ].filter(([, value]) => String(value || '').toLowerCase() === 'yes').map(([label]) => label)
+    return {
+      ...EMPTY_FORM,
+      studentId: String(row.uid || row.studentId || row.id || ''),
+      regNo: row.registrationNo || '', feebook: row.feeBookNo || '',
+      class_: row.className || row.class_name || '',
+      firstName: row.firstName || '', midName: row.middleName || '', lastName: row.lastName || '',
+      dobDay: date ? String(date.getDate()) : '', dobMonth: date ? String(date.getMonth() + 1) : '', dobYear: date ? String(date.getFullYear()) : '',
+      gender: row.gender || '', blood: row.bloodGroup || '', category: row.category || '', religion: row.religion || '', quota: row.quota || '', ncc: row.ncc || '0',
+      address: row.address || '', state: row.stateId ? String(row.stateId) : '', city: row.cityId ? String(row.cityId) : '', house: row.houseId ? String(row.houseId) : '',
+      aadhar: row.studentAadhar || '', pen: row.penNo || '', udise: row.udise || '', apaar: row.apaarId || '',
+      admDate: row.admissionDate || '', rollNo: row.rollNo || '', group: row.studentGroup || '',
+      prevSchool: row.previousSchool || '', affiliation: row.previousSchoolAffiliation || '', prevClass: row.previousClass ? String(row.previousClass).split(',').filter(Boolean) : [], remark: row.remark || '', docs,
+      fName: row.fatherName || '', fQual: row.fatherQualification || '', fOcc: row.fatherOccupation || '', fMobile: row.mobile || '', fEmail: row.fatherEmail || '', fWhats: row.fatherWhatsapp || '',
+      mName: row.motherName || '', mQual: row.motherQualification || '', mOcc: row.motherOccupation || '', mMobile: row.phone || '', mEmail: row.motherEmail || '', mWhats: row.motherWhatsapp || '',
+    }
+  }
 
   const handleStudentChange = v => {
     setV('studentId', v)
@@ -268,29 +294,42 @@ export default function UpdateStudentInfosheet() {
     const dob = form.dobYear && form.dobMonth && form.dobDay ? form.dobYear + '-' + String(form.dobMonth).padStart(2, '0') + '-' + String(form.dobDay).padStart(2, '0') : undefined
     setSaving(true)
     try {
-      await apiFetch('/students/' + encodeURIComponent(form.studentId), { method: 'PUT', body: JSON.stringify({ registrationNo: form.regNo, firstName: form.firstName, middleName: form.midName, lastName: form.lastName, dob, gender: form.gender, bloodGroup: form.blood, category: form.category, quota: form.quota, fatherName: form.fName, motherName: form.mName, address: form.address, mobile: form.fMobile, studentAadhar: form.aadhar, religion: form.religion, session: form.session, className: form.class_ }) })
+      await apiFetch('/students/' + encodeURIComponent(form.studentId), { method: 'PUT', body: JSON.stringify({
+        registrationNo: form.regNo, firstName: form.firstName, middleName: form.midName, lastName: form.lastName, dob,
+        gender: form.gender, bloodGroup: form.blood, category: form.category, quota: form.quota, fatherName: form.fName, motherName: form.mName,
+        address: form.address, phone: form.mMobile, mobile: form.fMobile, email: form.fEmail, studentAadhar: form.aadhar, religion: form.religion,
+        session: form.session, className: form.class_, rollNo: form.rollNo, feeBookNo: form.feebook, houseId: form.house,
+        penNo: form.pen, apaarId: form.apaar, udise: form.udise, fatherOccupation: form.fOcc, motherOccupation: form.mOcc,
+        fatherWhatsapp: form.fWhats, motherWhatsapp: form.mWhats, stateId: form.state, cityId: form.city, admissionDate: form.admDate,
+        transferCertificate: form.docs.includes('Transfer Certificate') ? 'Yes' : 'No', birthCertificate: form.docs.includes('Birth Certificate') ? 'Yes' : 'No',
+        marksheet: form.docs.includes('Marksheet') ? 'Yes' : 'No', migration: form.docs.includes('Migration Certificate') ? 'Yes' : 'No',
+        aadharCard: form.docs.includes('Aadhar Card') ? 'Yes' : 'No', castCertificate: form.docs.includes('Cast Certificate') ? 'Yes' : 'No',
+      }) })
       setShowSuccessScreen(true)
     } catch (error) { showToast(error.message || 'Student update failed', 'error') } finally { setSaving(false) }
   }
-  const handleUpdateDisabled = () => {
-    if (!validate()) {
-      // Open first section with errors
-      if (errors.class_ || errors.firstName) setOpenSection(3)
-      showToast('Fix validation errors first.', 'error'); return
-    }
-    setSaving(true)
-    setTimeout(() => {
-      setSaving(false)
-      setShowSuccessScreen(true)
-    }, 900)
-  }
-
   const handleReset = () => {
     setForm({ ...EMPTY_FORM }); setErrors({}); setStudentList([])
     setOpenSection(null); setShowSuccessScreen(false); setPhotos({ stu:null, father:null, mother:null })
   }
 
-  const cities = CITIES[form.state] || []
+  const bloodOptions = lookups.blood || []
+  const categoryOptions = lookups.categories || []
+  const religionOptions = lookups.religions || []
+  const quotaOptions = lookups.quota || []
+  const occupationOptions = lookups.occupations || []
+  const bankOptions = lookups.banks || []
+  const stateOptions = lookups.states || []
+  const cities = (lookups.cities || []).filter(city => !form.state || String(city.stateId) === String(form.state))
+  const houseOptions = liveStudentData?.houses || []
+  const dobYears = (lookups.dobYears || []).map(row => row.year).filter(Boolean)
+  const years = dobYears
+  const dobDays = form.dobYear && form.dobMonth
+    ? Array.from({ length: new Date(Number(form.dobYear), Number(form.dobMonth), 0).getDate() }, (_, index) => index + 1)
+    : []
+  useEffect(() => {
+    if (form.dobDay && dobDays.length && Number(form.dobDay) > dobDays.length) setV('dobDay', '')
+  }, [form.dobDay, dobDays.length])
   const isRTE  = form.quota === 'RTE'
 
   // ── Success screen ──────────────────────────────────────────────────────────
@@ -352,7 +391,7 @@ export default function UpdateStudentInfosheet() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Field label="Session">
               <NativeSelect value={form.session} onChange={set('session')}>
-                {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {liveSessions.map(s => <option key={s} value={s}>{s}</option>)}
               </NativeSelect>
             </Field>
             <Field label="Registration No.">
@@ -363,7 +402,7 @@ export default function UpdateStudentInfosheet() {
             </Field>
             <Field label="Class" error={errors.class_}>
               <NativeSelect value={form.class_} onChange={e => handleClassChange(e.target.value)} placeholder="-- Select Class --" error={errors.class_}>
-                {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                {liveClasses.map(c => <option key={c} value={c}>{c}</option>)}
               </NativeSelect>
             </Field>
             <Field label="Student">
@@ -408,7 +447,7 @@ export default function UpdateStudentInfosheet() {
                     <button type="button" onClick={() => setShowPrevPicker(false)}><X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600" /></button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {PREV_CLASSES.map(cls => (
+                    {liveClasses.map(cls => (
                       <button key={cls} type="button" onClick={() => togglePC(cls)}
                         className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all
                           ${form.prevClass.includes(cls) ? 'bg-blue-500 border-blue-500 text-white dark:bg-indigo-600 dark:border-indigo-600' : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-blue-300 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300'}`}>
@@ -472,9 +511,9 @@ export default function UpdateStudentInfosheet() {
             <div className="col-span-2">
               <Field label="Date of Birth">
                 <div className="flex gap-2">
-                  <NativeSelect value={form.dobDay}   onChange={set('dobDay')}   className="flex-1"><option value="">Day</option>{DAYS.map(d=><option key={d}>{d}</option>)}</NativeSelect>
+                  <NativeSelect value={form.dobDay}   onChange={set('dobDay')}   className="flex-1"><option value="">Day</option>{dobDays.map(d=><option key={d}>{d}</option>)}</NativeSelect>
                   <NativeSelect value={form.dobMonth} onChange={set('dobMonth')} className="flex-1"><option value="">Month</option>{MONTHS.map((m,i)=><option key={m} value={i+1}>{m}</option>)}</NativeSelect>
-                  <NativeSelect value={form.dobYear}  onChange={set('dobYear')}  className="flex-1"><option value="">Year</option>{YEARS.map(y=><option key={y}>{y}</option>)}</NativeSelect>
+                  <NativeSelect value={form.dobYear}  onChange={set('dobYear')}  className="flex-1"><option value="">Year</option>{years.map(y=><option key={y}>{y}</option>)}</NativeSelect>
                 </div>
               </Field>
             </div>
@@ -489,19 +528,19 @@ export default function UpdateStudentInfosheet() {
                 ))}
               </div>
             </div>
-            <Field label="Blood Group"><NativeSelect value={form.blood} onChange={set('blood')} placeholder="-- Select --">{BLOOD.map(b=><option key={b}>{b}</option>)}</NativeSelect></Field>
-            <Field label="Category"><NativeSelect value={form.category} onChange={set('category')} placeholder="-- Select --">{CATEGORIES.map(c=><option key={c}>{c}</option>)}</NativeSelect></Field>
-            <Field label="Religion"><NativeSelect value={form.religion} onChange={set('religion')} placeholder="-- Select --">{RELIGIONS.map(r=><option key={r}>{r}</option>)}</NativeSelect></Field>
+            <Field label="Blood Group"><NativeSelect value={form.blood} onChange={set('blood')} placeholder="-- Select --">{bloodOptions.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</NativeSelect></Field>
+            <Field label="Category"><NativeSelect value={form.category} onChange={set('category')} placeholder="-- Select --">{categoryOptions.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</NativeSelect></Field>
+            <Field label="Religion"><NativeSelect value={form.religion} onChange={set('religion')} placeholder="-- Select --">{religionOptions.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</NativeSelect></Field>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <Field label="Quota"><NativeSelect value={form.quota} onChange={set('quota')}>{QUOTAS.map(q=><option key={q}>{q}</option>)}</NativeSelect></Field>
+            <Field label="Quota"><NativeSelect value={form.quota} onChange={set('quota')} placeholder="-- Select --">{quotaOptions.map(q=><option key={q.id} value={q.id}>{q.name}</option>)}</NativeSelect></Field>
             <Field label="NCC"><NativeSelect value={form.ncc} onChange={set('ncc')}><option value="0">No</option><option value="1">Yes</option></NativeSelect></Field>
-            <Field label="House"><NativeSelect value={form.house} onChange={set('house')} placeholder="-- Select --">{HOUSES.map(h=><option key={h}>{h}</option>)}</NativeSelect></Field>
+            <Field label="House"><NativeSelect value={form.house} onChange={set('house')} placeholder="-- Select --">{houseOptions.map(h=><option key={h.houseId} value={h.houseId}>{h.houseName}</option>)}</NativeSelect></Field>
             <Field label="Adm. Date" className="col-span-2 sm:col-span-1">
               <Inp value={form.admDate} onChange={set('admDate')} placeholder="dd MMM yyyy" />
             </Field>
-            <Field label="Adm. Class"><NativeSelect value={form.admClass} onChange={set('admClass')} placeholder="-- Select --">{CLASSES.map(c=><option key={c}>{c}</option>)}</NativeSelect></Field>
+            <Field label="Adm. Class"><NativeSelect value={form.admClass} onChange={set('admClass')} placeholder="-- Select --">{liveClasses.map(c=><option key={c}>{c}</option>)}</NativeSelect></Field>
             <Field label="Group"><NativeSelect value={form.group} onChange={set('group')} placeholder="-- Select --">{GROUPS.map(g=><option key={g}>{g}</option>)}</NativeSelect></Field>
           </div>
 
@@ -510,8 +549,8 @@ export default function UpdateStudentInfosheet() {
             <div className="sm:col-span-2">
               <Field label="Address"><Inp value={form.address} onChange={set('address')} placeholder="Full address" /></Field>
             </div>
-            <Field label="State"><NativeSelect value={form.state} onChange={e => { setV('state',e.target.value); setV('city','') }}>{STATES.map(s=><option key={s}>{s}</option>)}</NativeSelect></Field>
-            <Field label="City"><NativeSelect value={form.city} onChange={set('city')} placeholder="-- Select --">{cities.map(c=><option key={c}>{c}</option>)}</NativeSelect></Field>
+            <Field label="State"><NativeSelect value={form.state} onChange={e => { setV('state',e.target.value); setV('city','') }} placeholder="-- Select --">{stateOptions.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</NativeSelect></Field>
+            <Field label="City"><NativeSelect value={form.city} onChange={set('city')} placeholder="-- Select --">{cities.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</NativeSelect></Field>
             <Field label="Aadhar No." error={errors.aadhar}><Inp value={form.aadhar} onChange={e => setV('aadhar', e.target.value.replace(/\D/g,''))} placeholder="12-digit" maxLength={12} error={errors.aadhar} /></Field>
             <Field label="PEN Number"><Inp value={form.pen} onChange={e => setV('pen', e.target.value.replace(/\D/g,''))} placeholder="PEN number" maxLength={12} /></Field>
             <Field label="UDISE"><Inp value={form.udise} onChange={e => setV('udise', e.target.value.replace(/\D/g,''))} placeholder="UDISE code" maxLength={12} /></Field>
@@ -533,7 +572,7 @@ export default function UpdateStudentInfosheet() {
           <ParentSection title="Father's Detail" accent="blue" fields={<>
             <Field label="Name"><Inp value={form.fName} onChange={e=>setV('fName',e.target.value.replace(/[^a-zA-Z .]/g,''))} placeholder="Father's name"/></Field>
             <Field label="Qualification"><Inp value={form.fQual} onChange={set('fQual')} placeholder="e.g. B.Tech"/></Field>
-            <Field label="Occupation"><NativeSelect value={form.fOcc} onChange={set('fOcc')}><option value="">-- Select --</option>{OCCUPATIONS.map(o=><option key={o}>{o}</option>)}</NativeSelect></Field>
+            <Field label="Occupation"><NativeSelect value={form.fOcc} onChange={set('fOcc')}><option value="">-- Select --</option>{occupationOptions.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</NativeSelect></Field>
             <Field label="Mobile No." error={errors.fMobile}><Inp value={form.fMobile} onChange={e=>setV('fMobile',e.target.value.replace(/\D/g,''))} placeholder="10-digit" maxLength={10} error={errors.fMobile}/></Field>
             <Field label="Email" error={errors.fEmail}><Inp type="email" value={form.fEmail} onChange={set('fEmail')} placeholder="father@email.com" error={errors.fEmail}/></Field>
             <Field label="Annual Income"><Inp value={form.fIncome} onChange={e=>setV('fIncome',e.target.value.replace(/\D/g,''))} placeholder="e.g. 500000"/></Field>
@@ -543,7 +582,7 @@ export default function UpdateStudentInfosheet() {
           <ParentSection title="Mother's Detail" accent="pink" fields={<>
             <Field label="Name"><Inp value={form.mName} onChange={e=>setV('mName',e.target.value.replace(/[^a-zA-Z .]/g,''))} placeholder="Mother's name"/></Field>
             <Field label="Qualification"><Inp value={form.mQual} onChange={set('mQual')} placeholder="e.g. M.A."/></Field>
-            <Field label="Occupation"><NativeSelect value={form.mOcc} onChange={set('mOcc')}><option value="">-- Select --</option>{OCCUPATIONS.map(o=><option key={o}>{o}</option>)}</NativeSelect></Field>
+            <Field label="Occupation"><NativeSelect value={form.mOcc} onChange={set('mOcc')}><option value="">-- Select --</option>{occupationOptions.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</NativeSelect></Field>
             <Field label="Mobile No." error={errors.mMobile}><Inp value={form.mMobile} onChange={e=>setV('mMobile',e.target.value.replace(/\D/g,''))} placeholder="10-digit" maxLength={10} error={errors.mMobile}/></Field>
             <Field label="Email" error={errors.mEmail}><Inp type="email" value={form.mEmail} onChange={set('mEmail')} placeholder="mother@email.com" error={errors.mEmail}/></Field>
             <Field label="Annual Income"><Inp value={form.mIncome} onChange={e=>setV('mIncome',e.target.value.replace(/\D/g,''))} placeholder="e.g. 300000"/></Field>
@@ -563,7 +602,7 @@ export default function UpdateStudentInfosheet() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Field label="Account Holder Name"><Inp value={form.accHolder} onChange={e=>setV('accHolder',e.target.value.replace(/[^a-zA-Z .]/g,''))} placeholder="As per bank records"/></Field>
-            <Field label="Bank Name"><NativeSelect value={form.bank} onChange={set('bank')} placeholder="-- Select --">{BANKS.map(b=><option key={b}>{b}</option>)}</NativeSelect></Field>
+            <Field label="Bank Name"><NativeSelect value={form.bank} onChange={set('bank')} placeholder="-- Select --">{bankOptions.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</NativeSelect></Field>
             <Field label="Branch"><Inp value={form.branch} onChange={set('branch')} placeholder="Branch name"/></Field>
             <Field label="Account Type"><NativeSelect value={form.accType} onChange={set('accType')} placeholder="-- Select --"><option>Saving</option><option>Current</option></NativeSelect></Field>
             <Field label="Account No."><Inp value={form.accNo} onChange={e=>setV('accNo',e.target.value.replace(/\D/g,''))} placeholder="Account number"/></Field>

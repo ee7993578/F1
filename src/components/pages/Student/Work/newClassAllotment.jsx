@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { apiFetch } from '../../../../lib/api'
 import { useStudents } from '../../../../hooks/useStudents'
 import {
@@ -290,6 +290,9 @@ export default function NewClassAllotment() {
     const option = classSectionOptions.find(item => item.id === String(classId))
     return (liveStudentData?.students || []).filter(row => !option || (String(row.classId) === String(option.classId) && String(row.sectionId) === String(option.id))).map(row => ({ ...row, id: row.uid || row.studentId, name: row.name, adm: row.registrationNo || '', roll: row.rollNo || '' }))
   }
+  const classOptions = useMemo(() => (liveStudentData?.classes || []).map(row => ({ id: String(row.classId), label: row.className || '' })), [liveStudentData])
+  const sectionOptions = useMemo(() => (liveStudentData?.sections || []).map(row => ({ id: String(row.sectionId), classId: String(row.classId), label: [row.className, row.sectionName].filter(Boolean).join(' â€“ ') })), [liveStudentData])
+  const [pendingStudents, setPendingStudents] = useState([])
   // Source panel state
   const [srcClass, setSrcClass]           = useState('')
   const [srcStudents, setSrcStudents]     = useState([])
@@ -307,6 +310,15 @@ export default function NewClassAllotment() {
   const [toast, setToast]                 = useState(null)
   const currentSession = liveStudentData?.sessions?.find(item => String(item.status).toLowerCase() === 'default')?.session || liveStudentData?.sessions?.[0]?.session || ''
 
+  useEffect(() => {
+    if (!currentSession || !srcClass) { setPendingStudents([]); return }
+    apiFetch(`/students/reports/registration?session=${encodeURIComponent(currentSession)}&classId=${encodeURIComponent(srcClass)}`)
+      .then(rows => setPendingStudents((rows || []).filter(row => !row.sectionId).map(row => ({ ...row, id: row.uid || row.studentId, name: row.name, adm: row.registrationNo || '', roll: row.rollNo || '' }))))
+      .catch(() => setPendingStudents([]))
+  }, [currentSession, srcClass])
+
+  useEffect(() => { if (srcClass) setSrcStudents(pendingStudents) }, [pendingStudents, srcClass])
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   const showToast = (msg) => {
     setToast(msg)
@@ -315,7 +327,7 @@ export default function NewClassAllotment() {
 
   const handleSrcClassChange = (id) => {
     setSrcClass(id)
-    setSrcStudents(id ? liveStudentsForClass(id) : [])
+    setSrcStudents(id ? pendingStudents : [])
     setSrcSelected([])
     setSrcSearch('')
     setErrors(p => ({ ...p, srcClass: undefined }))
@@ -323,7 +335,7 @@ export default function NewClassAllotment() {
 
   const handleTgtClassChange = (id) => {
     setTgtClass(id)
-    setTgtStudents(id ? liveStudentsForClass(id) : [])
+    setTgtStudents([])
     setTgtSelected([])
     setTgtSearch('')
     setErrors(p => ({ ...p, tgtClass: undefined }))
@@ -379,8 +391,7 @@ export default function NewClassAllotment() {
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({})
     if (!currentSession) { setErrors({ session: 'No academic session is configured' }); return }
-    const originalTargetIds = new Set(liveStudentsForClass(tgtClass).map(student => String(student.id)))
-    const movedUids = tgtStudents.filter(student => !originalTargetIds.has(String(student.id))).map(student => String(student.uid || student.id))
+    const movedUids = tgtStudents.map(student => String(student.uid || student.id))
     if (!movedUids.length) { showToast('No students were moved'); return }
     try {
       const result = await apiFetch('/students/class-allotment', { method: 'PUT', body: JSON.stringify({ sectionId: Number(tgtClass), session: currentSession, studentUids: movedUids }) })
@@ -468,7 +479,7 @@ export default function NewClassAllotment() {
                 title="Source Class"
                 accentColor="blue"
                 classId={srcClass}
-                classOptions={classSectionOptions}
+                classOptions={classOptions}
                 onClassChange={handleSrcClassChange}
                 students={srcFiltered}
                 selectedIds={srcSelected}
@@ -509,7 +520,7 @@ export default function NewClassAllotment() {
                 title="Target Class"
                 accentColor="violet"
                 classId={tgtClass}
-                classOptions={classSectionOptions}
+                classOptions={sectionOptions.filter(option => !srcClass || option.classId === String(srcClass))}
                 onClassChange={handleTgtClassChange}
                 students={tgtFiltered}
                 selectedIds={tgtSelected}
@@ -556,7 +567,7 @@ export default function NewClassAllotment() {
         <div className="rounded-2xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-500/[0.05] px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-2">
           <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
           <p className="text-[13px] text-emerald-800 dark:text-emerald-300 font-medium flex-1">
-            <strong>{tgtStudents.length}</strong> student{tgtStudents.length > 1 ? 's' : ''} currently in <strong>{classSectionOptions.find(c => c.id === tgtClass)?.label}</strong>. Click <em>Change</em> to confirm and save.
+            <strong>{tgtStudents.length}</strong> student{tgtStudents.length > 1 ? 's' : ''} currently in <strong>{sectionOptions.find(c => c.id === tgtClass)?.label}</strong>. Click <em>Change</em> to confirm and save.
           </p>
         </div>
       )}

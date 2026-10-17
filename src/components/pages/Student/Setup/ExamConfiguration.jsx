@@ -14,7 +14,8 @@
  *  - Desktop: full form panel + dense ERP grid
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useStudents } from '../../../../hooks/useStudents'
 import {
   Plus, X, Check, AlertCircle, Loader2, ChevronDown,
   Calendar, Clock, DoorOpen, BookOpen, Users,
@@ -24,34 +25,14 @@ import {
 } from 'lucide-react'
 
 // ─── STATIC DATA ──────────────────────────────────────────────────────────────
-const SESSIONS = ['2022-23', '2023-24', '2024-25', '2025-26']
-
-const CLASSES = [
-  { id: '1',  name: 'Nursery' },
-  { id: '2',  name: 'LKG' },
-  { id: '3',  name: 'UKG' },
-  { id: '4',  name: 'Class I' },
-  { id: '5',  name: 'Class II' },
-  { id: '6',  name: 'Class III' },
-  { id: '7',  name: 'Class IV' },
-  { id: '8',  name: 'Class V' },
-  { id: '9',  name: 'Class VI' },
-  { id: '10', name: 'Class VII' },
-  { id: '11', name: 'Class VIII' },
-  { id: '12', name: 'Class IX' },
-  { id: '13', name: 'Class X' },
-  { id: '14', name: 'Class XI' },
-  { id: '15', name: 'Class XII' },
-]
-
 // Classes that require student type selection (XI, XII = only new admissions)
-const CLASSES_WITH_STUDENT_TYPE = ['14', '15']
+// examConfiguration.aspx.cs shows this selector only for class id 17.
+const CLASSES_WITH_STUDENT_TYPE = ['17']
 
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
 const MINUTES = ['00', '15', '30', '45']
 const MERIDIEM = ['AM', 'PM']
 
-// ── Seed dummy data ───────────────────────────────────────────────────────────
 const SEED_DATA = []
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -216,7 +197,7 @@ function ConfirmDialog({ open, message, onConfirm, onCancel }) {
 }
 
 // ─── FORM COMPONENT (shared between desktop panel + mobile drawer) ─────────────
-function ExamForm({ form, setForm, errors, onSave, onCancel, saving, editId }) {
+function ExamForm({ form, setForm, errors, onSave, onCancel, saving, editId, sessions = [], classes = [] }) {
   const showStudentType = CLASSES_WITH_STUDENT_TYPE.includes(form.classId)
 
   const set = (key) => (e) => setForm(p => ({ ...p, [key]: e.target.value }))
@@ -227,12 +208,12 @@ function ExamForm({ form, setForm, errors, onSave, onCancel, saving, editId }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Session" error={errors.examSession} required>
           <NativeSelect value={form.examSession} onChange={set('examSession')} placeholder="-- Select Session --" error={errors.examSession}>
-            {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            {sessions.map(s => <option key={s} value={s}>{s}</option>)}
           </NativeSelect>
         </Field>
         <Field label="Class" error={errors.classId} required>
           <NativeSelect value={form.classId} onChange={set('classId')} placeholder="-- Select Class --" error={errors.classId}>
-            {CLASSES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </NativeSelect>
         </Field>
       </div>
@@ -439,6 +420,9 @@ function MobileExamCard({ row, onEdit, onDelete, idx }) {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function ExamConfiguration() {
+  const { data: studentData } = useStudents()
+  const sessions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
+  const classes = studentData?.classes?.map(row => ({ id: row.classId ?? row.id, name: row.className ?? row.class_name })).filter(row => row.name) || []
   const [records, setRecords]         = useState(SEED_DATA)
   useEffect(() => { apiFetch('/student-settings/exam-configuration').then(setRecords).catch(error => showToast(error.message || 'Unable to load exam configurations', 'error')) }, [])
   const [form, setForm]               = useState(emptyForm())
@@ -451,6 +435,11 @@ export default function ExamConfiguration() {
   const [search, setSearch]           = useState('')
   const [toast, setToast]             = useState(null)
   const [confirm, setConfirm]         = useState(null)    // { row }
+
+  useEffect(() => {
+    const current = studentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || sessions[0] || ''
+    if (current && !gridSession) setGridSession(current)
+  }, [studentData, sessions, gridSession])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -580,6 +569,7 @@ export default function ExamConfiguration() {
                 form={form} setForm={setForm} errors={errors}
                 onSave={handleSave} onCancel={closeForm}
                 saving={saving} editId={editId}
+                sessions={sessions} classes={classes}
               />
             </div>
           </div>
@@ -607,7 +597,7 @@ export default function ExamConfiguration() {
                   className="appearance-none pl-3 pr-8 py-2 text-[12px] rounded-xl border border-slate-200 bg-white text-slate-700 outline-none focus:border-blue-400 cursor-pointer"
                 >
                   <option value="">All Sessions</option>
-                  {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                  {sessions.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
               </div>
@@ -776,6 +766,7 @@ export default function ExamConfiguration() {
           form={form} setForm={setForm} errors={errors}
           onSave={handleSave} onCancel={closeForm}
           saving={saving} editId={editId}
+          sessions={sessions} classes={classes}
         />
       </FormDrawer>
 

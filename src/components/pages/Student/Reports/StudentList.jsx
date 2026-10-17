@@ -10,8 +10,10 @@
  * Features : Show report, Excel export, search, mobile cards, drawer filter
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useStudents, fetchStudentReport } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
+import { downloadCsv } from '../../../../lib/exportCsv'
 import {
   Filter, RefreshCw, Eye,
   AlertCircle, X, Check, Loader2, ChevronDown,
@@ -23,17 +25,10 @@ import {
 
 // ─── STATIC / DUMMY DATA ───────────────────────────────────────────────────────
 
-const SESSIONS = ['2022-23', '2023-24', '2024-25', '2025-26']
-
 const TYPES = [
   { value: 'notpromoted',        label: 'Not Promoted'          },
   { value: 'section_notalloted', label: 'Section Not Alloted'   },
 ]
-
-const SCHOOL_INFO = {
-  name:    'Saraswati Vidya Mandir Senior Secondary School',
-  address: 'Civil Lines, Dehradun, Uttarakhand – 248001',
-}
 
 // ── Dummy students per session × type ─────────────────────────────────────────
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -155,12 +150,12 @@ function SchoolHeader({ session, type }) {
       <div className="flex items-center justify-center gap-2 mb-1">
         <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
         <h2 className="text-[16px] sm:text-[18px] font-extrabold text-slate-800 dark:text-slate-100 tracking-tight leading-snug">
-          {SCHOOL_INFO.name}
+          {schoolInfo.name}
         </h2>
       </div>
       <div className="flex items-center justify-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400 mb-2">
         <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>{SCHOOL_INFO.address}</span>
+        <span>{schoolInfo.address}</span>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
         <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/25">
@@ -358,6 +353,8 @@ function FilterDrawer({ open, onClose, session, setSession, type, setType, onSho
 export default function StudentList() {
   const [session,      setSession      ] = useState('')
   const { data: studentData } = useStudents()
+  const [schoolInfo, setSchoolInfo] = useState({ name: '', address: '' })
+  useEffect(() => { apiFetch('/menu').then(menu => setSchoolInfo({ name: menu.schoolName || '', address: menu.schoolAddress || '' })).catch(() => {}) }, [])
   const sessionOptions = studentData?.sessions?.map(s => s.session).filter(Boolean) || []
   const [type,         setType]         = useState('')
   const [rows,         setRows]         = useState([])
@@ -399,10 +396,9 @@ export default function StudentList() {
   const handleExcel = () => {
     if (rows.length === 0) { showToast('No data to export. Show report first.', 'error'); return }
     setExporting(true)
-    setTimeout(() => {
-      setExporting(false)
-      showToast('Excel export ready! (API integration pending)')
-    }, 1200)
+    const ok = downloadCsv(`student-list-${shownSession || 'report'}.csv`, filtered)
+    setExporting(false)
+    showToast(ok ? 'Excel export downloaded!' : 'No data to export.', ok ? 'success' : 'error')
   }
 
   // ── Search Filter ─────────────────────────────────────────────────────────

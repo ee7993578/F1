@@ -21,38 +21,24 @@ import {
   Building2, MapPin, GraduationCap, UserCheck,
   SlidersHorizontal, CheckCircle2
 } from 'lucide-react'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC / DUMMY DATA ───────────────────────────────────────────────────────
 
-const CURRENT_SESSION = '2025-26'
+const CURRENT_SESSION = ''
 
-const SCHOOL_INFO = {
+/* const SCHOOL_INFO = {
   name: 'Saraswati Vidya Mandir Senior Secondary School',
   address: 'Civil Lines, Dehradun, Uttarakhand – 248001',
 }
 
-// All available teachers for dropdown
-const TEACHERS = [
-  { id: '',   name: '-- Select Teacher --' },
-  { id: 't1', name: 'Rajesh Kumar Sharma' },
-  { id: 't2', name: 'Priya Mehta' },
-  { id: 't3', name: 'Amit Singh Rawat' },
-  { id: 't4', name: 'Sunita Devi Joshi' },
-  { id: 't5', name: 'Deepak Chandra Pant' },
-  { id: 't6', name: 'Kavita Bhandari' },
-  { id: 't7', name: 'Mohan Lal Verma' },
-  { id: 't8', name: 'Neha Gupta' },
-  { id: 't9', name: 'Vikas Negi' },
-  { id: 't10', name: 'Anita Rana' },
-  { id: 't11', name: 'Suresh Bisht' },
-  { id: 't12', name: 'Pooja Arora' },
-  { id: 't13', name: 'Rakesh Thakur' },
-  { id: 't14', name: 'Meena Kumari' },
-  { id: 't15', name: 'Harish Bhatt' },
-]
+} */
+
+// Teacher options are loaded from the registered-faculty query.
+const TEACHERS = []
 
 // Class-section data (simulating DB fetch)
-const CLASS_SECTIONS = [
+/* const CLASS_SECTIONS = [
   { f_id: 'cs1',  f_id_co: 'co1',  class_id: 'cls1', class_name: 'Nursery',    sec_id: 's1',  section: 'A' },
   { f_id: 'cs2',  f_id_co: 'co2',  class_id: 'cls1', class_name: 'Nursery',    sec_id: 's2',  section: 'B' },
   { f_id: 'cs3',  f_id_co: 'co3',  class_id: 'cls2', class_name: 'LKG',        sec_id: 's3',  section: 'A' },
@@ -80,14 +66,8 @@ const CLASS_SECTIONS = [
 ]
 
 // Pre-assigned teachers (simulate existing data from DB)
-const EXISTING_ASSIGNMENTS = {
-  'cs1':  { teacher: 't1',  coTeacher: 't2'  },
-  'cs2':  { teacher: 't3',  coTeacher: ''    },
-  'cs7':  { teacher: 't4',  coTeacher: 't5'  },
-  'cs14': { teacher: 't6',  coTeacher: 't7'  },
-  'cs18': { teacher: 't8',  coTeacher: 't9'  },
-  'cs21': { teacher: 't10', coTeacher: 't11' },
-}
+*/
+const EXISTING_ASSIGNMENTS = {}
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -414,6 +394,7 @@ export default function DefineClassTeacher() {
   const [saving,      setSaving]      = useState(false)
   const [toast,       setToast]       = useState(null)
   const [filter,      setFilter]      = useState('all') // 'all' | 'assigned' | 'pending'
+  const [session,     setSession]    = useState('')
 
   // ── Show toast ─────────────────────────────────────────────────────────────
   const showToast = (msg, type = 'success') => {
@@ -423,12 +404,24 @@ export default function DefineClassTeacher() {
 
   // ── Initial data load (simulate API) ───────────────────────────────────────
   useEffect(() => {
-    setLoading(true)
-    setTimeout(() => {
-      setRows(CLASS_SECTIONS)
-      setAssignments(EXISTING_ASSIGNMENTS)
-      setLoading(false)
-    }, 700)
+    let cancelled = false
+    ;(async () => {
+      try {
+        const boot = await apiFetch('/master-settings/bootstrap')
+        const current = boot.currentSession || boot.sessions?.find(x => String(x.status).toLowerCase() === 'default')?.session || boot.sessions?.[0]?.session
+        if (!current) throw new Error('No academic session is configured')
+        const setup = await apiFetch(`/staff/class-teacher-setup?session=${encodeURIComponent(current)}`)
+        if (cancelled) return
+        setSession(current)
+        TEACHERS.splice(0, TEACHERS.length, { id: '', name: '-- Select Teacher --' }, ...(setup.teachers || []).map(t => ({ id: String(t.id), name: t.name || '' })))
+        const loadedRows = (setup.rows || []).map(r => ({ f_id: String(r.sectionId), f_id_co: String(r.coFacultyId || ''), class_id: String(r.classId || ''), class_name: r.className || '', sec_id: String(r.sectionId), section: r.sectionName || '' }))
+        setRows(loadedRows)
+        setAssignments(Object.fromEntries((setup.rows || []).map(r => [String(r.sectionId), { teacher: String(r.facultyId || ''), coTeacher: String(r.coFacultyId || '') === '0' ? '' : String(r.coFacultyId || '') }])))
+      } catch (error) {
+        if (!cancelled) showToast(error.message || 'Unable to load class teacher data.', 'error')
+      } finally { if (!cancelled) setLoading(false) }
+    })()
+    return () => { cancelled = true }
   }, [])
 
   // ── Handle class teacher change ────────────────────────────────────────────
@@ -448,19 +441,15 @@ export default function DefineClassTeacher() {
   }, [])
 
   // ── Handle submit ──────────────────────────────────────────────────────────
-  const handleSubmit = useCallback(() => {
-    const unassigned = rows.filter(r => !assignments[r.f_id]?.teacher)
-    if (unassigned.length > 0) {
-      showToast(`${unassigned.length} class(es) have no Class Teacher assigned.`, 'error')
-      return
-    }
+  const handleSubmit = useCallback(async () => {
     setSaving(true)
-    // Simulate API call
-    setTimeout(() => {
-      setSaving(false)
-      showToast(`Class teachers defined successfully for session ${CURRENT_SESSION}!`)
-    }, 1200)
-  }, [rows, assignments])
+    try {
+      await apiFetch('/staff/class-teachers', { method: 'PUT', body: JSON.stringify({ session, assignments: rows.map(r => ({ sectionId: r.sec_id, facultyId: assignments[r.f_id]?.teacher || '0', coFacultyId: assignments[r.f_id]?.coTeacher || '0' })) }) })
+      showToast('Submitted Successfully!!')
+    } catch (error) {
+      showToast(error.message || 'Something went wrong', 'error')
+    } finally { setSaving(false) }
+  }, [rows, assignments, session])
 
   // ── Handle reset ───────────────────────────────────────────────────────────
   const handleReset = () => {
@@ -495,7 +484,7 @@ export default function DefineClassTeacher() {
           </h1>
           <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
             Assign class teacher &amp; co-class teacher for each section — Session{' '}
-            <span className="font-semibold text-slate-700 dark:text-slate-300">{CURRENT_SESSION}</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-300">{session}</span>
           </p>
         </div>
 
@@ -553,9 +542,6 @@ export default function DefineClassTeacher() {
       {/* ── Main Content ─────────────────────────────────────────────────────── */}
       {!loading && (
         <>
-          {/* School Header */}
-          <SchoolHeader session={CURRENT_SESSION} />
-
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <SummaryCard icon={School2}     label="Total Sections"      value={stats.total}      color="blue"    />

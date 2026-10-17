@@ -1,0 +1,27 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.4.5)
+
+2026-10-17T08:06:47.631+05:30  INFO 17516 --- [school-erp-backend] [           main] c.edufox.schoolerp.SchoolErpApplication  : Starting SchoolErpApplication v0.1.0-SNAPSHOT using Java 21.0.5 with PID 17516 (D:\Codex\New\backend\target\school-erp-backend-0.1.0-SNAPSHOT.jar started by Mohd Mustaqeem in D:\Codex\New\backend)
+2026-10-17T08:06:47.631+05:30  INFO 17516 --- [school-erp-backend] [           main] c.edufox.schoolerp.SchoolErpApplication  : The following 1 profile is active: "local-sqlserver"
+2026-10-17T08:06:50.632+05:30  INFO 17516 --- [school-erp-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-10-17T08:06:50.664+05:30  INFO 17516 --- [school-erp-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-17T08:06:50.664+05:30  INFO 17516 --- [school-erp-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.40]
+2026-10-17T08:06:50.727+05:30  INFO 17516 --- [school-erp-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-10-17T08:06:50.727+05:30  INFO 17516 --- [school-erp-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3014 ms
+2026-10-17T08:06:51.932+05:30  INFO 17516 --- [school-erp-backend] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-10-17T08:06:52.786+05:30  INFO 17516 --- [school-erp-backend] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-10-17T08:06:53.481+05:30  INFO 17516 --- [school-erp-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-10-17T08:06:53.496+05:30  INFO 17516 --- [school-erp-backend] [           main] c.edufox.schoolerp.SchoolErpApplication  : Started SchoolErpApplication in 6.637 seconds (process running for 7.399)
+2026-10-17T08:10:05.275+05:30  INFO 17516 --- [school-erp-backend] [nio-8080-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-10-17T08:10:05.275+05:30  INFO 17516 --- [school-erp-backend] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-10-17T08:10:05.275+05:30  INFO 17516 --- [school-erp-backend] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2026-10-17T08:10:05.441+05:30  INFO 17516 --- [school-erp-backend] [nio-8080-exec-2] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-17T08:10:06.462+05:30  INFO 17516 --- [school-erp-backend] [nio-8080-exec-2] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection ConnectionID:1 ClientConnectionId: 114f5aa5-9a4f-42a3-b3f6-5285cb54790e
+2026-10-17T08:10:06.477+05:30  INFO 17516 --- [school-erp-backend] [nio-8080-exec-2] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.

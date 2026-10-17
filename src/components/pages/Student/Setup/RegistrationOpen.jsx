@@ -21,6 +21,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { apiFetch } from '../../../../lib/api'
+import { useStudents } from '../../../../hooks/useStudents'
 import {
   Plus, X, Check, AlertCircle, Loader2, ChevronDown,
   Edit2, RefreshCw, Filter, SlidersHorizontal,
@@ -32,28 +33,9 @@ import {
 
 // ─── STATIC / DUMMY DATA ──────────────────────────────────────────────────────
 
-const SESSIONS = ['2022-23', '2023-24', '2024-25', '2025-26']
-
-const CLASSES = [
-  { id: '1',  name: 'Nursery' },
-  { id: '2',  name: 'LKG' },
-  { id: '3',  name: 'UKG' },
-  { id: '4',  name: 'Class I' },
-  { id: '5',  name: 'Class II' },
-  { id: '6',  name: 'Class III' },
-  { id: '7',  name: 'Class IV' },
-  { id: '8',  name: 'Class V' },
-  { id: '9',  name: 'Class VI' },
-  { id: '10', name: 'Class VII' },
-  { id: '11', name: 'Class VIII' },
-  { id: '12', name: 'Class IX' },
-  { id: '13', name: 'Class X' },
-  { id: '14', name: 'Class XI' },
-  { id: '15', name: 'Class XII' },
-]
-
 // Classes that require student type selection (XI & XII = external/internal stream)
-const CLASSES_NEEDING_STUDENT_TYPE = ['14', '15']
+// RegistrationOpen.aspx.cs shows this selector only for class id 17.
+const CLASSES_NEEDING_STUDENT_TYPE = ['17']
 
 const INITIAL_GRID_DATA = []
 
@@ -273,7 +255,7 @@ function MobileGridCard({ row, onEdit }) {
 }
 
 // ─── FORM PANEL ───────────────────────────────────────────────────────────────
-function FormPanel({ form, setForm, onSave, onCancel, loading, isEdit }) {
+function FormPanel({ form, setForm, onSave, onCancel, loading, isEdit, sessions = [], classes = [] }) {
   const [errors, setErrors] = useState({})
 
   // Only numeric keys
@@ -320,7 +302,7 @@ function FormPanel({ form, setForm, onSave, onCancel, loading, isEdit }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Session" error={errors.session} required>
             <NativeSelect value={form.session} onChange={set('session')} placeholder="-- Select Session --" error={errors.session}>
-              {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              {sessions.map(s => <option key={s} value={s}>{s}</option>)}
             </NativeSelect>
           </Field>
           <Field label="Class" error={errors.classId} required>
@@ -333,7 +315,7 @@ function FormPanel({ form, setForm, onSave, onCancel, loading, isEdit }) {
               placeholder="-- Select Class --"
               error={errors.classId}
             >
-              {CLASSES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </NativeSelect>
           </Field>
         </div>
@@ -475,7 +457,7 @@ function DesktopRow({ row, idx, onEdit }) {
 }
 
 // ─── MOBILE FILTER DRAWER ─────────────────────────────────────────────────────
-function FilterDrawer({ open, onClose, gridSession, setGridSession }) {
+function FilterDrawer({ open, onClose, gridSession, setGridSession, sessions = [] }) {
   if (!open) return null
   return (
     <>
@@ -500,7 +482,7 @@ function FilterDrawer({ open, onClose, gridSession, setGridSession }) {
         <div className="px-5 py-5">
           <Field label="Session">
             <NativeSelect value={gridSession} onChange={e => setGridSession(e.target.value)} placeholder="-- All Sessions --">
-              {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              {sessions.map(s => <option key={s} value={s}>{s}</option>)}
             </NativeSelect>
           </Field>
         </div>
@@ -517,6 +499,9 @@ function FilterDrawer({ open, onClose, gridSession, setGridSession }) {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function RegistrationOpen() {
+  const { data: studentData } = useStudents()
+  const sessions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
+  const classes = studentData?.classes?.map(row => ({ id: row.classId ?? row.id, name: row.className ?? row.class_name })).filter(row => row.name) || []
   const [gridData,     setGridData]     = useState(INITIAL_GRID_DATA)
   useEffect(() => { apiFetch('/student-settings/registration-open').then(setGridData).catch(error => showToast(error.message || 'Unable to load registration settings', 'error')) }, [])
   const [showForm,     setShowForm]     = useState(false)
@@ -527,6 +512,11 @@ export default function RegistrationOpen() {
   const [mobileFilter, setMobileFilter] = useState(false)
   const [search,       setSearch]       = useState('')
   const [toast,        setToast]        = useState(null)
+
+  useEffect(() => {
+    const current = studentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || sessions[0] || ''
+    if (current && !gridSession) setGridSession(current)
+  }, [studentData, sessions, gridSession])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -635,6 +625,8 @@ export default function RegistrationOpen() {
             onCancel={handleCancel}
             loading={formLoading}
             isEdit={editId !== null}
+            sessions={sessions}
+            classes={classes}
           />
         </div>
       )}
@@ -658,7 +650,7 @@ export default function RegistrationOpen() {
             {/* Session filter */}
             <div className="w-36">
               <NativeSelect value={gridSession} onChange={e => setGridSession(e.target.value)} placeholder="All Sessions">
-                {SESSIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {sessions.map(s => <option key={s} value={s}>{s}</option>)}
               </NativeSelect>
             </div>
             {/* Search */}
@@ -798,6 +790,7 @@ export default function RegistrationOpen() {
         onClose={() => setMobileFilter(false)}
         gridSession={gridSession}
         setGridSession={setGridSession}
+        sessions={sessions}
       />
 
       {/* Toast */}

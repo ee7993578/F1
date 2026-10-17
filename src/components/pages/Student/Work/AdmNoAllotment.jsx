@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
-const SESSIONS = ['2023-24', '2024-25', '2025-26', '2026-27']
+// Sessions are loaded from TB_Session through the student bootstrap API.
 
 // ─── UI PRIMITIVES (exact same as StudentRegistration) ────────────────────────
 function Field({ label, required, error, children }) {
@@ -220,10 +220,22 @@ function StudentCard({ student: s, selected, onToggle, onUpdate, idx }) {
           {/* Row 2: Section + Stream + Optional */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="Section">
-              <NativeSelect value={s.section} onChange={e => onUpdate('section', e.target.value)}>
+              <NativeSelect value={s.section} onChange={e => {
+                const value = e.target.value
+                onUpdate('section', value)
+                onUpdate('sectionId', s.section_ids?.[value] || '')
+              }}>
                 <option value="">-- Select --</option>
                 {s.section_options.map(o => <option key={o}>{o}</option>)}
               </NativeSelect>
+            </Field>
+            <Field label="Concession">
+              {s.concession_options.length > 0
+                ? <NativeSelect value={s.concession} onChange={e => onUpdate('concession', e.target.value)}>
+                    <option value="">-- Select --</option>
+                    {s.concession_options.map(o => <option key={o}>{o}</option>)}
+                  </NativeSelect>
+                : <div className="px-3 py-1.5 text-[13px] rounded-md border border-slate-100 bg-slate-50 text-slate-300 dark:border-[rgba(99,102,241,0.1)] dark:bg-[#1e2238]/50 dark:text-slate-600">Not applicable</div>}
             </Field>
             <Field label="Stream">
               {s.stream_options.length > 0
@@ -274,18 +286,51 @@ function StudentCard({ student: s, selected, onToggle, onUpdate, idx }) {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function AdmNoAllotment() {
-  const [session,       setSession]       = useState('2025-26')
+  const [session,       setSession]       = useState('')
   const [nameInput,     setNameInput]     = useState('')
   const [formInput,     setFormInput]     = useState('')
   const [searchName,    setSearchName]    = useState('')
   const [searchForm,    setSearchForm]    = useState('')
   const [students,      setStudents]      = useState([])
+  const [allotmentOptions, setAllotmentOptions] = useState({})
   const { data: studentData } = useStudents()
   useEffect(() => {
-    fetchStudentReport('registration').then(rows => {
-      setStudents(rows.map(row => ({ ...row, uid: row.uid || row.studentId, form_no: row.registrationNo || '', adm_no: '', fee_book_no: '', status: row.status || 'Registered' })))
+    const current = studentData?.sessions?.find(item => String(item.status).toLowerCase() === 'default')?.session || studentData?.sessions?.[0]?.session || ''
+    if (current && !session) setSession(current)
+  }, [studentData, session])
+  useEffect(() => {
+    if (!session) return
+    fetchStudentReport('registration', { session, query: searchName || searchForm }).then(async rows => {
+      const classIds = [...new Set(rows.map(row => row.classId).filter(value => value != null))]
+      const optionEntries = await Promise.all(classIds.map(async classId => {
+        const params = new URLSearchParams({ session, classId: String(classId) })
+        const options = await apiFetch('/students/admission-allotment-options?' + params.toString())
+        return [String(classId), options]
+      }))
+      const nextOptions = Object.fromEntries(optionEntries)
+      setAllotmentOptions(nextOptions)
+      let nextFeeBook = Math.max(0, ...Object.values(nextOptions).map(item => Number(item.lastFeeBookNo || 0)))
+      setStudents(rows.map(row => {
+        const options = nextOptions[String(row.classId)] || { sections: [], streams: [], optionalSubjects: [], concessions: [] }
+        const feeBookNo = row.feeBookNo || String(++nextFeeBook)
+        return {
+          ...row, uid: row.uid || row.studentId, form_no: row.registrationNo || '',
+          adm_no: row.admissionNo || '', fee_book_no: feeBookNo,
+          status: row.status || 'Registered', className: row.className || '', sectionId: row.sectionId || '',
+          section: row.sectionName || '', rollNo: row.rollNo || '', stream: row.stream || '',
+          optional_subject: row.optionalSubject || '', concession: row.concession || '',
+          section_options: (options.sections || []).map(item => item.name),
+          stream_options: (options.streams || []).map(item => item.name),
+          optional_subjects: (options.optionalSubjects || []).map(item => item.name),
+          concession_options: (options.concessions || []).map(item => item.name),
+          section_ids: Object.fromEntries((options.sections || []).map(item => [item.name, item.id])),
+          stream_ids: Object.fromEntries((options.streams || []).map(item => [item.name, item.id])),
+          optional_subject_ids: Object.fromEntries((options.optionalSubjects || []).map(item => [item.name, item.id])),
+          concession_ids: Object.fromEntries((options.concessions || []).map(item => [item.name, item.id]))
+        }
+      }))
     }).catch(error => showToast(error.message || 'Unable to load registrations', 'error'))
-  }, [])
+  }, [session, searchName, searchForm])
   const [selected,      setSelected]      = useState([])
   const [toast,         setToast]         = useState(null)
   const [confirmDel,    setConfirmDel]    = useState(false)
@@ -330,7 +375,7 @@ export default function AdmNoAllotment() {
         const student = students.find(x => x.uid === uid)
         return apiFetch('/students/' + encodeURIComponent(uid) + '/admit', {
           method: 'POST',
-          body: JSON.stringify({ admissionNo: student.adm_no, feeBookNo: student.fee_book_no, className: student.className, sectionId: student.sectionId, session: student.session || session, admissionDate: new Date().toISOString().slice(0, 10), rollNo: student.rollNo, status: 'Registered' }),
+          body: JSON.stringify({ admissionNo: student.adm_no, feeBookNo: student.fee_book_no, className: student.className, sectionId: Number(student.sectionId) || null, session: student.session || session, admissionDate: student.adm_date || new Date().toISOString().slice(0, 10), rollNo: student.rollNo, status: 'Registered', concession: student.concession || '', stream: student.stream || '', optionalSubject: student.optional_subject || '' }),
         })
       }))
       setStudents(prev => prev.map(s => uids.includes(s.uid) ? { ...s, status: 'Admitted' } : s))
@@ -338,18 +383,6 @@ export default function AdmNoAllotment() {
       showToast(uids.length + ' student(s) admitted successfully!')
     } catch (error) { showToast(error.message || 'Admission update failed', 'error') }
   }
-  const handleAdmitDisabled = () => {
-    const uids = anySelected ? selected : filtered.map(s => s.uid)
-    const invalid = uids.filter(uid => {
-      const s = students.find(x => x.uid === uid)
-      return !s?.adm_no?.trim()
-    })
-    if (invalid.length) { showToast(`Fill Admission No. for all students first`, 'error'); return }
-    setStudents(prev => prev.map(s => uids.includes(s.uid) ? { ...s, status: 'Admitted' } : s))
-    setSelected([])
-    showToast(`${uids.length} student(s) admitted successfully!`)
-  }
-
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDelete = async () => {
     if (!anySelected) { showToast('Select students first', 'error'); return }
@@ -360,14 +393,6 @@ export default function AdmNoAllotment() {
       showToast(selected.length + ' record(s) removed')
     } catch (error) { showToast(error.message || 'Delete failed', 'error') }
   }
-  const handleDeleteDisabled = () => {
-    if (!anySelected) { showToast('Select students first', 'error'); return }
-    setStudents(prev => prev.filter(s => !selected.includes(s.uid)))
-    setSelected([])
-    setConfirmDel(false)
-    showToast(`${selected.length} record(s) removed`)
-  }
-
   const clearFilters = () => {
     setNameInput(''); setFormInput(''); setSearchName(''); setSearchForm(''); setStatusFilter('All')
   }
@@ -426,7 +451,7 @@ export default function AdmNoAllotment() {
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex-shrink-0 w-44">
           <NativeSelect value={session} onChange={e => setSession(e.target.value)}>
-            {SESSIONS.map(s => <option key={s}>{s}</option>)}
+            {(studentData?.sessions || []).map(s => <option key={s.session}>{s.session}</option>)}
           </NativeSelect>
         </div>
         <button onClick={() => setFilterOpen(p => !p)}

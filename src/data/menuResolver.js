@@ -23,6 +23,19 @@ const moduleIdAliases = {
 // React page IDs character-for-character. Keep these aliases at the menu
 // boundary so the actual page workflow is selected instead of GenericPage.
 const legacyPageAliases = Object.fromEntries([
+  // The legacy Staff page contains the original spelling typo
+  // `faculty-registartion.aspx`; map it to the React Faculty Registration page.
+  ['faculty-registartion', 'FacultyRegistration'],
+  ['facultyregistration', 'FacultyRegistration'],
+  ['faculty-registartion.aspx', 'FacultyRegistration'],
+  ['faculty_reregistration', 'FacultyReregistration'],
+  ['faculty-infosheet', 'FacultyInfosheet'],
+  ['facultyinfo_download', 'FacultyInfoDownload'],
+  ['faculty_id_pwd', 'FacultyIdPassword'],
+  ['JobApplication', 'JobApplicationReport'],
+  ['Class_teacher', 'ClassTeacherReport'],
+  ['Define_Class_Teacher', 'DefineClassTeacher'],
+  ['jobVacancyFormConfiguration', 'RegistrationOpenConfig'],
   ['define_late_fees', 'DefineLateFee'],
   ['define_fee_concession', 'DefineConcession'],
   ['define_con_group', 'DefineConcessionGroup'],
@@ -60,6 +73,20 @@ const legacyPageAliases = Object.fromEntries([
   ['headwis_defaulter_report(instwise)', 'HeadwiseDefaulter'],
   ['late_fee_report', 'LateFeeReport'],
   ['StudentFeeSummary', 'StudentFeeSummary'],
+  ['driver_vehicle_details', 'DriverVehicleMaster'],
+  ['driver_vehicle_details.aspx', 'DriverVehicleMaster'],
+  ['drivervehiclemaster', 'DriverVehicleMaster'],
+  ['driverdetails', 'DriverVehicleMaster'],
+  ['vehicleMaster', 'VehicleMaster'],
+  ['vehiclemaster.aspx', 'VehicleMaster'],
+  ['assign_transport', 'AssignTransport'],
+  ['assign_transport.aspx', 'AssignTransport'],
+  ['define_transport_type', 'DefineTransportType'],
+  ['route_stoppage_mapping', 'RouteStoppageMapping'],
+  ['student_transport_report', 'StudentTransportReport'],
+  ['monthwise_transport_report', 'MonthwiseTransportReport'],
+  ['feecollection_routewise', 'RouteWiseCollectionReport'],
+  ['total_fee_colllection', 'RouteWiseTotalCollectionReport'],
 ].map(([legacy, reactId]) => [key(legacy), reactId]))
 
 const field = (value, ...names) => {

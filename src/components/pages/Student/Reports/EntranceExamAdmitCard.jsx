@@ -17,6 +17,8 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { studentApi as api } from '../../../../lib/studentApi'
+import { useSchoolInfo } from '../../../../lib/useSchoolInfo'
 import {
   Filter, RefreshCw, Eye, AlertCircle, X, Check,
   Loader2, ChevronDown, ChevronRight, Users,
@@ -33,18 +35,6 @@ const STUDENT_TYPES = [
   { value: 'External', label: 'External' },
   { value: 'Internal', label: 'Internal' },
 ]
-
-const storedUser = (() => {
-  try { return JSON.parse(localStorage.getItem('erp_user') || '{}') } catch { return {} }
-})()
-const SCHOOL_INFO = {
-  name: storedUser.schoolName || 'School',
-  shortName: (storedUser.schoolName || 'School').split(' ').map((w) => w[0]).slice(0, 3).join(''),
-  address: storedUser.schoolAddress || '',
-  phone: storedUser.schoolPhone || '',
-  email: '',
-  affiliation: '',
-}
 
 // Seeded pseudo-random
 const sr = (seed) => {
@@ -167,7 +157,7 @@ function SummaryCard({ icon: Icon, label, value, color }) {
 
 // ─── ADMIT CARD (printable) ───────────────────────────────────────────────────
 // This renders an actual admit card — both for preview and for print
-function AdmitCardPrint({ student }) {
+function AdmitCardPrint({ student, schoolInfo }) {
   return (
     <div
       className="admit-card-print bg-white"
@@ -189,11 +179,11 @@ function AdmitCardPrint({ student }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 'bold', fontSize: 14, color: '#1e3a8a', flexShrink: 0
         }}>
-          SVM
+          {schoolInfo.shortName}
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ color: '#fff', fontWeight: 'bold', fontSize: 11, letterSpacing: 0.5 }}>{SCHOOL_INFO.name}</div>
-          <div style={{ color: '#93c5fd', fontSize: 9, marginTop: 1 }}>{SCHOOL_INFO.affiliation} · {SCHOOL_INFO.address}</div>
+          <div style={{ color: '#fff', fontWeight: 'bold', fontSize: 11, letterSpacing: 0.5 }}>{schoolInfo.name}</div>
+          <div style={{ color: '#93c5fd', fontSize: 9, marginTop: 1 }}>{schoolInfo.address}</div>
         </div>
       </div>
 
@@ -272,7 +262,7 @@ function AdmitCardPrint({ student }) {
         <div style={{ textAlign: 'center', fontSize: 7.5, color: '#374151' }}>
           <div style={{ width: 70, borderBottom: '1px solid #374151', marginBottom: 2 }}></div>
           <div>Principal's Signature</div>
-          <div style={{ marginTop: 4, fontWeight: 700, color: '#1e3a8a', fontSize: 8 }}>{SCHOOL_INFO.shortName}</div>
+          <div style={{ marginTop: 4, fontWeight: 700, color: '#1e3a8a', fontSize: 8 }}>{schoolInfo.shortName}</div>
         </div>
       </div>
     </div>
@@ -397,7 +387,7 @@ function DesktopRow({ student, selected, onToggle, onPreview, idx }) {
 }
 
 // ─── ADMIT CARD PREVIEW MODAL ─────────────────────────────────────────────────
-function AdmitCardModal({ student, onClose, onPrint }) {
+function AdmitCardModal({ student, onClose, onPrint, schoolInfo }) {
   if (!student) return null
   return (
     <>
@@ -431,7 +421,7 @@ function AdmitCardModal({ student, onClose, onPrint }) {
           {/* Admit card preview */}
           <div className="p-6 flex justify-center">
             <div style={{ transform: 'scale(1)', transformOrigin: 'top center' }}>
-              <AdmitCardPrint student={student} />
+              <AdmitCardPrint student={student} schoolInfo={schoolInfo} />
             </div>
           </div>
 
@@ -520,7 +510,7 @@ function FilterDrawer({ open, onClose, filters, setFilter, onDownload, loading, 
 
 // ─── PRINT HELPER ─────────────────────────────────────────────────────────────
 // Injects a hidden print div and triggers window.print()
-const triggerPrint = (students) => {
+const triggerPrint = (students, schoolInfo) => {
   const existing = document.getElementById('__admit_print_root')
   if (existing) existing.remove()
 
@@ -538,8 +528,8 @@ const triggerPrint = (students) => {
       <div style="background:#1e3a8a;padding:8px 14px;display:flex;align-items:center;gap:10px;">
         <div style="width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;color:#1e3a8a;flex-shrink:0;">SVM</div>
         <div>
-          <div style="color:#fff;font-weight:bold;font-size:11px;">${SCHOOL_INFO.name}</div>
-          <div style="color:#93c5fd;font-size:9px;">${SCHOOL_INFO.affiliation} · ${SCHOOL_INFO.address}</div>
+          <div style="color:#fff;font-weight:bold;font-size:11px;">${schoolInfo.name}</div>
+          <div style="color:#93c5fd;font-size:9px;">${schoolInfo.address}</div>
         </div>
       </div>
       <div style="background:#eff6ff;border-bottom:1px solid #bfdbfe;text-align:center;padding:4px 0;">
@@ -589,7 +579,7 @@ const triggerPrint = (students) => {
         <div style="text-align:center;font-size:7.5px;color:#374151;">
           <div style="width:70px;border-bottom:1px solid #374151;margin-bottom:2px;"></div>
           <div>Principal's Signature</div>
-          <div style="margin-top:4px;font-weight:700;color:#1e3a8a;font-size:8px;">${SCHOOL_INFO.shortName}</div>
+          <div style="margin-top:4px;font-weight:700;color:#1e3a8a;font-size:8px;">${schoolInfo.shortName}</div>
         </div>
       </div>
     </div>
@@ -633,6 +623,11 @@ function LoadingSkeleton() {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function EntranceExamAdmitCard() {
+  const menuSchool = useSchoolInfo()
+  const schoolInfo = useMemo(() => ({
+    ...menuSchool,
+    shortName: menuSchool.name.split(' ').filter(Boolean).map(word => word[0]).slice(0, 3).join(''),
+  }), [menuSchool])
   const [filters, setFilters] = useState({ session: '', cls: '', studentType: '' })
   const [rows,        setRows]        = useState([])
   const [loading,     setLoading]     = useState(false)
@@ -705,17 +700,17 @@ export default function EntranceExamAdmitCard() {
   const handlePrintSelected = () => {
     const toPrint = rows.filter(r => selected.has(r.id))
     if (toPrint.length === 0) { showToast('Select at least one student first.', 'error'); return }
-    triggerPrint(toPrint)
+    triggerPrint(toPrint, schoolInfo)
     showToast(`Opening ${toPrint.length} admit card(s) for print/download.`)
   }
 
   const handlePrintAll = () => {
     if (rows.length === 0) { showToast('Load cards first.', 'error'); return }
-    triggerPrint(filtered)
+    triggerPrint(filtered, schoolInfo)
     showToast(`Opening all ${filtered.length} admit card(s).`)
   }
 
-  const handlePrintOne = (students) => triggerPrint(Array.isArray(students) ? students : [students])
+  const handlePrintOne = (students) => triggerPrint(Array.isArray(students) ? students : [students], schoolInfo)
 
   // ── Filter + paginate ─────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -1079,7 +1074,7 @@ export default function EntranceExamAdmitCard() {
       )}
 
       {/* Admit Card Preview Modal */}
-      <AdmitCardModal student={previewStu} onClose={() => setPreviewStu(null)} onPrint={handlePrintOne} />
+      <AdmitCardModal student={previewStu} schoolInfo={schoolInfo} onClose={() => setPreviewStu(null)} onPrint={handlePrintOne} />
 
       {/* Toast */}
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}

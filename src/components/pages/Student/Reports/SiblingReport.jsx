@@ -16,6 +16,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
+import { studentApi as api } from '../../../../lib/studentApi'
 import {
   Users, Search, Filter, RefreshCw, Download,
   ChevronDown, ChevronRight, X, Loader2,
