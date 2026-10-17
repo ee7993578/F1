@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { fetchStudentSearch, useStudents } from '../../../../hooks/useStudents'
+import { normalizeStudent, useStudents } from '../../../../hooks/useStudents'
+import { studentSectionOptions } from '../../../../lib/studentSections'
 import { apiFetch } from '../../../../lib/api'
+const PER_PAGE = 10
 import {
   Eye, Search, RotateCcw, Camera, Check,
   X, SlidersHorizontal, ImagePlus,
@@ -169,7 +171,10 @@ function BulkBanner({ onBulkFiles }) {
 export default function UploadStudentImage({ title = 'Upload Student Image' }) {
   const { data: studentData } = useStudents()
   const sessionOptions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
-  const classOptions = studentData?.classes?.map(row => ({ id: row.classId, name: row.className })).filter(row => row.name) || []
+  const [classOptions, setClassOptions] = useState([])
+  const [optionsLoading, setOptionsLoading] = useState(false)
+  const [optionsError, setOptionsError] = useState('')
+  const listRequest = useRef(0)
   const [session,     setSession]     = useState('')
   const [cls,         setCls]         = useState('')
   const [loading,     setLoading]     = useState(false)
@@ -200,18 +205,36 @@ export default function UploadStudentImage({ title = 'Upload Student Image' }) {
 
   const removeToast = useCallback((id) => setToasts(p => p.filter(t => t.id !== id)), [])
 
+  useEffect(() => {
+    let active = true
+    listRequest.current += 1
+    setLoading(false)
+    setClassOptions([]); setCls(''); setStudents([]); setPhotoMap({}); setHasViewed(false); setOptionsError('')
+    if (!session) { setOptionsLoading(false); return }
+    setOptionsLoading(true)
+    apiFetch('/students/image-upload/sections?' + new URLSearchParams({ session })).then(rows => {
+      if (active) setClassOptions(studentSectionOptions(rows, true))
+    }).catch(error => { if (active) setOptionsError(error.message || 'Unable to load assigned classes') })
+      .finally(() => { if (active) setOptionsLoading(false) })
+    return () => { active = false; listRequest.current += 1 }
+  }, [session])
+
   // ── View ─────────────────────────────────────────────────────────────────
   const handleView = () => {
+    if (!session || !classOptions.some(c => c.id === cls)) { addToast('Select a session and assigned class.', 'error'); return }
     setLoading(true); setHasViewed(true); setSearch(''); setFilter('all'); setPage(1); setPhotoMap({})
-    const classId = classOptions.find(item => item.name === cls)?.id
-    fetchStudentSearch({ session, classId }).then(data => {
-      const result = data.map(r => ({ ...r, uid: r.uid || r.studentId, name: r.name, admNo: r.registrationNo || '' }))
+    const request = ++listRequest.current
+    apiFetch('/students/image-upload/students?' + new URLSearchParams({ session, sectionId: cls })).then(data => {
+      if (request !== listRequest.current) return
+      const result = data.map(normalizeStudent).map(r => ({ ...r, uid: r.uid || r.studentId, name: r.name, admNo: r.registrationNo || '', cls: `${r.className} (${r.sectionName})` }))
       setStudents(result); setPhotoMap(Object.fromEntries(result.map(r => [r.uid, r.studentImage || null])))
-    }).catch(error => addToast(error.message || 'Request failed', 'error')).finally(() => setLoading(false))
+    }).catch(error => { if (request === listRequest.current) { setStudents([]); addToast(error.message || 'Request failed', 'error') } })
+      .finally(() => { if (request === listRequest.current) setLoading(false) })
   }
 
   // ── Clear ────────────────────────────────────────────────────────────────
   const handleClear = () => {
+    listRequest.current += 1; setLoading(false)
     setSession(''); setCls(''); setStudents([]); setPhotoMap({})
     setHasViewed(false); setSearch(''); setFilter('all'); setPage(1)
   }
@@ -281,13 +304,13 @@ export default function UploadStudentImage({ title = 'Upload Student Image' }) {
               <option value="">— Select Session —</option>
               {sessionOptions.map(s => <option key={s}>{s}</option>)}
             </FilterSel>
-            <FilterSel label="Class" value={cls} onChange={e => setCls(e.target.value)}>
+            <FilterSel label="Class" value={cls} onChange={e => { listRequest.current += 1; setCls(e.target.value); setStudents([]); setPhotoMap({}); setHasViewed(false); setLoading(false) }}>
               <option value="">— Select Class —</option>
-              {classOptions.map(c => <option key={c.id}>{c.name}</option>)}
+              {classOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </FilterSel>
             <div className="flex flex-col justify-end">
               <div className="flex gap-2">
-                <button onClick={handleView} disabled={loading}
+                <button onClick={handleView} disabled={loading || optionsLoading || !!optionsError || !cls}
                   className="flex-1 flex items-center justify-center gap-2 py-2 text-[13px] font-semibold text-white rounded-lg transition-all active:scale-95
                     bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20
                     dark:bg-indigo-600 dark:hover:bg-indigo-700
@@ -309,6 +332,7 @@ export default function UploadStudentImage({ title = 'Upload Student Image' }) {
       </div>
 
       {/* ── Students section ── */}
+      {optionsError && <p role="alert" className="text-sm text-rose-600">{optionsError}</p>}
       {hasViewed && (
         <div className="rounded-2xl border border-slate-200 dark:border-[rgba(99,102,241,0.2)] bg-white dark:bg-[#1a1f35] shadow-sm overflow-hidden">
 

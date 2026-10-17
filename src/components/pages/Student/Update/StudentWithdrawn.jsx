@@ -4,8 +4,9 @@
  * Dependencies: lucide-react (already in project)
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useStudents, fetchStudentReport } from '../../../../hooks/useStudents'
+import { studentSectionOptions } from '../../../../lib/studentSections'
 import { apiFetch } from '../../../../lib/api'
 import {
   Search, Filter, RefreshCw, Eye, Save,
@@ -183,7 +184,7 @@ function FilterDrawer({ open, onClose, session, setSession, cls, setCls, regNo, 
           </Field>
           <Field label="Class" error={errors.cls}>
             <NativeSelect value={cls} onChange={e => setCls(e.target.value)} placeholder="-- All Classes --">
-              {classOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              {classOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </NativeSelect>
           </Field>
           <Field label="Registration No.">
@@ -425,7 +426,7 @@ function MobileCard({ row, onStatusChange, onReasonChange, onDateChange, onSaveR
 export default function StudentWithdrawn() {
   const { data: studentData } = useStudents()
   const sessionOptions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
-  const classOptions = studentData?.classes?.map(row => ({ id: row.classId, name: row.className })).filter(row => row.name) || []
+  const classOptions = studentSectionOptions(studentData?.sections)
   // Filter state
   const [session,  setSession]  = useState('')
   const [cls,      setCls]      = useState('')
@@ -442,6 +443,13 @@ export default function StudentWithdrawn() {
   const [loading,  setLoading]  = useState(false)
   const [savingId, setSavingId] = useState(null)   // which row is saving
   const [savingAll,setSavingAll]= useState(false)
+  const listRequest = useRef(0)
+
+  useEffect(() => {
+    listRequest.current += 1
+    setRows([]); setLoading(false)
+    return () => { listRequest.current += 1 }
+  }, [session, cls, regNo, stuName])
 
   // UI state
   const [filterOpen, setFilterOpen] = useState(false)
@@ -461,11 +469,13 @@ export default function StudentWithdrawn() {
     if (!session) err.session = 'Select a session'
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch(''); setStatusTab('All')
-    const classId = classOptions.find(item => item.name === cls)?.id
-    fetchStudentReport('withdrawn-management', { session, classId, query: regNo || stuName }).then(result => {
+    const request = ++listRequest.current
+    fetchStudentReport('withdrawn-management', { session, sectionId: cls || undefined, query: regNo || stuName }).then(result => {
+      if (request !== listRequest.current) return
       const data = result.map((s, i) => ({ id: s.studentId, uid: s.uid || s.studentId, name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' '), class: s.className || '', adm: s.registrationNo || '', status: String(s.status || '').toLowerCase().includes('withdraw') ? 'Withdrawn' : 'Registered', reason: '', date: '', _idx: i + 1, _dirty: false }))
-      setRows(data.filter(r => !cls || r.class === cls));
-    }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
+      setRows(data);
+    }).catch(err => { if (request === listRequest.current) { setRows([]); showToast(err.message || 'Request failed', 'error') } })
+      .finally(() => { if (request === listRequest.current) setLoading(false) })
   }, [session, cls, regNo, stuName])
   const handleReset = () => {
     setSession(''); setCls(''); setRegNo(''); setStuName('')
@@ -592,7 +602,7 @@ export default function StudentWithdrawn() {
             </Field>
             <Field label="Class">
               <NativeSelect value={cls} onChange={e => setCls(e.target.value)} placeholder="-- All Classes --">
-              {classOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              {classOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </NativeSelect>
             </Field>
             <Field label="Registration No.">
@@ -660,7 +670,7 @@ export default function StudentWithdrawn() {
               <span className="w-1 h-5 rounded-full bg-emerald-500 flex-shrink-0" />
               <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
               <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200">Results</span>
-              {cls && <span className="text-[13px] text-slate-400 dark:text-slate-500">· {cls}</span>}
+              {cls && <span className="text-[13px] text-slate-400 dark:text-slate-500">· {classOptions.find(c => c.id === cls)?.name}</span>}
               {session && <span className="text-[13px] text-slate-400 dark:text-slate-500">· {session}</span>}
               {counts.dirty > 0 && (
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 flex-shrink-0">

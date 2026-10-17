@@ -46,6 +46,28 @@ public class StudentController {
         return service.academicOptions(school(claims(authentication)), session, classId, termId);
     }
 
+    @GetMapping("/image-upload/sections")
+    public List<Map<String, Object>> imageUploadSections(Authentication authentication, @RequestParam String session) {
+        Claims c = claims(authentication);
+        return service.imageUploadSections(school(c), c.get("staffUid", String.class), session);
+    }
+
+    @GetMapping("/image-upload/students")
+    public List<Map<String, Object>> imageUploadStudents(Authentication authentication,
+                                                        @RequestParam String session, @RequestParam Integer sectionId) {
+        Claims c = claims(authentication);
+        return service.imageUploadStudents(school(c), c.get("staffUid", String.class), session, sectionId);
+    }
+
+    @GetMapping("/infosheet-lookup")
+    public List<Map<String, Object>> infosheetLookup(Authentication authentication,
+                                                    @RequestParam String session,
+                                                    @RequestParam(defaultValue = "false") boolean withdrawn,
+                                                    @RequestParam(required = false) String registrationNo,
+                                                    @RequestParam(required = false) String feeBookNo) {
+        return service.infosheetLookup(school(claims(authentication)), session, withdrawn, registrationNo, feeBookNo);
+    }
+
     @GetMapping("/registration-options")
     public Map<String, Object> registrationOptions(Authentication authentication) {
         return service.registrationOptions(school(claims(authentication)));

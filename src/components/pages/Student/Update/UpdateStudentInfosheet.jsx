@@ -5,7 +5,8 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { useStudents, fetchStudentSearch, fetchStudentDetails } from '../../../../hooks/useStudents'
+import { useStudents, fetchStudentSearch, normalizeStudent } from '../../../../hooks/useStudents'
+import { studentSectionOptions } from '../../../../lib/studentSections'
 import { apiFetch } from '../../../../lib/api'
 import {
   ChevronDown, Search, Save, RefreshCw, Loader2, Check,
@@ -181,16 +182,17 @@ const DAYS   = Array.from({length:31},(_,i)=>i+1)
 export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
   const { data: liveStudentData } = useStudents()
   const liveSessions = liveStudentData?.sessions?.map(row => row.session).filter(Boolean) || []
-  const [withdrawnStudents, setWithdrawnStudents] = useState([])
-  const sourceStudents = withdrawnOnly ? withdrawnStudents : (liveStudentData?.students || [])
-  const liveClasses = withdrawnOnly
-    ? [...new Set(sourceStudents.map(row => row.className || row.class_name).filter(Boolean))]
-    : liveStudentData?.classes?.map(row => row.className).filter(Boolean) || []
+  // Previous/admission class fields remain class-based; current Class is a section selector.
+  const liveClasses = liveStudentData?.classes?.map(row => row.className).filter(Boolean) || []
+  const sectionOptions = studentSectionOptions(liveStudentData?.sections, !withdrawnOnly)
+    .filter(row => withdrawnOnly || row.className)
   const [form,         setForm]         = useState({ ...EMPTY_FORM })
   const [errors,       setErrors]       = useState({})
   const [loading,      setLoading]      = useState(false)
   const [saving,       setSaving]       = useState(false)
   const [studentList,  setStudentList]  = useState([])
+  const [studentsLoading, setStudentsLoading] = useState(false)
+  const recordRequest = useRef(0)
   const [openSection,  setOpenSection]  = useState(null)
   const [showPrevPicker, setShowPrevPicker] = useState(false)
   const [toast,        setToast]        = useState(null)
@@ -210,9 +212,18 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
   }, [])
 
   useEffect(() => {
-    if (!withdrawnOnly) return
-    fetchStudentSearch({ status: 'withdrawn' }).then(setWithdrawnStudents).catch(() => setWithdrawnStudents([]))
-  }, [withdrawnOnly])
+    let active = true
+    setStudentList([])
+    if (!form.session || !form.class_) { setStudentsLoading(false); return }
+    setStudentsLoading(true)
+    fetchStudentSearch({ session: form.session, sectionId: form.class_, status: withdrawnOnly ? 'Withdrawn' : 'Registered' })
+      .then(rows => { if (active) setStudentList(rows) })
+      .catch(error => { if (active) showToast(error.message || 'Unable to load students', 'error') })
+      .finally(() => { if (active) setStudentsLoading(false) })
+    return () => { active = false }
+  }, [form.session, form.class_, withdrawnOnly])
+
+  useEffect(() => () => { recordRequest.current += 1 }, [])
 
   const showToast = (msg, type='success') => {
     setToast({ msg, type }); setTimeout(() => setToast(null), 3500)
@@ -231,9 +242,16 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
 
   // When class changes — load students
   const handleClassChange = v => {
-    setV('class_', v); setV('studentId', '')
-    setStudentList(sourceStudents.filter(row => row.className === v || row.class_name === v))
+    recordRequest.current += 1
+    setForm(p => ({ ...EMPTY_FORM, session: p.session, class_: v }))
+    setStudentList([]); setOpenSection(null); setLoading(false)
     setErrors(p => ({ ...p, class_: undefined }))
+  }
+
+  const handleSessionChange = session => {
+    recordRequest.current += 1
+    setForm({ ...EMPTY_FORM, session })
+    setStudentList([]); setOpenSection(null); setLoading(false); setErrors({})
   }
 
   // When student selected — load their full record
@@ -251,7 +269,8 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
       ...EMPTY_FORM,
       studentId: String(row.uid || row.studentId || row.id || ''),
       regNo: row.registrationNo || '', feebook: row.feeBookNo || '',
-      class_: row.className || row.class_name || '',
+      session: row.session || form.session,
+      class_: String(row.sectionId ?? ''),
       firstName: row.firstName || '', midName: row.middleName || '', lastName: row.lastName || '',
       dobDay: date ? String(date.getDate()) : '', dobMonth: date ? String(date.getMonth() + 1) : '', dobYear: date ? String(date.getFullYear()) : '',
       gender: row.gender || '', blood: row.bloodGroup || '', category: row.category || '', religion: row.religion || '', quota: row.quota || '', ncc: row.ncc || '0',
@@ -265,16 +284,44 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
   }
 
   const handleStudentChange = v => {
+    const request = ++recordRequest.current
     setV('studentId', v)
-    if (!v) return
+    if (!v) { setForm(p => ({ ...EMPTY_FORM, session: p.session, class_: p.class_ })); setOpenSection(null); setLoading(false); return }
+    const selected = studentList.find(row => String(row.uid || row.studentId) === v)
+    if (!selected) return
     setLoading(true)
-    fetchStudentDetails(v).then(row => { setForm(applyLiveStudent(row)); setOpenSection(1); showToast('Student record loaded.') }).catch(error => showToast(error.message || 'Request failed', 'error')).finally(() => setLoading(false))
+    apiFetch('/students/infosheet-lookup?' + new URLSearchParams({ session: form.session, withdrawn: String(withdrawnOnly), registrationNo: selected.registrationNo })).then(rows => {
+      if (request !== recordRequest.current) return
+      if (!rows.length) throw new Error('Student record is no longer available in this session.')
+      const row = normalizeStudent(rows[0])
+      if (String(row.sectionId) !== form.class_ || row.session !== form.session) {
+        throw new Error('Student session/section changed. Please reload the student list.')
+      }
+      setForm(applyLiveStudent(row)); setOpenSection(1); showToast('Student record loaded.')
+    }).catch(error => { if (request === recordRequest.current) showToast(error.message || 'Request failed', 'error') })
+      .finally(() => { if (request === recordRequest.current) setLoading(false) })
   }
 
   // Live registration and fee-book lookups
-  const lookupLiveStudent = value => fetchStudentSearch({ query: value, ...(withdrawnOnly ? { status: 'withdrawn' } : {}) }).then(rows => { const row = rows[0]; if (!row) { showToast('No record found for this student.', 'error'); return } setForm(applyLiveStudent(row)); setStudentList(sourceStudents.filter(item => item.className === row.className)); setOpenSection(1); showToast('Student record loaded.') })
-  const handleRegNoChange = v => { setV('regNo', v); if (v.length >= 3) lookupLiveStudent(v).catch(error => showToast(error.message || 'Request failed', 'error')) }
-  const handleFeebookChange = v => { setV('feebook', v); if (v.length >= 3) lookupLiveStudent(v).catch(error => showToast(error.message || 'Request failed', 'error')) }
+  const lookupLiveStudent = async (field, value, request) => {
+    if (!value.trim() || !form.session) return
+    setLoading(true)
+    try {
+      const rows = await apiFetch('/students/infosheet-lookup?' + new URLSearchParams({ session: form.session, withdrawn: String(withdrawnOnly), [field]: value.trim() }))
+      if (request !== recordRequest.current) return
+      if (!rows.length) { showToast('No record found for this student.', 'error'); return }
+      setForm(applyLiveStudent(normalizeStudent(rows[0]))); setOpenSection(1); showToast('Student record loaded.')
+    } catch (error) { if (request === recordRequest.current) showToast(error.message || 'Request failed', 'error') }
+    finally { if (request === recordRequest.current) setLoading(false) }
+  }
+  const handleLookupChange = (key, field, value) => {
+    const request = ++recordRequest.current
+    setForm(p => ({ ...EMPTY_FORM, session: p.session, class_: p.class_, [key]: value }))
+    setOpenSection(null); setLoading(false)
+    lookupLiveStudent(field, value, request)
+  }
+  const handleRegNoChange = v => handleLookupChange('regNo', 'registrationNo', v)
+  const handleFeebookChange = v => handleLookupChange('feebook', 'feeBookNo', v)
 
   // Sibling lookup
   const handleSiblingAdm = v => { setV('sibAdm', v); if (v.length >= 3) fetchStudentSearch({ query: v }).then(rows => setV('sibName', rows[0]?.name || 'Not found')).catch(() => setV('sibName', 'Not found')) }
@@ -307,7 +354,7 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
         registrationNo: form.regNo, firstName: form.firstName, middleName: form.midName, lastName: form.lastName, dob,
         gender: form.gender, bloodGroup: form.blood, category: form.category, quota: form.quota, fatherName: form.fName, motherName: form.mName,
         address: form.address, phone: form.mMobile, mobile: form.fMobile, email: form.fEmail, studentAadhar: form.aadhar, religion: form.religion,
-        session: form.session, className: form.class_, rollNo: form.rollNo, feeBookNo: form.feebook, houseId: form.house,
+        session: form.session, sectionId: Number(form.class_), className: sectionOptions.find(c => c.id === form.class_)?.className, rollNo: form.rollNo, feeBookNo: form.feebook, houseId: form.house,
         penNo: form.pen, apaarId: form.apaar, udise: form.udise, fatherOccupation: form.fOcc, motherOccupation: form.mOcc,
         fatherWhatsapp: form.fWhats, motherWhatsapp: form.mWhats, stateId: form.state, cityId: form.city, admissionDate: form.admDate,
         transferCertificate: form.docs.includes('Transfer Certificate') ? 'Yes' : 'No', birthCertificate: form.docs.includes('Birth Certificate') ? 'Yes' : 'No',
@@ -318,6 +365,7 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
     } catch (error) { showToast(error.message || 'Student update failed', 'error') } finally { setSaving(false) }
   }
   const handleReset = () => {
+    recordRequest.current += 1
     setForm({ ...EMPTY_FORM }); setErrors({}); setStudentList([])
     setOpenSection(null); setShowSuccessScreen(false); setPhotos({ stu:null, father:null, mother:null })
   }
@@ -357,7 +405,7 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
             </span>
             <div className="text-left">
               <p className="text-[14px] font-semibold text-slate-700 dark:text-slate-200">{form.firstName} {form.midName} {form.lastName}</p>
-              <p className="text-[12px] text-slate-400">{form.class_} · {form.regNo || '—'} · {form.session}</p>
+              <p className="text-[12px] text-slate-400">{sectionOptions.find(c => c.id === form.class_)?.name} · {form.regNo || '—'} · {form.session}</p>
             </div>
           </div>
         </div>
@@ -399,7 +447,7 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
         <div className="p-4 sm:p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Field label="Session">
-              <NativeSelect value={form.session} onChange={set('session')}>
+              <NativeSelect value={form.session} onChange={e => handleSessionChange(e.target.value)}>
                 {liveSessions.map(s => <option key={s} value={s}>{s}</option>)}
               </NativeSelect>
             </Field>
@@ -411,12 +459,12 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
             </Field>
             <Field label="Class" error={errors.class_}>
               <NativeSelect value={form.class_} onChange={e => handleClassChange(e.target.value)} placeholder="-- Select Class --" error={errors.class_}>
-                {liveClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                {sectionOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </NativeSelect>
             </Field>
             <Field label="Student">
-              <NativeSelect value={form.studentId} onChange={e => handleStudentChange(e.target.value)} placeholder={form.class_ ? '-- Select Student --' : '-- Select Class First --'} disabled={!form.class_}>
-                {studentList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              <NativeSelect value={form.studentId} onChange={e => handleStudentChange(e.target.value)} placeholder={studentsLoading ? 'Loading students...' : form.class_ ? '-- Select Student --' : '-- Select Class First --'} disabled={!form.class_ || studentsLoading}>
+                {studentList.map(s => <option key={s.uid || s.studentId} value={String(s.uid || s.studentId)}>{s.name}</option>)}
               </NativeSelect>
             </Field>
           </div>

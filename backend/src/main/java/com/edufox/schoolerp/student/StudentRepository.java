@@ -9,6 +9,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 @Repository
 @RequiredArgsConstructor
@@ -54,6 +56,54 @@ public class StudentRepository {
             WHERE school_id=?
             ORDER BY id DESC
             """, schoolId);
+    }
+
+    /** BindStaffClasses: entitytype=other, type=class. No stored procedure execution. */
+    public List<Map<String, Object>> imageUploadSections(String schoolId, String staffUid, String session) {
+        List<String> facultyIds = jdbc.queryForList(
+            "SELECT CAST(f_id AS varchar(50)) FROM TB_FacultyMaster WHERE school_id=? AND staff_u_id=?",
+            String.class, schoolId, staffUid);
+        if (facultyIds.isEmpty()) return List.of();
+        String facultyId = facultyIds.get(facultyIds.size() - 1);
+        List<String> permissions = jdbc.queryForList("""
+            SELECT DISTINCT class_id FROM roles_permission_efox
+            WHERE school_id=? AND Status=1 AND class_id IS NOT NULL AND class_id<>''
+              AND Desi_Id IN (SELECT Desg_id FROM desig_mapping WHERE school_id=? AND f_id=?)
+            """, String.class, schoolId, schoolId, facultyId);
+        Set<String> allowedClasses = new HashSet<>();
+        for (String permission : permissions) {
+            for (String id : permission.split(",")) {
+                if (!id.isBlank()) allowedClasses.add(id.trim());
+            }
+        }
+        Set<String> teacherSections = new HashSet<>(jdbc.queryForList("""
+            SELECT CAST(section_id AS varchar(50)) FROM Tb_ClassTeacher
+            WHERE school_id=? AND session=? AND f_id=?
+            """, String.class, schoolId, session, facultyId));
+        // The legacy procedure uses the first/last four characters of the session.
+        List<Map<String, Object>> mappedSections = jdbc.queryForList("""
+            SELECT c.sec_id AS sectionId, c.class_id AS classId, c.section AS sectionName,
+                   n.class_name AS className
+            FROM TB_Class c
+            LEFT JOIN class_name n ON n.school_id=c.school_id AND n.id=c.class_id
+            WHERE c.school_id=? AND EXISTS (
+                SELECT 1 FROM classsessionmapping m
+                WHERE m.school_id=c.school_id AND m.sec_id=c.sec_id AND m.status=1
+                  AND m.from_year<=? AND (m.to_year='0' OR (m.to_year<>'0' AND m.to_year>=?)))
+            ORDER BY c.class_id, c.sec_id
+            """, schoolId, session.substring(0, 4), session.substring(session.length() - 4));
+        return mappedSections.stream().filter(row ->
+            allowedClasses.contains(String.valueOf(row.get("classId")))
+                || teacherSections.contains(String.valueOf(row.get("sectionId")))).toList();
+    }
+
+    public List<Map<String, Object>> infosheetLookup(String schoolId, String session, String status,
+                                                    String registrationNo, String feeBookNo) {
+        String sql = baseSelect() + " AND sm.session=? AND LOWER(sm.status)=LOWER(?)"
+            + (registrationNo != null ? " AND sm.registration_no=?" : " AND sm.FeeBookNo=?")
+            + " ORDER BY sm.stu_id";
+        return jdbc.queryForList(sql, schoolId, session, status,
+            registrationNo != null ? registrationNo : feeBookNo);
     }
 
     public List<Map<String, Object>> houses(String schoolId) {

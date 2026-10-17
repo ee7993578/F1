@@ -4,8 +4,9 @@
  * Dependencies: lucide-react (already in project)
  */
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { fetchStudentSearch, useStudents } from '../../../../hooks/useStudents'
+import { studentSectionOptions } from '../../../../lib/studentSections'
 import { apiFetch } from '../../../../lib/api'
 import {
   ChevronDown, Search, Hash, CheckSquare, Square,
@@ -134,7 +135,7 @@ function Toast({ message, type, onClose }) {
 export default function ChangeAdmNo() {
   const { data: studentData } = useStudents()
   const sessionOptions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
-  const classOptions = studentData?.classes?.map(row => ({ id: row.classId, name: row.className })).filter(row => row.name) || []
+  const classOptions = studentSectionOptions(studentData?.sections)
   const [session,      setSession]      = useState('')
   const [cls,          setCls]          = useState('')
   const [loading,      setLoading]      = useState(false)
@@ -144,6 +145,13 @@ export default function ChangeAdmNo() {
   const [search,       setSearch]       = useState('')
   const [errors,       setErrors]       = useState({})
   const [toast,        setToast]        = useState(null)
+  const listRequest = useRef(0)
+
+  useEffect(() => {
+    listRequest.current += 1
+    setRows([]); setCheckedIds([]); setLoading(false)
+    return () => { listRequest.current += 1 }
+  }, [session, cls])
 
   useEffect(() => {
     const current = studentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || sessionOptions[0] || ''
@@ -160,11 +168,13 @@ export default function ChangeAdmNo() {
     const err = {}; if (!session) err.session = 'Required'; if (!cls) err.cls = 'Required'
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setCheckedIds([]); setSearch('')
-    const classId = classOptions.find(item => item.name === cls)?.id
-    fetchStudentSearch({ session, classId }).then(data => {
+    const request = ++listRequest.current
+    fetchStudentSearch({ session, sectionId: cls, status: 'Registered' }).then(data => {
+      if (request !== listRequest.current) return
       const result = data.map(r => ({ ...r, uid: r.uid || r.studentId, stu_id: String(r.studentId || ''), name: r.name, registration_no: r.registrationNo || '', _origAdm: r.registrationNo || '' }))
       setRows(result)
-    }).catch(error => showToast(error.message || 'Request failed', 'error')).finally(() => setLoading(false))
+    }).catch(error => { if (request === listRequest.current) { setRows([]); showToast(error.message || 'Request failed', 'error') } })
+      .finally(() => { if (request === listRequest.current) setLoading(false) })
   }
 
   const handleReset = () => {
@@ -416,7 +426,7 @@ export default function ChangeAdmNo() {
 
             <Field label="Class" error={errors.cls}>
               <NativeSelect value={cls} onChange={e => { setCls(e.target.value); setErrors(p=>({...p,cls:undefined})) }} placeholder="-- Select Class --" error={errors.cls}>
-                {classOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                {classOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </NativeSelect>
             </Field>
 
@@ -455,7 +465,7 @@ export default function ChangeAdmNo() {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-3.5 border-b border-slate-100 dark:border-[rgba(99,102,241,0.15)] bg-slate-50/70 dark:bg-white/[0.02]">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <span className="w-1 h-5 rounded-full bg-emerald-500 flex-shrink-0" />
-              <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200 truncate">{cls}</span>
+              <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200 truncate">{classOptions.find(c => c.id === cls)?.name}</span>
               <span className="text-[13px] text-slate-400">·</span>
               <span className="text-[13px] text-slate-500 dark:text-slate-400">{session}</span>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 flex-shrink-0">

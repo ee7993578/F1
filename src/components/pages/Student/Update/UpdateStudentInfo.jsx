@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { fetchStudentReport, useStudents } from '../../../../hooks/useStudents'
+import { studentSectionOptions } from '../../../../lib/studentSections'
 import { apiFetch } from '../../../../lib/api'
 import {
   Search, Save, RotateCcw, ChevronDown, AlertCircle,
@@ -577,7 +578,7 @@ export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
     }).catch(() => {})
   }, [studentData])
   const sessionOptions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
-  const classOptions = studentData?.classes?.map(row => row.className).filter(Boolean) || []
+  const classOptions = studentSectionOptions(studentData?.sections)
   const [session,   setSession]   = useState('')
   const [cls,       setCls]       = useState('')
   const [regNo,     setRegNo]     = useState('')
@@ -589,6 +590,13 @@ export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
   const [page,        setPage]        = useState(1)
   const [toasts,      setToasts]      = useState([])
   const PER_PAGE = 6
+  const listRequest = useRef(0)
+
+  useEffect(() => {
+    listRequest.current += 1
+    setRecords([]); setEditStudent(null); setHasViewed(false); setLoading(false)
+    return () => { listRequest.current += 1 }
+  }, [session, cls, regNo])
 
   useEffect(() => {
     const current = studentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || sessionOptions[0] || ''
@@ -603,8 +611,10 @@ export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
 
   const handleView = () => {
     setLoading(true); setHasViewed(true); setPage(1)
-    fetchStudentReport('student-list', { session, query: regNo }).then(data => {
-    const result = data.filter(r => !cls || r.className === cls || r.class_name === cls).map(r => ({
+    const request = ++listRequest.current
+    fetchStudentReport('student-list', { session, sectionId: cls || undefined, status: 'Registered', query: regNo }).then(data => {
+    if (request !== listRequest.current) return
+    const result = data.map(r => ({
       ...r,
       uid: r.uid || r.studentId,
       admNo: r.registrationNo || '',
@@ -621,7 +631,8 @@ export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
       migration: r.migration || 'No', aadharCard: r.aadharCard || 'No', castCert: r.castCertificate || 'No',
     }))
       setRecords(result)
-    }).catch(error => addToast(error.message || 'Request failed', 'error')).finally(() => setLoading(false))
+    }).catch(error => { if (request === listRequest.current) { setRecords([]); addToast(error.message || 'Request failed', 'error') } })
+      .finally(() => { if (request === listRequest.current) setLoading(false) })
   }
 
   const handleClear = () => {
@@ -717,7 +728,7 @@ export default function UpdateStudentInfo({ title = 'Student Info-Sheet' }) {
             </FilterSel>
             <FilterSel label="Class" value={cls} onChange={e => setCls(e.target.value)}>
               <option value="">All Classes</option>
-              {classOptions.map(c => <option key={c} value={c}>{c}</option>)}
+              {classOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </FilterSel>
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
