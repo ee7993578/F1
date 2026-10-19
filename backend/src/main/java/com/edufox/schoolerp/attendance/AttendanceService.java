@@ -21,8 +21,8 @@ public class AttendanceService {
     public Map<String,Object> monthOptions(String schoolId,String session,int sectionId,Integer term){return repository.monthOptions(schoolId,session,sectionId,term);}
     public Map<String,Object> monthlyRows(String schoolId,String session,int sectionId,int term,int month,int year){return repository.monthlyRows(schoolId,session,sectionId,term,month,year);}
     @Transactional public void saveMonthly(String schoolId,String staffUid,String session,int sectionId,int term,int month,int year,List<Map<String,Object>> rows){writeGuard.requireWritable();repository.saveMonthly(schoolId,staffUid,session,sectionId,term,month,year,rows);}
-    public List<Map<String,Object>> deleteRows(String schoolId,String session,String admissionNo,String from,String to){return repository.deleteRows(schoolId,session,admissionNo,from,to);}
-    @Transactional public int deleteRows(String schoolId,String session,String admissionNo,String from,String to,String staffUid){writeGuard.requireWritable();return repository.deleteRows(schoolId,session,admissionNo,from,to,staffUid);}
+    public List<Map<String,Object>> deleteRows(String schoolId,String session,int sectionId,String admissionNo,String from,String to){return repository.deleteRows(schoolId,session,sectionId,admissionNo,from,to);}
+    @Transactional public int deleteRows(String schoolId,String session,int sectionId,String admissionNo,String from,String to,String staffUid){writeGuard.requireWritable();return repository.deleteRows(schoolId,session,sectionId,admissionNo,from,to,staffUid);}
     @Transactional public int saveHoliday(String schoolId,String session,List<Integer> classIds,String date,String staffUid){writeGuard.requireWritable();return repository.saveHoliday(schoolId,session,classIds,date,staffUid);}
     public List<Map<String,Object>> rfidCampusCount(String schoolId,String session,String date,int sectionId){return repository.rfidCampusCount(schoolId,session,date,sectionId);}
     public List<Map<String,Object>> rfidCampusStudent(String schoolId,String session,String date,int sectionId){return repository.rfidCampusStudent(schoolId,session,date,sectionId);}

@@ -245,36 +245,71 @@ public class AttendanceRepository {
         }
     }
 
-    public List<Map<String, Object>> deleteRows(String schoolId, String session, String admissionNo, String from, String to) {
+    /**
+     * Direct equivalent of bind_attstudent.  The legacy page accepts an empty
+     * admission number and then returns every attendance row for the selected
+     * section/date range; an admission number narrows that same result.
+     */
+    public List<Map<String, Object>> deleteRows(String schoolId, String session, int sectionId,
+                                                 String admissionNo, String from, String to) {
+        String f = normalizeDate(from).toString(), t = normalizeDate(to).toString();
         return jdbc.queryForList("""
-            SELECT CONVERT(varchar(50),CAST(att_date AS date),106) AS attendanceDate,att_status AS attendanceStatus
-            FROM day_attendance
-            WHERE school_id=? AND session=? AND stu_id=(SELECT TOP 1 stu_id FROM TB_StudentMaster WHERE school_id=? AND registration_no=? AND session=?)
-              AND CAST(TRY_CONVERT(date,att_date) AS date) BETWEEN CAST(? AS date) AND CAST(? AS date)
-            ORDER BY CAST(TRY_CONVERT(date,att_date) AS date)
-            """, schoolId, session, schoolId, admissionNo, session, normalizeDate(from).toString(), normalizeDate(to).toString());
+            SELECT st.registration_no AS admissionNo,
+                   UPPER(LTRIM(RTRIM(COALESCE(so.first_name,'')+' '+COALESCE(so.mid_name,'')+' '+COALESCE(so.last_name,'')))) AS studentName,
+                   CONVERT(varchar(50),CAST(ad.att_date AS date),106) AS attendanceDate,
+                   ad.att_status AS attendanceStatus
+            FROM day_attendance ad
+            JOIN TB_StudentMaster st ON st.school_id=ad.school_id
+                AND st.stu_id=ad.stu_id AND st.session=ad.session
+            LEFT JOIN student_other_info so ON so.school_id=st.school_id
+                AND so.registration_no=st.registration_no AND so.uid=st.uid
+            WHERE ad.school_id=? AND ad.session=? AND st.sec_id=?
+              AND (NULLIF(LTRIM(RTRIM(?)),'') IS NULL OR st.registration_no=?)
+              AND CAST(TRY_CONVERT(date,ad.att_date) AS date) BETWEEN CAST(? AS date) AND CAST(? AS date)
+            ORDER BY CAST(TRY_CONVERT(date,ad.att_date) AS date),st.registration_no
+            """, schoolId, session, sectionId, admissionNo, admissionNo, f, t);
     }
 
-    public int deleteRows(String schoolId, String session, String admissionNo, String from, String to, String deletedBy) {
+    /**
+     * Direct equivalent of delete_day_attendanceForAll.  Matching rows are
+     * copied to the legacy log table before deletion, in one transaction.
+     */
+    public int deleteRows(String schoolId, String session, int sectionId, String admissionNo,
+                          String from, String to, String deletedBy) {
         String f = normalizeDate(from).toString(), t = normalizeDate(to).toString();
+        Object[] args = {schoolId, session, sectionId, admissionNo, admissionNo, f, t};
         Integer count = jdbc.queryForObject("""
-            SELECT COUNT(*) FROM day_attendance
-            WHERE school_id=? AND session=? AND stu_id=(SELECT TOP 1 stu_id FROM TB_StudentMaster WHERE school_id=? AND registration_no=? AND session=?)
-              AND CAST(TRY_CONVERT(date,att_date) AS date) BETWEEN CAST(? AS date) AND CAST(? AS date)
-            """, Integer.class, schoolId, session, schoolId, admissionNo, session, f, t);
+            SELECT COUNT(*)
+            FROM day_attendance ad
+            JOIN TB_StudentMaster st ON st.school_id=ad.school_id
+                AND st.stu_id=ad.stu_id AND st.session=ad.session
+            WHERE ad.school_id=? AND ad.session=? AND st.sec_id=?
+              AND (NULLIF(LTRIM(RTRIM(?)),'') IS NULL OR st.registration_no=?)
+              AND CAST(TRY_CONVERT(date,ad.att_date) AS date) BETWEEN CAST(? AS date) AND CAST(? AS date)
+            """, Integer.class, args);
+        if (count == null || count == 0) return 0;
+
         jdbc.update("""
             INSERT INTO day_attendance_log(row_id,Stu_id,att_status,att_date,session,created_date,created_by,modified_date,modified_by,school_id,feestatus,deleted_by,deleted_date)
-            SELECT row_id,Stu_id,att_status,att_date,session,created_date,created_by,modified_date,modified_by,school_id,feestatus,?,GETDATE()
-            FROM day_attendance
-            WHERE school_id=? AND session=? AND stu_id=(SELECT TOP 1 stu_id FROM TB_StudentMaster WHERE school_id=? AND registration_no=? AND session=?)
-              AND CAST(TRY_CONVERT(date,att_date) AS date) BETWEEN CAST(? AS date) AND CAST(? AS date)
-            """, deletedBy, schoolId, session, schoolId, admissionNo, session, f, t);
+            SELECT ad.row_id,ad.Stu_id,ad.att_status,ad.att_date,ad.session,ad.created_date,ad.created_by,
+                   ad.modified_date,ad.modified_by,ad.school_id,ad.feestatus,?,GETDATE()
+            FROM day_attendance ad
+            JOIN TB_StudentMaster st ON st.school_id=ad.school_id
+                AND st.stu_id=ad.stu_id AND st.session=ad.session
+            WHERE ad.school_id=? AND ad.session=? AND st.sec_id=?
+              AND (NULLIF(LTRIM(RTRIM(?)),'') IS NULL OR st.registration_no=?)
+              AND CAST(TRY_CONVERT(date,ad.att_date) AS date) BETWEEN CAST(? AS date) AND CAST(? AS date)
+            """, deletedBy, schoolId, session, sectionId, admissionNo, admissionNo, f, t);
         jdbc.update("""
-            DELETE FROM day_attendance
-            WHERE school_id=? AND session=? AND stu_id=(SELECT TOP 1 stu_id FROM TB_StudentMaster WHERE school_id=? AND registration_no=? AND session=?)
-              AND CAST(TRY_CONVERT(date,att_date) AS date) BETWEEN CAST(? AS date) AND CAST(? AS date)
-            """, schoolId, session, schoolId, admissionNo, session, f, t);
-        return count == null ? 0 : count;
+            DELETE ad
+            FROM day_attendance ad
+            JOIN TB_StudentMaster st ON st.school_id=ad.school_id
+                AND st.stu_id=ad.stu_id AND st.session=ad.session
+            WHERE ad.school_id=? AND ad.session=? AND st.sec_id=?
+              AND (NULLIF(LTRIM(RTRIM(?)),'') IS NULL OR st.registration_no=?)
+              AND CAST(TRY_CONVERT(date,ad.att_date) AS date) BETWEEN CAST(? AS date) AND CAST(? AS date)
+            """, args);
+        return count;
     }
 
     public List<Map<String, Object>> holidayClasses(String schoolId) { return allClasses(schoolId); }
