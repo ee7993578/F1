@@ -53,6 +53,8 @@ const legacyPageAliases = Object.fromEntries([
   ['WaveOffLateFees', 'WaveOffLateFees'],
   ['WaveOffFees', 'WaveOffFees'],
   ['AssignOptional', 'AssignOptional'],
+  ['desig_permision', 'DefineStaffRole'],
+  ['Roles_Permission', 'RolesPermission'],
   ['AssginConGroup', 'AssignConGroup'],
   ['Fee_notice', 'FeeNotice'],
   ['reprint_fee_slip', 'ReprintFeeSlip'],

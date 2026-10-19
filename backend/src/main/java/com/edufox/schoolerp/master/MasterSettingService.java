@@ -20,14 +20,19 @@ public class MasterSettingService {
         return repository.bootstrap(schoolId, staffUid);
     }
 
-    public List<Map<String, Object>> logs(String schoolId, String from, String to, String page, String activity) {
+    public List<Map<String, Object>> logs(String schoolId, String from, String to, String page, String activity, String staff) {
         requireContext(schoolId, "logs");
-        return repository.logs(schoolId, from, to, page, activity);
+        return repository.logs(schoolId, from, to, page, activity, staff);
     }
 
     public List<Map<String, Object>> permissions(String schoolId, int designationId) {
         requireContext(schoolId, "permissions");
         return repository.permissionConfig(schoolId, designationId);
+    }
+
+    public List<Map<String, Object>> staffPermissions(String schoolId, int facultyId, int moduleId) {
+        requireContext(schoolId, "staff-permissions");
+        return repository.staffPermissionConfig(schoolId, facultyId, moduleId);
     }
 
     public List<Map<String, Object>> moduleMappings(String schoolId, String session) {
@@ -36,9 +41,48 @@ public class MasterSettingService {
             ? repository.currentSession(schoolId) : session);
     }
 
+    public List<Map<String, Object>> schools(String schoolId) {
+        requireContext(schoolId, "schools");
+        return repository.schools(schoolId);
+    }
+
+    public List<Map<String, Object>> modulePageMappings(String actorSchoolId, String targetSchoolId, int moduleId) {
+        requireContext(actorSchoolId, "module-page-mappings");
+        if (targetSchoolId == null || targetSchoolId.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "School is required");
+        return repository.modulePageMappings(targetSchoolId, moduleId);
+    }
+
+    public void saveModulePageMappings(String actorSchoolId, String staffUid,
+                                       MasterSettingDtos.ModulePageMappingRequest request) {
+        writeGuard();
+        repository.saveModulePageMappings(request, staffUid);
+    }
+
+    public List<Map<String, Object>> staffRoles(String schoolId) {
+        requireContext(schoolId, "staff-roles");
+        return repository.staffRoles(schoolId);
+    }
+
+    public List<Integer> staffRoleIds(String schoolId, int facultyId) {
+        requireContext(schoolId, "staff-role-ids");
+        return repository.staffRoleIds(schoolId, facultyId);
+    }
+
+    public void saveStaffRoles(String schoolId, String staffUid,
+                               MasterSettingDtos.StaffRoleSaveRequest request) {
+        writeGuard();
+        repository.saveStaffRoles(schoolId, staffUid, request);
+    }
+
+    public List<Map<String, Object>> staffRolePages(String schoolId, int facultyId) {
+        requireContext(schoolId, "staff-role-pages");
+        return repository.staffRolePages(schoolId, facultyId);
+    }
+
     public void createClass(String schoolId, String staffUid, MasterSettingDtos.ClassSaveRequest request) {
         writeGuard();
-        repository.insertClass(schoolId, staffUid, request.className(), request.classGroup());
+        repository.saveClass(schoolId, staffUid, request);
     }
 
     public void createSections(String schoolId, String staffUid, MasterSettingDtos.ClassSaveRequest request) {
@@ -46,9 +90,9 @@ public class MasterSettingService {
         repository.insertSection(schoolId, staffUid, request.classIds(), request.sectionName(), request.sectionType());
     }
 
-    public void updateSection(String schoolId, int sectionId, MasterSettingDtos.SectionUpdateRequest request) {
+    public void updateSection(String schoolId, String staffUid, int sectionId, MasterSettingDtos.SectionUpdateRequest request) {
         writeGuard();
-        if (repository.updateSection(schoolId, sectionId, request.sectionName(), request.sectionType()) == 0)
+        if (repository.updateSection(schoolId, staffUid, sectionId, request.sectionName(), request.sectionType()) == 0)
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Section not found");
     }
 
@@ -98,6 +142,23 @@ public class MasterSettingService {
         repository.savePermissions(schoolId, staffUid, request);
     }
 
+    public void saveStaffPermissions(String schoolId, String staffUid,
+                                     MasterSettingDtos.StaffPermissionSaveRequest request) {
+        writeGuard();
+        repository.saveStaffPermissions(schoolId, staffUid, request);
+    }
+
+    public List<Map<String, Object>> mobilePermissions(String schoolId, int designationId) {
+        requireContext(schoolId, "mobile-permissions");
+        return repository.mobilePermissions(schoolId, designationId);
+    }
+
+    public void saveMobilePermissions(String schoolId, String staffUid,
+                                      MasterSettingDtos.MobilePermissionSaveRequest request) {
+        writeGuard();
+        repository.saveMobilePermissions(schoolId, staffUid, request);
+    }
+
     public void changePassword(String schoolId, String staffUid, MasterSettingDtos.PasswordChangeRequest request) {
         writeGuard();
         if (request.newPassword().length() < 8)
@@ -109,6 +170,18 @@ public class MasterSettingService {
     public void updateProfile(String schoolId, String staffUid, MasterSettingDtos.ProfileUpdateRequest request) {
         writeGuard();
         repository.updateProfile(schoolId, staffUid, request.fields());
+    }
+
+    public int switchSession(String schoolId, String staffUid, MasterSettingDtos.SessionSwitchRequest request) {
+        writeGuard();
+        if (request.fromSession().equals(request.toSession()))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Sessions must be different");
+        return repository.copySessionConfiguration(schoolId, staffUid, request.fromSession(), request.toSession(), request.action());
+    }
+
+    public Map<String, Boolean> sessionSwitchStatus(String schoolId, String session) {
+        requireContext(schoolId, session);
+        return repository.sessionSwitchStatus(schoolId, session);
     }
 
     private void writeGuard() {

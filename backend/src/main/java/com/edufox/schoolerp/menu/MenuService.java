@@ -20,22 +20,30 @@ public class MenuService {
         String safeRole = safe(role).toLowerCase(Locale.ROOT);
         String schoolName = repository.findSchoolName(safeSchoolId);
         String session = repository.findCurrentSession(safeSchoolId);
+        Map<String, Object> profile = repository.findSchoolProfile(safeSchoolId);
+        String address = String.join(", ", List.of("address1", "address2", "address3", "address4").stream()
+            .map(key -> safe(String.valueOf(profile.getOrDefault(key, ""))))
+            .filter(value -> !value.isBlank()).toList());
+        String phone = safe(String.valueOf(profile.getOrDefault("phone", "")));
+        String logo = safe(String.valueOf(profile.getOrDefault("logo", "")));
         if ("student".equals(safeRole) || "parent".equals(safeRole))
-            return studentMenu(safeSchoolId, safeRole, schoolName, session);
-        return staffMenu(safeSchoolId, safeStaffUid, schoolName, session);
+            return studentMenu(safeSchoolId, safeRole, schoolName, session, address, phone, logo);
+        return staffMenu(safeSchoolId, safeStaffUid, schoolName, session, address, phone, logo);
     }
 
-    private MenuDtos.MenuResponse studentMenu(String schoolId, String role, String schoolName, String session) {
+    private MenuDtos.MenuResponse studentMenu(String schoolId, String role, String schoolName, String session,
+                                               String address, String phone, String logo) {
         String userType = "parent".equals(role) ? "P" : "S";
         List<MenuDtos.Page> pages = repository.findStudentPages(schoolId, userType).stream()
             .map(p -> new MenuDtos.Page(numericId(p.pageId()), pageKey(p.pageUrl(), p.pageId()), p.pageName(),
                 p.pageUrl(), "", p.priority(), "student", "student")).toList();
-        return new MenuDtos.MenuResponse(schoolName, session,
+        return new MenuDtos.MenuResponse(schoolName, session, address, phone, logo,
             List.of(new MenuDtos.Module(0, "student", "Student", "BookOpen", "",
                 List.of(new MenuDtos.Group("student-work", "Work", "BookOpen", 1, pages)))));
     }
 
-    private MenuDtos.MenuResponse staffMenu(String schoolId, String staffUid, String schoolName, String session) {
+    private MenuDtos.MenuResponse staffMenu(String schoolId, String staffUid, String schoolName, String session,
+                                             String address, String phone, String logo) {
         List<MenuRepository.ModuleRow> moduleRows = repository.findStaffModules(schoolId, staffUid);
         Set<String> allowed = repository.findAllowedPageIds(schoolId, staffUid);
         List<MenuRepository.PageRow> pageRows = repository.findSchoolPages(schoolId);
@@ -44,7 +52,7 @@ public class MenuService {
             List<MenuRepository.PageRow> rows = pageRows.stream().filter(p -> p.moduleId() == module.moduleId()).toList();
             modules.add(toModule(module, rows, allowed));
         }
-        return new MenuDtos.MenuResponse(schoolName, session, modules);
+        return new MenuDtos.MenuResponse(schoolName, session, address, phone, logo, modules);
     }
 
     private MenuDtos.Module toModule(MenuRepository.ModuleRow module, List<MenuRepository.PageRow> rows,

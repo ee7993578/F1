@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { fetchStudentReport, useStudents } from '../../../../hooks/useStudents'
+import { useStudents } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
 import {
   Upload, FileSpreadsheet, Download, Eye, Trash2, Search,
@@ -16,8 +16,6 @@ import {
   'Class I','Class II','Class III','Class IV','Class V',
   'Class VI','Class VII','Class VIII','Class IX','Class X','Class XI','Class XII',
 ] */
-
-const INITIAL_HISTORY = []
 
 // Report rows are loaded from the registration report endpoint.
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -346,7 +344,7 @@ export default function BulkAdmission({ title = 'Bulk Admission — Online Stude
   // Excel mode
   const [file,        setFile]        = useState(null)
   const [uploading,   setUploading]   = useState(false)
-  const [history,     setHistory]     = useState(INITIAL_HISTORY)
+  const [history,     setHistory]     = useState([])
 
   // Report mode
   const [selClasses,  setSelClasses]  = useState(new Set())
@@ -414,6 +412,29 @@ export default function BulkAdmission({ title = 'Bulk Admission — Online Stude
     } catch (error) { addToast(error.message || 'Delete failed', 'error') }
   }
 
+  const handleShow = async row => {
+    try {
+      const details = await apiFetch('/students/bulk-uploads/' + encodeURIComponent(row.id) + '/rows?session=' + encodeURIComponent(session))
+      setShowRow({ ...row, details: details || [] })
+    } catch (error) { addToast(error.message || 'Unable to load upload details', 'error') }
+  }
+
+  const handleConfirmExcel = async detail => {
+    try {
+      await apiFetch('/students/bulk-uploads/confirm', {
+        method: 'POST',
+        body: JSON.stringify({
+          excelId: detail.excelId, session: detail.session,
+          registrationNo: detail.registrationNo, admissionNo: detail.admissionNo,
+        })
+      })
+      addToast('Admission completed')
+      await refreshHistory(session)
+      const rows = await apiFetch('/students/bulk-uploads/' + encodeURIComponent(detail.excelId) + '/rows?session=' + encodeURIComponent(session))
+      setShowRow(current => current ? { ...current, details: rows || [] } : current)
+    } catch (error) { addToast(error.message || 'Admission confirmation failed', 'error') }
+  }
+
   // ── Download blank template ───────────────────────────────────────────────
   const downloadTemplate = () => {
     const csv = 'First Name,Middle Name,Last Name,DOB,Gender,Father Name,Mother Name,Mobile,Address,Category,Blood Group,Class\n,,,,,,,,,,,\n'
@@ -427,8 +448,16 @@ export default function BulkAdmission({ title = 'Bulk Admission — Online Stude
   // ── View Report ───────────────────────────────────────────────────────────
   const handleViewReport = () => {
     setLoadingRpt(true); setHasReport(true); setPage(1)
-    fetchStudentReport('registration', { session, query: regNo }).then(data => {
-      const result = selClasses.size ? data.filter(row => selClasses.has(row.className) || selClasses.has(row.class_name)) : data
+    const params = new URLSearchParams({ session })
+    if (selClasses.size) params.set('classIds', classOptions.filter(item => selClasses.has(item.className)).map(item => item.classId).join(','))
+    if (regNo.trim()) params.set('registrationNo', regNo.trim())
+    apiFetch('/students/online-admission?' + params.toString()).then(data => {
+      const result = (data || []).map(row => ({
+        ...row,
+        regNo: row.registrationNo || '', name: row.name || '',
+        class: row.className || '', father: row.fatherName || '',
+        mobile: row.regPhone || '', status: row.admissionStatus || row.formStatus || ''
+      }))
       setStudents(result); setLoadingRpt(false); addToast(result.length + ' online registrations found')
     }).catch(err => { setLoadingRpt(false); addToast(err.message || 'Request failed', 'error') })
   }
@@ -612,7 +641,7 @@ export default function BulkAdmission({ title = 'Bulk Admission — Online Stude
                   <tbody>
                     {pageHistory.map((row, i) => (
                       <HistoryRow key={row.id} row={row} idx={(page - 1) * PER_PAGE + i}
-                        onShow={setShowRow} onDelete={setConfirmRow} />
+                        onShow={handleShow} onDelete={setConfirmRow} />
                     ))}
                   </tbody>
                 </table>
@@ -621,7 +650,7 @@ export default function BulkAdmission({ title = 'Bulk Admission — Online Stude
               {/* Mobile cards */}
               <div className="sm:hidden p-3 space-y-2">
                 {pageHistory.map(row => (
-                  <HistoryCard key={row.id} row={row} onShow={setShowRow} onDelete={setConfirmRow} />
+                  <HistoryCard key={row.id} row={row} onShow={handleShow} onDelete={setConfirmRow} />
                 ))}
               </div>
 
@@ -763,6 +792,20 @@ export default function BulkAdmission({ title = 'Bulk Admission — Online Stude
                 </div>
               ))}
             </div>
+            {showRow.details?.length > 0 && (
+              <div className="mt-5 space-y-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Pending rows</p>
+                {showRow.details.map(detail => (
+                  <div key={`${detail.registrationNo}-${detail.admissionNo}`} className="rounded-xl border border-slate-200 dark:border-white/10 p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div><p className="text-[12px] font-semibold text-slate-700 dark:text-slate-200">{detail.name}</p><p className="text-[10px] text-slate-400">{detail.registrationNo} · {detail.className} · {detail.sectionName}</p></div>
+                      <button type="button" onClick={() => handleConfirmExcel(detail)} className="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[11px] font-semibold text-white">Confirm</button>
+                    </div>
+                    <p className="text-[10px] text-slate-500">Admission No: {detail.admissionNo} · Deposit: {detail.depositAmount || '—'} · {detail.payMode || '—'}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -19,9 +19,19 @@ public final class MasterSettingDtos {
     public record TermSaveRequest(@NotNull Integer classId, @NotNull Integer term,
                                   @NotNull LocalDate startDate, @NotNull LocalDate endDate, Integer id) {}
     public record ModuleMappingRequest(@NotBlank String moduleId, @NotEmpty List<String> classIds) {}
-    public record PermissionSaveRequest(@NotNull Integer designationId, @NotEmpty List<PermissionRow> permissions) {}
+    public record PermissionSaveRequest(@NotNull Integer designationId, @NotNull List<PermissionRow> permissions) {}
     public record PermissionRow(@NotNull Integer pageId, Integer moduleId, boolean view, boolean add,
                                 boolean update, boolean delete, String classIds) {}
+    public record StaffPermissionSaveRequest(@NotNull Integer facultyId, @NotNull Integer moduleId,
+                                             @NotNull List<Integer> pageIds, String classIds) {}
+    public record MobilePermissionSaveRequest(@NotNull Integer designationId, @NotNull List<Integer> pageIds,
+                                              @NotBlank String menuType) {}
+    public record StaffRoleSaveRequest(@NotNull Integer facultyId, @NotNull List<Integer> designationIds) {}
+    public record ModulePageMappingRequest(@NotBlank String schoolId, @NotNull Integer moduleId,
+                                           @NotEmpty List<ModulePageRow> pages) {}
+    public record ModulePageRow(@NotNull Integer pageId, String displayName, Integer priority, boolean checked) {}
     public record PasswordChangeRequest(@NotBlank String currentPassword, @NotBlank String newPassword) {}
     public record ProfileUpdateRequest(@NotNull Map<String, Object> fields) {}
+    public record SessionSwitchRequest(@NotBlank String fromSession, @NotBlank String toSession,
+                                       @NotBlank String action) {}
 }

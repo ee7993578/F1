@@ -379,27 +379,34 @@ function SummaryCard({ icon: Icon, label, value, color }) {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
 export default function ModuleMapping() {
+  const [selectedSchool, setSelectedSchool] = useState('')
   const [selectedModule, setSelectedModule] = useState('')
   const [selectedClasses, setSelectedClasses] = useState([])
-  const [mappings, setMappings] = useState(INITIAL_MAPPINGS)
+  const [pageRows, setPageRows] = useState([])
+  const [mappings, setMappings] = useState([])
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [toast, setToast] = useState(null)
   const [search, setSearch] = useState('')
   const { data, refresh } = useMasterSettings()
-  const availableModules = data?.modules?.map(m => ({ id: String(m.moduleId), name: m.moduleName })) || MODULES
-  const availableClasses = data?.classes?.map(c => c.className) || CLASSES
+  const availableSchools = data?.schools?.map(s => ({ id: String(s.id), name: s.name })) || []
+  const availableModules = data?.modules?.map(m => ({ id: String(m.moduleId), name: m.moduleName })) || []
+  const availableClasses = pageRows.map(p => p.displayName || p.pageName)
   useEffect(() => {
-    if (data?.moduleMappings) {
-      const grouped = new Map()
-      data.moduleMappings.forEach(m => {
-        const key = String(m.moduleId)
-        if (!grouped.has(key)) grouped.set(key, { id: m.id, module_name: m.moduleName, classname: '' })
-        const row = grouped.get(key)
-        row.classname = row.classname ? row.classname + ', ' + m.className : m.className
-      })
-      setMappings([...grouped.values()])
+    if (!selectedSchool || !selectedModule) {
+      setPageRows([])
+      setSelectedClasses([])
+      return
     }
+    apiFetch(`/master-settings/module-page-mappings?schoolId=${encodeURIComponent(selectedSchool)}&moduleId=${selectedModule}`)
+      .then(rows => {
+        setPageRows(rows || [])
+        setSelectedClasses((rows || []).filter(r => r.checked).map(r => r.displayName || r.pageName))
+      })
+      .catch(err => showToast(err.message, 'error'))
+  }, [selectedSchool, selectedModule])
+  useEffect(() => {
+    setMappings([])
   }, [data])
 
   const showToast = (msg, type = 'success') => {
@@ -410,26 +417,35 @@ export default function ModuleMapping() {
   // ── Validate & Save ───────────────────────────────────────────────────────
   const handleSave = useCallback(() => {
     const err = {}
+    if (!selectedSchool) err.school = 'Please select a school'
     if (!selectedModule) err.module = 'Please select a module'
-    if (selectedClasses.length === 0) err.classes = 'Please select at least one class'
+    if (selectedClasses.length === 0) err.classes = 'Please select at least one page'
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({})
     setSaving(true)
-    apiFetch('/master-settings/module-mappings', {
+    const selected = pageRows.map(row => ({
+      pageId: Number(row.pageId),
+      displayName: row.displayName,
+      priority: Number(row.displayPriority || 0),
+      checked: selectedClasses.includes(row.displayName || row.pageName)
+    }))
+    apiFetch('/master-settings/module-page-mappings', {
       method: 'POST',
-      body: JSON.stringify({ moduleId: selectedModule, classIds: selectedClasses.map(name => String(data?.classes?.find(c => c.className === name)?.classId || name)) }),
+      body: JSON.stringify({ schoolId: selectedSchool, moduleId: Number(selectedModule), pages: selected }),
     }).then(async () => {
-      await refresh()
-      setSelectedModule('')
-      setSelectedClasses([])
-      showToast('Module mapping saved successfully.')
+      const rows = await apiFetch(`/master-settings/module-page-mappings?schoolId=${encodeURIComponent(selectedSchool)}&moduleId=${selectedModule}`)
+      setPageRows(rows || [])
+      setSelectedClasses((rows || []).filter(r => r.checked).map(r => r.displayName || r.pageName))
+      showToast('Roles Assigned')
     }).catch(err => showToast(err.message, 'error'))
       .finally(() => setSaving(false))
-  }, [selectedModule, selectedClasses, refresh, showToast])
+  }, [selectedSchool, selectedModule, selectedClasses, pageRows])
 
   const handleReset = () => {
     setSelectedModule('')
+    setSelectedSchool('')
     setSelectedClasses([])
+    setPageRows([])
     setErrors({})
   }
 
@@ -450,7 +466,7 @@ export default function ModuleMapping() {
 
   const totalClassMappings = useMemo(() => {
     return mappings.reduce((sum, m) => {
-      const count = m.classname === 'All Classes' ? CLASSES.length : m.classname.split(',').length
+      const count = m.classname ? m.classname.split(',').length : 0
       return sum + count
     }, 0)
   }, [mappings])
@@ -491,6 +507,22 @@ export default function ModuleMapping() {
         {/* Form Body */}
         <div className="p-5 space-y-5">
 
+          {/* School Select */}
+          <Field label="Select School" required error={errors.school}>
+            <NativeSelect
+              value={selectedSchool}
+              onChange={e => {
+                setSelectedSchool(e.target.value)
+                setSelectedModule('')
+                setErrors(p => ({ ...p, school: undefined }))
+              }}
+              placeholder="-- Select School --"
+              error={errors.school}
+            >
+              {availableSchools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </NativeSelect>
+          </Field>
+
           {/* Module Select */}
           <Field label="Module Name" required error={errors.module}>
             <NativeSelect
@@ -508,9 +540,9 @@ export default function ModuleMapping() {
             </NativeSelect>
           </Field>
 
-          {/* Class Checkboxes */}
+          {/* Page Checkboxes */}
           <Field
-            label="Select Classes"
+            label="Select Page"
             required
             hint="choose one or more"
             error={errors.classes}
@@ -526,12 +558,29 @@ export default function ModuleMapping() {
             />
           </Field>
 
+          {/* Page display name and priority, matching the legacy GridView fields */}
+          {selectedClasses.length > 0 && (
+            <div className="space-y-2 rounded-xl border border-slate-200 dark:border-[rgba(99,102,241,0.15)] p-3">
+              {pageRows.filter(row => selectedClasses.includes(row.displayName || row.pageName)).map(row => {
+                const key = String(row.pageId)
+                return (
+                  <div key={key} className="grid grid-cols-1 sm:grid-cols-[1fr_130px] gap-2 items-center">
+                    <input value={row.displayName || row.pageName} onChange={e => setPageRows(prev => prev.map(p => String(p.pageId) === key ? { ...p, displayName: e.target.value } : p))}
+                      className="w-full px-3 py-2 text-[13px] rounded-lg border border-slate-200 dark:border-[rgba(99,102,241,0.25)] bg-white dark:bg-[#1e2238] dark:text-slate-200" />
+                    <input type="number" value={row.displayPriority ?? 0} onChange={e => setPageRows(prev => prev.map(p => String(p.pageId) === key ? { ...p, displayPriority: e.target.value } : p))}
+                      className="w-full px-3 py-2 text-[13px] rounded-lg border border-slate-200 dark:border-[rgba(99,102,241,0.25)] bg-white dark:bg-[#1e2238] dark:text-slate-200" />
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           {/* Selected preview */}
           {selectedClasses.length > 0 && (
             <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-500/[0.07] border border-blue-100 dark:border-blue-500/20">
               <Info className="w-3.5 h-3.5 text-blue-500 flex-shrink-0 mt-0.5" />
               <p className="text-[12px] text-blue-700 dark:text-blue-400">
-                <span className="font-bold">{selectedClasses.length} class{selectedClasses.length > 1 ? 'es' : ''} selected:</span>{' '}
+                <span className="font-bold">{selectedClasses.length} page{selectedClasses.length > 1 ? 's' : ''} selected:</span>{' '}
                 {selectedClasses.slice(0, 5).join(', ')}
                 {selectedClasses.length > 5 && ` +${selectedClasses.length - 5} more`}
               </p>

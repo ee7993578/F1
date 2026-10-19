@@ -16,6 +16,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useStudents } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   Plus, X, Check, AlertCircle, Loader2, ChevronDown,
   Calendar, Clock, DoorOpen, BookOpen, Users,
@@ -29,8 +30,8 @@ import {
 // examConfiguration.aspx.cs shows this selector only for class id 17.
 const CLASSES_WITH_STUDENT_TYPE = ['17']
 
-const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
-const MINUTES = ['00', '15', '30', '45']
+const HOURS = []
+const MINUTES = []
 const MERIDIEM = ['AM', 'PM']
 
 const SEED_DATA = []
@@ -52,9 +53,9 @@ const emptyForm = () => ({
   examSession: '0',
   examDate: '',
   entryGateNo: '',
-  reportingHour: '08', reportingMinute: '00', reportingMeridiem: 'AM',
-  startHour: '09',     startMinute: '00',     startMeridiem: 'AM',
-  endHour: '11',       endMinute: '00',       endMeridiem: 'AM',
+  reportingHour: '01', reportingMinute: '00', reportingMeridiem: 'AM',
+  startHour: '01',     startMinute: '00',     startMeridiem: 'AM',
+  endHour: '01',       endMinute: '00',       endMeridiem: 'AM',
   studentType: '',
 })
 
@@ -115,7 +116,7 @@ function Toast({ message, type = 'success', onClose }) {
 }
 
 // ── Inline time picker: HH : MM AM/PM ────────────────────────────────────────
-function TimePicker({ label, hour, minute, meridiem, onHour, onMinute, onMeridiem }) {
+function TimePicker({ label, hour, minute, meridiem, onHour, onMinute, onMeridiem, hours = HOURS, minutes = MINUTES }) {
   return (
     <Field label={label}>
       <div className="flex items-center gap-1.5">
@@ -125,7 +126,7 @@ function TimePicker({ label, hour, minute, meridiem, onHour, onMinute, onMeridie
             onChange={e => onHour(e.target.value)}
             className="w-full appearance-none pl-2 pr-6 py-2.5 text-[13px] rounded-xl border border-slate-200 bg-white text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 cursor-pointer"
           >
-            {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+            {hours.map(h => <option key={h} value={h}>{h}</option>)}
           </select>
           <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
         </div>
@@ -136,7 +137,7 @@ function TimePicker({ label, hour, minute, meridiem, onHour, onMinute, onMeridie
             onChange={e => onMinute(e.target.value)}
             className="w-full appearance-none pl-2 pr-6 py-2.5 text-[13px] rounded-xl border border-slate-200 bg-white text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 cursor-pointer"
           >
-            {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+            {minutes.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
           <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
         </div>
@@ -197,7 +198,7 @@ function ConfirmDialog({ open, message, onConfirm, onCancel }) {
 }
 
 // ─── FORM COMPONENT (shared between desktop panel + mobile drawer) ─────────────
-function ExamForm({ form, setForm, errors, onSave, onCancel, saving, editId, sessions = [], classes = [] }) {
+function ExamForm({ form, setForm, errors, onSave, onCancel, saving, editId, sessions = [], classes = [], hours = HOURS, minutes = MINUTES }) {
   const showStudentType = CLASSES_WITH_STUDENT_TYPE.includes(form.classId)
 
   const set = (key) => (e) => setForm(p => ({ ...p, [key]: e.target.value }))
@@ -253,6 +254,7 @@ function ExamForm({ form, setForm, errors, onSave, onCancel, saving, editId, ses
           onHour={v => setForm(p => ({ ...p, reportingHour: v }))}
           onMinute={v => setForm(p => ({ ...p, reportingMinute: v }))}
           onMeridiem={v => setForm(p => ({ ...p, reportingMeridiem: v }))}
+          hours={hours} minutes={minutes}
         />
         <TimePicker
           label="Start Time"
@@ -260,6 +262,7 @@ function ExamForm({ form, setForm, errors, onSave, onCancel, saving, editId, ses
           onHour={v => setForm(p => ({ ...p, startHour: v }))}
           onMinute={v => setForm(p => ({ ...p, startMinute: v }))}
           onMeridiem={v => setForm(p => ({ ...p, startMeridiem: v }))}
+          hours={hours} minutes={minutes}
         />
         <TimePicker
           label="End Time"
@@ -267,6 +270,7 @@ function ExamForm({ form, setForm, errors, onSave, onCancel, saving, editId, ses
           onHour={v => setForm(p => ({ ...p, endHour: v }))}
           onMinute={v => setForm(p => ({ ...p, endMinute: v }))}
           onMeridiem={v => setForm(p => ({ ...p, endMeridiem: v }))}
+          hours={hours} minutes={minutes}
         />
       </div>
 
@@ -422,9 +426,16 @@ function MobileExamCard({ row, onEdit, onDelete, idx }) {
 export default function ExamConfiguration() {
   const { data: studentData } = useStudents()
   const sessions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
-  const classes = studentData?.classes?.map(row => ({ id: row.classId ?? row.id, name: row.className ?? row.class_name })).filter(row => row.name) || []
+  const classes = studentData?.classes?.map(row => ({ id: row.classId ?? row.id, name: row.displayClassName ?? row.className ?? row.class_name })).filter(row => row.name) || []
   const [records, setRecords]         = useState(SEED_DATA)
-  useEffect(() => { apiFetch('/student-settings/exam-configuration').then(setRecords).catch(error => showToast(error.message || 'Unable to load exam configurations', 'error')) }, [])
+  const [hours, setHours]             = useState([])
+  const [minutes, setMinutes]         = useState([])
+  useEffect(() => {
+    apiFetch('/student-settings/exam-configuration/options').then(data => {
+      setHours((data.hours || []).map(row => String(row.value).padStart(2, '0')))
+      setMinutes((data.minutes || []).map(row => String(row.value).padStart(2, '0')))
+    }).catch(error => showToast(error.message || 'Unable to load time options', 'error'))
+  }, [])
   const [form, setForm]               = useState(emptyForm())
   const [errors, setErrors]           = useState({})
   const [showForm, setShowForm]       = useState(false)   // desktop panel
@@ -440,6 +451,10 @@ export default function ExamConfiguration() {
     const current = studentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || sessions[0] || ''
     if (current && !gridSession) setGridSession(current)
   }, [studentData, sessions, gridSession])
+  useEffect(() => {
+    const query = gridSession ? '?session=' + encodeURIComponent(gridSession) : ''
+    apiFetch('/student-settings/exam-configuration' + query).then(setRecords).catch(error => showToast(error.message || 'Unable to load exam configurations', 'error'))
+  }, [gridSession])
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -468,9 +483,10 @@ export default function ExamConfiguration() {
 
   // ── Open form for edit ───────────────────────────────────────────────────
   const openEdit = (row) => {
-    const [rh, rm, rmer] = row.examReportingTime.split(/[: ]/)
-    const [sh, sm, smer] = row.examStartTime.split(/[: ]/)
-    const [eh, em, emer] = row.examEndTime.split(/[: ]/)
+    const parts = value => String(value || '').trim().split(/[: ]+/)
+    const [rh, rm, rmer] = parts(row.examReportingTime)
+    const [sh, sm, smer] = parts(row.examStartTime)
+    const [eh, em, emer] = parts(row.examEndTime)
     setForm({
       classId: row.classId,
       examSession: row.examSession,
@@ -499,7 +515,7 @@ export default function ExamConfiguration() {
     if (!validate()) return
     setSaving(true)
     const body = { ...form, examReportingTime: form.reportingHour + ':' + form.reportingMinute + ' ' + form.reportingMeridiem, examStartTime: form.startHour + ':' + form.startMinute + ' ' + form.startMeridiem, examEndTime: form.endHour + ':' + form.endMinute + ' ' + form.endMeridiem, id: editId }
-    try { const result = await apiFetch(editId ? '/student-settings/exam-configuration/' + editId : '/student-settings/exam-configuration', { method: editId ? 'PUT' : 'POST', body: JSON.stringify(body) }); setRecords(await apiFetch('/student-settings/exam-configuration')); closeForm(); showToast(result.message || 'Exam configuration saved.') } catch (error) { showToast(error.message || 'Exam configuration save failed', 'error') } finally { setSaving(false) }
+    try { const result = await apiFetch(editId ? '/student-settings/exam-configuration/' + editId : '/student-settings/exam-configuration', { method: editId ? 'PUT' : 'POST', body: JSON.stringify(body) }); setRecords(await apiFetch('/student-settings/exam-configuration' + (gridSession ? '?session=' + encodeURIComponent(gridSession) : ''))); closeForm(); showToast(result.message || 'Exam configuration saved.') } catch (error) { showToast(error.message || 'Exam configuration save failed', 'error') } finally { setSaving(false) }
   }, [editId, form])
 
   // ── Delete ───────────────────────────────────────────────────────────────
@@ -515,7 +531,7 @@ export default function ExamConfiguration() {
     if (gridSession) r = r.filter(x => x.examSession === gridSession)
     if (search) {
       const q = search.toLowerCase()
-      r = r.filter(x => x.className.toLowerCase().includes(q) || x.examEntryGateNO.toLowerCase().includes(q) || x.examSession.includes(q))
+      r = r.filter(x => String(x.className || '').toLowerCase().includes(q) || String(x.examEntryGateNO || '').toLowerCase().includes(q) || String(x.examSession || '').toLowerCase().includes(q))
     }
     return r
   }, [records, gridSession, search])
@@ -566,7 +582,7 @@ export default function ExamConfiguration() {
             </div>
             <div className="p-6">
               <ExamForm
-                form={form} setForm={setForm} errors={errors}
+                form={form} setForm={setForm} errors={errors} hours={hours} minutes={minutes}
                 onSave={handleSave} onCancel={closeForm}
                 saving={saving} editId={editId}
                 sessions={sessions} classes={classes}
@@ -763,7 +779,7 @@ export default function ExamConfiguration() {
       {/* ── MOBILE FORM DRAWER ──────────────────────────────────────────────── */}
       <FormDrawer open={drawerOpen} onClose={closeForm} editId={editId}>
         <ExamForm
-          form={form} setForm={setForm} errors={errors}
+          form={form} setForm={setForm} errors={errors} hours={hours} minutes={minutes}
           onSave={handleSave} onCancel={closeForm}
           saving={saving} editId={editId}
           sessions={sessions} classes={classes}

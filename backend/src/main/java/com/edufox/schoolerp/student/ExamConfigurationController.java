@@ -14,6 +14,7 @@ import java.util.Map;
 @PreAuthorize("hasRole('FACULTY')")
 public class ExamConfigurationController {
     private final ExamConfigurationService service;
+    @GetMapping("/options") public Map<String,Object> options(){return service.options();}
     @GetMapping public List<Map<String,Object>> list(@RequestParam(required=false) String session,Authentication a){Claims c=(Claims)a.getDetails();return service.list(String.valueOf(c.get("schoolId")),session);}
     @PostMapping public ExamConfigurationDtos.ExamResponse save(@RequestBody ExamConfigurationDtos.ExamRequest r,Authentication a){Claims c=(Claims)a.getDetails();return service.save(String.valueOf(c.get("schoolId")),String.valueOf(c.get("staffUid")),r);}
     @PutMapping("/{id}") public ExamConfigurationDtos.ExamResponse update(@PathVariable Integer id,@RequestBody ExamConfigurationDtos.ExamRequest r,Authentication a){Claims c=(Claims)a.getDetails();return service.save(String.valueOf(c.get("schoolId")),String.valueOf(c.get("staffUid")),new ExamConfigurationDtos.ExamRequest(id,r.classId(),r.examDate(),r.examReportingTime(),r.examEntryGateNO(),r.examStartTime(),r.examEndTime(),r.examSession(),r.studentType()));}

@@ -361,7 +361,7 @@ function FilterDrawer({
   cls, setCls,
   section, setSection,
   house, setHouse,
-  availableSections,
+  availableSections, sessions, classes, houseOpts, handleClassChange,
   onShow, loading, errors
 }) {
   if (!open) return null
@@ -391,8 +391,8 @@ function FilterDrawer({
               {sessions.map(s => <option key={s} value={s}>{s}</option>)}
             </NativeSelect>
           </Field>
-          <Field label="Class" error={errors.cls} required>
-            <NativeSelect value={cls} onChange={e => { handleClassChange(e.target.value) }} placeholder="-- Select Class --" disabled={!session} error={errors.cls}>
+          <Field label="Class" error={errors.cls}>
+            <NativeSelect value={cls} onChange={e => { handleClassChange(e.target.value) }} placeholder="-- Select All --" disabled={!session} error={errors.cls}>
               {classes.map(c => <option key={c.id} value={c.className}>{c.className}</option>)}
             </NativeSelect>
           </Field>
@@ -402,7 +402,7 @@ function FilterDrawer({
             </NativeSelect>
           </Field>
           <Field label="House">
-            <NativeSelect value={house} onChange={e => setHouse(e.target.value)} placeholder="-- All Houses --" disabled={!cls}>
+            <NativeSelect value={house} onChange={e => setHouse(e.target.value)} placeholder="-- All Houses --" disabled={!session}>
               {houseOpts.map(h => <option key={h} value={h}>{h}</option>)}
             </NativeSelect>
           </Field>
@@ -425,13 +425,13 @@ function FilterDrawer({
 }
 
 // ─── HOUSE DISTRIBUTION BAR ──────────────────────────────────────────────────
-function HouseDistribution({ rows }) {
+function HouseDistribution({ rows, houseOpts }) {
   const counts = useMemo(() => {
     const c = {}
-    HOUSES.forEach(h => { c[h] = 0 })
+    ;(houseOpts || []).forEach(h => { c[h] = 0 })
     rows.forEach(r => { if (c[r.house] !== undefined) c[r.house]++ })
     return c
-  }, [rows])
+  }, [rows, houseOpts])
   const total = rows.length || 1
 
   return (
@@ -440,7 +440,7 @@ function HouseDistribution({ rows }) {
         <Shield className="w-3.5 h-3.5" /> House Distribution
       </p>
       <div className="space-y-2.5">
-        {houseOpts.map(h => {
+        {(houseOpts || []).map(h => {
           const hc = HOUSE_COLORS[h]
           const pct = Math.round((counts[h] / total) * 100)
           return (
@@ -527,9 +527,9 @@ export default function HouseReport() {
 
   // Fetch (mirrors tb_studentmaster grid bind)
   const handleShow = useCallback(() => {
-    const err = {}; if (!session) err.session = 'Please select a session'; if (!cls) err.cls = 'Please select a class'; if (Object.keys(err).length) { setErrors(err); return }
+    const err = {}; if (!session) err.session = 'Please select a session'; if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch('')
-    fetchStudentReport('house', { session }).then(data => { let result = data.filter(r => r.className === cls || r.class_name === cls); if (section) result = result.filter(r => r.sectionName === section || r.section_name === section); if (house) result = result.filter(r => (r.house || r.houseName || '').toLowerCase() === house.toLowerCase()); setRows(result); setMeta({ session, cls, section: section || 'All', house: house || 'All' }); setShown(true); showToast('Loaded ' + result.length + ' student(s) for ' + cls + '.') }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
+    fetchStudentReport('house', { session }).then(data => { let result = cls ? data.filter(r => r.className === cls || r.class_name === cls) : data; if (section) result = result.filter(r => r.sectionName === section || r.section_name === section); if (house) result = result.filter(r => (r.house || r.houseName || '').toLowerCase() === house.toLowerCase()); setRows(result); setMeta({ session, cls: cls || 'All Classes', section: section || 'All', house: house || 'All' }); setShown(true); showToast('Loaded ' + result.length + ' student(s) for ' + (cls || 'all classes') + '.') }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
   }, [session, cls, section, house])
 
 
@@ -631,12 +631,12 @@ export default function HouseReport() {
               </NativeSelect>
             </Field>
 
-            <Field label="Class" error={errors.cls} required>
+          <Field label="Class" error={errors.cls}>
               <NativeSelect
                 value={cls}
                 onChange={e => { handleClassChange(e.target.value); setErrors(p => ({ ...p, cls: undefined })) }}
-                placeholder="-- Select Class --"
-                disabled={!session}
+                placeholder="-- Select All --"
+                disabled={!cls}
                 error={errors.cls}
               >
                 {classes.map(c => <option key={c.id} value={c.className}>{c.className}</option>)}
@@ -659,7 +659,7 @@ export default function HouseReport() {
                 value={house}
                 onChange={e => setHouse(e.target.value)}
                 placeholder="-- All Houses --"
-                disabled={!cls}
+                disabled={!session}
               >
                 {houseOpts.map(h => <option key={h} value={h}>{h}</option>)}
               </NativeSelect>
@@ -716,6 +716,7 @@ export default function HouseReport() {
         section={section} setSection={setSection}
         house={house} setHouse={setHouse}
         availableSections={availableSections}
+        sessions={sessions} classes={classes} houseOpts={houseOpts} handleClassChange={handleClassChange}
         onShow={handleShow} loading={loading} errors={errors}
       />
 
@@ -754,7 +755,7 @@ export default function HouseReport() {
 
           {/* House Distribution (only if "All Houses" shown) */}
           {meta.house === 'All' && (
-            <HouseDistribution rows={filtered} />
+            <HouseDistribution rows={filtered} houseOpts={houseOpts} />
           )}
 
           {/* Results Card */}

@@ -94,42 +94,18 @@ const SUBJECTS = [
   'Physical Education', 'Music', 'Art',
 ]
 
-// Pre-filled dummy faculty data
+// Form shape; values are populated from the authenticated faculty record.
 const INITIAL_DATA = {
-  facultyId: 'FAC-2024-001',
-  salutation: 'Mr.',
-  firstName: 'Rajesh',
-  middleName: 'Kumar',
-  lastName: 'Sharma',
-  dob: '15 Mar 1985',
-  gender: 'Male',
-  fatherHusbandName: 'Ramesh Sharma',
-  maritalStatus: 'Married',
-  anniversaryDate: '20 Jun 2012',
-  bQualification: 'B.Sc. (Physics)',
-  hQualification: 'M.Sc. (Physics)',
-  dateOfJoining: '01 Jul 2010',
-  experience: '14',
-  department: 'science',
-  designation: 'tgt',
-  bloodGroup: 'B+',
-  subjects: ['Physics', 'Mathematics'],
-  presentAddress: '45, Shastri Nagar, Meerut - 250004',
-  permanentAddress: '45, Shastri Nagar, Meerut - 250004',
-  state: 'UP',
-  district: 'Meerut',
-  city: 'Meerut',
-  pin: '250004',
-  telephone: '0121-2650123',
-  mobile: '9876543210',
-  email: 'rajesh.sharma@school.edu.in',
+  facultyId: '', salutation: '0', firstName: '', middleName: '', lastName: '', dob: '',
+  gender: '', fatherHusbandName: '', maritalStatus: '', anniversaryDate: '',
+  bQualification: '', hQualification: '', dateOfJoining: '', experience: '',
+  department: '0', designation: '0', bloodGroup: '0', subjects: [],
+  presentAddress: '', permanentAddress: '', state: '0', district: '0', city: '', pin: '',
+  telephone: '', mobile: '', email: '', imagePath: '',
   oldPassword: '',
   newPassword: '',
   confirmPassword: '',
-  aadharCard: '123456789012',
-  panCard: 'ABCDE1234F',
-  accountNo: '1234567890123456',
-  ifscCode: 'SBIN0001234',
+  aadharCard: '', panCard: '', accountNo: '', ifscCode: '',
 }
 
 // ─── SECTION TABS CONFIG ──────────────────────────────────────────────────────
@@ -348,8 +324,11 @@ function PhotoModal({ open, onClose, onUpload }) {
 }
 
 // ─── SECTION: FACULTY DETAIL ──────────────────────────────────────────────────
-function FacultyDetailSection({ form, setForm, errors }) {
-  const districts = form.state && DISTRICTS[form.state] ? DISTRICTS[form.state] : ['-- Select District --']
+function FacultyDetailSection({ form, setForm, errors, options = {} }) {
+  const departments = [{ value: '0', label: '-- Select Department --' }, ...(options.departments || []).map(d => ({ value: String(d.id), label: d.name }))]
+  const designations = [{ value: '0', label: '-- Select Designation --' }, ...(options.designations || []).map(d => ({ value: String(d.id), label: d.displayName || d.name }))]
+  const bloodGroups = [{ value: '0', label: '-- Select --' }, ...(options.bloodGroups || []).map(b => ({ value: String(b.id), label: b.name }))]
+  const subjects = (options.subjects || []).map(s => ({ value: String(s.id), label: s.name }))
 
   return (
     <div className="space-y-5">
@@ -470,12 +449,12 @@ function FacultyDetailSection({ form, setForm, errors }) {
         </Field>
         <Field label="Department">
           <Select value={form.department} onChange={e => setForm(p => ({ ...p, designation: '0', department: e.target.value }))}>
-            {DEPARTMENTS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+            {departments.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
           </Select>
         </Field>
         <Field label="Designation" error={errors.designation} required>
           <Select value={form.designation} onChange={e => setForm(p => ({ ...p, designation: e.target.value }))} error={errors.designation}>
-            {DESIGNATIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+            {designations.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
           </Select>
         </Field>
       </div>
@@ -484,7 +463,7 @@ function FacultyDetailSection({ form, setForm, errors }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Field label="Blood Group">
           <Select value={form.bloodGroup} onChange={e => setForm(p => ({ ...p, bloodGroup: e.target.value }))}>
-            {BLOOD_GROUPS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+            {bloodGroups.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
           </Select>
         </Field>
       </div>
@@ -495,10 +474,10 @@ function FacultyDetailSection({ form, setForm, errors }) {
           Subjects Taught
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-          {SUBJECTS.map(sub => {
-            const checked = form.subjects.includes(sub)
+          {subjects.map(sub => {
+            const checked = form.subjects.includes(sub.label)
             return (
-              <label key={sub}
+              <label key={sub.value}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all text-[12px] font-medium
                   ${checked
                     ? 'border-blue-400 bg-blue-50 text-blue-700 dark:border-indigo-500 dark:bg-indigo-500/15 dark:text-indigo-300'
@@ -510,7 +489,7 @@ function FacultyDetailSection({ form, setForm, errors }) {
                   onClick={() => {
                     setForm(p => ({
                       ...p,
-                      subjects: checked ? p.subjects.filter(s => s !== sub) : [...p.subjects, sub]
+                      subjects: checked ? p.subjects.filter(s => s !== sub.label) : [...p.subjects, sub.label]
                     }))
                   }}
                 >
@@ -519,9 +498,9 @@ function FacultyDetailSection({ form, setForm, errors }) {
                 <span onClick={() => {
                   setForm(p => ({
                     ...p,
-                    subjects: checked ? p.subjects.filter(s => s !== sub) : [...p.subjects, sub]
+                    subjects: checked ? p.subjects.filter(s => s !== sub.label) : [...p.subjects, sub.label]
                   }))
-                }}>{sub}</span>
+                }}>{sub.label}</span>
               </label>
             )
           })}
@@ -532,7 +511,7 @@ function FacultyDetailSection({ form, setForm, errors }) {
 }
 
 // ─── SECTION: CONTACT DETAIL ──────────────────────────────────────────────────
-function ContactSection({ form, setForm, errors }) {
+function ContactSection({ form, setForm, errors, options = {} }) {
   const handleSameAddress = (checked) => {
     setForm(p => ({
       ...p,
@@ -540,7 +519,10 @@ function ContactSection({ form, setForm, errors }) {
     }))
   }
 
-  const districts = form.state && DISTRICTS[form.state] ? DISTRICTS[form.state] : ['-- Select District --']
+  const states = [{ value: '0', label: '-- Select State --' }, ...(options.states || []).map(s => ({ value: String(s.id), label: s.name }))]
+  const districts = [{ value: '0', label: '-- Select District --' }, ...(options.districts || [])
+    .filter(d => !form.state || String(d.stateId) === String(form.state))
+    .map(d => ({ value: String(d.id), label: d.name }))]
 
   return (
     <div className="space-y-5">
@@ -593,12 +575,12 @@ function ContactSection({ form, setForm, errors }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Field label="State">
           <Select value={form.state} onChange={e => setForm(p => ({ ...p, state: e.target.value, district: '' }))}>
-            {STATES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            {states.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </Select>
         </Field>
         <Field label="District">
           <Select value={form.district} onChange={e => setForm(p => ({ ...p, district: e.target.value }))}>
-            {districts.map((d, i) => <option key={i} value={i === 0 ? '0' : d}>{d}</option>)}
+            {districts.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
           </Select>
         </Field>
         <Field label="City">
@@ -863,10 +845,30 @@ export default function ViewProfile() {
   const [toast, setToast] = useState(null)
   const [activeSection, setActiveSection] = useState('faculty') // mobile tab
   const { data } = useMasterSettings()
+  const profileOptions = data?.profileOptions || {}
+  const options = { ...profileOptions, designations: data?.designations || [] }
   useEffect(() => {
     const p = data?.profile
     if (!p || Object.keys(p).length === 0) return
-    setForm(prev => ({ ...prev, facultyId: p.facultyCode ?? prev.facultyId, firstName: p.firstName ?? '', middleName: p.middleName ?? '', lastName: p.lastName ?? '', email: p.email ?? prev.email, mobile: p.mobile ?? prev.mobile, telephone: p.phone ?? prev.telephone, gender: p.gender ?? prev.gender, maritalStatus: p.maritalStatus ?? prev.maritalStatus, presentAddress: p.presentAddress ?? prev.presentAddress, permanentAddress: p.residentialAddress ?? prev.permanentAddress, pin: p.pin ?? prev.pin, city: p.city ?? prev.city, department: p.department ?? prev.department, bloodGroup: p.bloodGroup ?? prev.bloodGroup, bQualification: p.bachelorQualification ?? prev.bQualification, hQualification: p.higherQualification ?? prev.hQualification }))
+    const date = value => value ? String(value).slice(0, 10) : ''
+    setForm(prev => ({ ...prev,
+      facultyId: p.facultyCode ?? prev.facultyId, salutation: p.salutation ?? prev.salutation,
+      firstName: p.firstName ?? '', middleName: p.middleName ?? '', lastName: p.lastName ?? '',
+      dob: date(p.dob), fatherHusbandName: p.fatherName ?? '', email: p.email ?? '',
+      mobile: p.mobile ?? '', telephone: p.phone ?? '', gender: p.gender ?? '',
+      maritalStatus: p.maritalStatus ?? '', anniversaryDate: date(p.anniversaryDate),
+      presentAddress: p.presentAddress ?? '', permanentAddress: p.residentialAddress ?? '',
+      pin: p.pin ?? '', city: p.city ?? '', department: p.department ?? '0',
+      designation: p.designationId == null ? '0' : String(p.designationId),
+      bloodGroup: p.bloodGroup == null ? '0' : String(p.bloodGroup),
+      state: p.stateId == null ? '0' : String(p.stateId),
+      district: p.districtId == null ? '0' : String(p.districtId),
+      bQualification: p.bachelorQualification ?? '', hQualification: p.higherQualification ?? '',
+      dateOfJoining: date(p.joiningDate), experience: p.experience ?? '',
+      aadharCard: p.aadharCard ?? '', panCard: p.panCard ?? '', accountNo: p.accountNo ?? '',
+      ifscCode: p.ifscCode ?? '', subjects: (p.subjects || []).map(s => s.name || s), imagePath: p.imagePath ?? ''
+    }))
+    if (p.imagePath) setPhoto(p.imagePath)
   }, [data])
 
   const showToast = (msg, type = 'success') => {
@@ -911,7 +913,20 @@ export default function ViewProfile() {
       return
     }
     setSaving(true)
-    apiFetch('/master-settings/profile', { method: 'PUT', body: JSON.stringify({ fields: { firstName: form.firstName, middleName: form.middleName, lastName: form.lastName, email: form.email, phone: form.telephone, mobile: form.mobile, gender: form.gender, maritalStatus: form.maritalStatus, residentialAddress: form.permanentAddress, presentAddress: form.presentAddress, pin: form.pin, city: form.city, department: form.department } }) }).then(() => showToast('Profile updated successfully!')).catch(err => showToast(err.message, 'error')).finally(() => setSaving(false))
+    const update = apiFetch('/master-settings/profile', { method: 'PUT', body: JSON.stringify({ fields: {
+      firstName: form.firstName, middleName: form.middleName, lastName: form.lastName, email: form.email,
+      phone: form.telephone, mobile: form.mobile, gender: form.gender, maritalStatus: form.maritalStatus,
+      fatherName: form.fatherHusbandName, dob: form.dob, anniversaryDate: form.anniversaryDate,
+      residentialAddress: form.permanentAddress, presentAddress: form.presentAddress, pin: form.pin,
+      city: form.city, department: form.department, stateId: form.state, districtId: form.district,
+      bloodGroup: form.bloodGroup, bQualification: form.bQualification, hQualification: form.hQualification,
+      joiningDate: form.dateOfJoining, experience: form.experience, aadharCard: form.aadharCard,
+      panCard: form.panCard, accountNo: form.accountNo, ifscCode: form.ifscCode, imagePath: form.imagePath
+    } }) })
+    const password = form.oldPassword || form.newPassword || form.confirmPassword
+      ? apiFetch('/master-settings/profile/password', { method: 'POST', body: JSON.stringify({ currentPassword: form.oldPassword, newPassword: form.newPassword }) })
+      : Promise.resolve()
+    Promise.all([update, password]).then(() => showToast('Profile updated successfully!')).catch(err => showToast(err.message, 'error')).finally(() => setSaving(false))
   }
 
   // ── Reset ─────────────────────────────────────────────────────────────────
@@ -984,14 +999,14 @@ export default function ViewProfile() {
             </div>
             {/* Right: Fields */}
             <div className="flex-1 min-w-0">
-              <FacultyDetailSection form={form} setForm={setForm} errors={errors} />
+              <FacultyDetailSection form={form} setForm={setForm} errors={errors} options={options} />
             </div>
           </div>
         </SectionCard>
 
         {/* Contact Detail */}
         <SectionCard title="Contact Detail" icon={Phone} accent="emerald">
-          <ContactSection form={form} setForm={setForm} errors={errors} />
+          <ContactSection form={form} setForm={setForm} errors={errors} options={options} />
         </SectionCard>
 
         {/* Update Password */}
@@ -1069,8 +1084,8 @@ export default function ViewProfile() {
           })()}
 
           <div className="p-4">
-            {activeSection === 'faculty' && <FacultyDetailSection form={form} setForm={setForm} errors={errors} />}
-            {activeSection === 'contact' && <ContactSection form={form} setForm={setForm} errors={errors} />}
+            {activeSection === 'faculty' && <FacultyDetailSection form={form} setForm={setForm} errors={errors} options={options} />}
+            {activeSection === 'contact' && <ContactSection form={form} setForm={setForm} errors={errors} options={options} />}
             {activeSection === 'password' && <PasswordSection form={form} setForm={setForm} errors={errors} />}
             {activeSection === 'other' && <OtherDetailSection form={form} setForm={setForm} errors={errors} />}
           </div>

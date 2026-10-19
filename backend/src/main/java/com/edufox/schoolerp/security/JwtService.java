@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Date;
 
@@ -19,7 +21,15 @@ public class JwtService {
     private final AppProperties properties;
 
     private SecretKey signingKey() {
-        return Keys.hmacShaKeyFor(properties.getAuth().getJwtSecret().getBytes(StandardCharsets.UTF_8));
+        try {
+            // Normalize configured material to a fixed 256-bit key so local
+            // configuration cannot accidentally start with an insecure HMAC key.
+            byte[] key = MessageDigest.getInstance("SHA-256")
+                .digest(properties.getAuth().getJwtSecret().getBytes(StandardCharsets.UTF_8));
+            return Keys.hmacShaKeyFor(key);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is unavailable", e);
+        }
     }
 
     public String issueToken(AuthUser user, String role, String userId) {

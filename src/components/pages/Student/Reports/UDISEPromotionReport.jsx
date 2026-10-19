@@ -589,7 +589,7 @@ function FilterDrawer({ open, onClose, filters, setFilter, sections, onShow, loa
           <Field label="Class" error={errors.cls} required>
             <NativeSelect value={filters.cls} onChange={e => { setFilter('cls', e.target.value); setFilter('sections', []) }}
               placeholder="-- Select Class --" error={errors.cls}>
-              {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+              {classNames.map(c => <option key={c} value={c}>{c}</option>)}
             </NativeSelect>
           </Field>
           <Field label="Section" hint="Select one or more sections" error={errors.sections}>
@@ -603,7 +603,7 @@ function FilterDrawer({ open, onClose, filters, setFilter, sections, onShow, loa
           <Field label="Term" error={errors.term} required>
             <NativeSelect value={filters.term} onChange={e => setFilter('term', e.target.value)}
               placeholder="-- Select Term --" error={errors.term}>
-              {TERMS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {terms.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </NativeSelect>
           </Field>
           <Field label="Order By">

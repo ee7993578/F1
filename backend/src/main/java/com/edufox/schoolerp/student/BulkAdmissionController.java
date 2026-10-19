@@ -43,4 +43,18 @@ public class BulkAdmissionController {
         int count = repository.delete(String.valueOf(claims.get("schoolId")), session, excelId);
         return Map.of("deleted", count, "message", count > 0 ? "Excel Data Deleted Successfully" : "Something went wrong while deleting data");
     }
+
+    @GetMapping("/{excelId}/rows")
+    public List<Map<String, Object>> rows(@PathVariable String excelId, @RequestParam String session,
+                                          Authentication authentication) {
+        Claims claims = (Claims) authentication.getDetails();
+        return repository.excelRows(String.valueOf(claims.get("schoolId")), session, excelId);
+    }
+
+    @PostMapping("/confirm")
+    public Map<String, Object> confirm(@RequestBody Map<String, Object> request, Authentication authentication) {
+        writeGuard.requireWritable();
+        Claims claims = (Claims) authentication.getDetails();
+        return repository.confirm(String.valueOf(claims.get("schoolId")), String.valueOf(claims.get("staffUid")), request);
+    }
 }

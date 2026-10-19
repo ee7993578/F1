@@ -20,7 +20,6 @@ public class StudentImageRepository {
             default -> "studentimage";
         };
         jdbc.update("UPDATE student_other_info SET " + column + "=? WHERE uid=? AND school_id=?", data, uid, schoolId);
-        jdbc.update("UPDATE student_reg SET " + column + "=? WHERE uid=? AND school_id=?", data, uid, schoolId);
         return new StudentImageDtos.ImageResponse(uid, "Student image saved");
     }
 }

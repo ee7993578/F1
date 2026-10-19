@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useStudents, fetchStudentSearch } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
+import { useAuth } from '../../../../auth/AuthContext'
 import {
   ChevronDown, Search, CreditCard, Printer,
   CheckSquare, Square, AlertCircle, X, Check,
@@ -91,6 +92,9 @@ function ICard({ student, cls, section, session, school }) {
     <div className="w-full max-w-[240px] rounded-2xl border-2 border-blue-200 dark:border-indigo-500/30 overflow-hidden shadow-lg bg-white dark:bg-[#1e2238] flex flex-col text-[11px] select-none">
       {/* Card Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-indigo-700 dark:to-indigo-800 px-3 py-2.5 text-white text-center">
+        {school.logo
+          ? <img src={school.logo} alt={`${school.name} logo`} className="mx-auto mb-1 h-7 w-7 rounded object-contain bg-white" />
+          : <span className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded bg-white text-[10px] font-extrabold text-blue-700">{school.name.split(/\s+/).filter(Boolean).map(word => word[0]).join('').slice(0, 3)}</span>}
         <p className="font-bold text-[12px] leading-tight">{school.name}</p>
         <p className="opacity-80 text-[9px] mt-0.5 leading-tight">{school.address}</p>
         <p className="opacity-70 text-[9px]">{school.phone}</p>
@@ -144,7 +148,8 @@ function ICard({ student, cls, section, session, school }) {
 export default function StudentICard() {
   const [session, setSession]     = useState('')
   const { data: studentData } = useStudents()
-  const [school, setSchool] = useState({ name: '', address: '', phone: '' })
+  const { user } = useAuth()
+  const [school, setSchool] = useState({ name: '', address: '', phone: '', logo: '' })
   const liveClasses = studentData?.classes?.filter(c => c.className).map(c => ({ id: c.classId, name: c.className })) || []
   const liveSessions = studentData?.sessions?.map(s => s.session).filter(Boolean) || []
   const [cls, setCls]             = useState('')
@@ -164,10 +169,12 @@ export default function StudentICard() {
   }, [studentData, liveSessions, session])
 
   useEffect(() => {
-    apiFetch('/menu').then(menu => setSchool({
-      name: menu.schoolName || '', address: menu.schoolAddress || '', phone: menu.schoolPhone || ''
-    })).catch(() => {})
-  }, [])
+    apiFetch('/menu').then(menu => setSchool(current => ({
+      ...current,
+      name: user?.schoolName || menu.schoolName || '',
+      address: menu.schoolAddress || '', phone: menu.schoolPhone || '', logo: user?.logoPath || menu.schoolLogo || menu.logo || ''
+    }))).catch(() => setSchool(current => ({ ...current, name: user?.schoolName || current.name, logo: user?.logoPath || current.logo })))
+  }, [user])
  
   // ── handlers ──────────────────────────────────────────────────────────────
   const handleClassChange = (val) => {

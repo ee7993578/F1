@@ -336,7 +336,7 @@ function MobileCard({ row, idx }) {
 }
 
 // ─── MOBILE FILTER DRAWER ─────────────────────────────────────────────────────
-function FilterDrawer({ open, onClose, session, setSession, onShow, loading, errors }) {
+function FilterDrawer({ open, onClose, session, setSession, sessionOptions, onShow, loading, errors }) {
   if (!open) return null
   return (
     <>
@@ -556,6 +556,7 @@ export default function AllStudentStrength() {
         onClose={() => setFilterOpen(false)}
         session={session}
         setSession={setSession}
+        sessionOptions={sessionOptions}
         onShow={handleShow}
         loading={loading}
         errors={errors}

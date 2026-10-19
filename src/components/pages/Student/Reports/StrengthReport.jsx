@@ -151,7 +151,7 @@ function GenderBar({ boys, girls, total }) {
 }
 
 // ─── MOBILE FILTER DRAWER ─────────────────────────────────────────────────────
-function FilterDrawer({ open, onClose, session, setSession, cls, setCls, section, setSection, sections, onShow, loading, errors }) {
+function FilterDrawer({ open, onClose, session, setSession, cls, setCls, section, setSection, sections, sessions, classes, handleClassChange, onShow, loading, errors }) {
   if (!open) return null
   return (
     <>
@@ -572,6 +572,7 @@ export default function StrengthReport() {
         cls={cls} setCls={setCls}
         section={section} setSection={setSection}
         sections={sections}
+        sessions={sessions} classes={classes} handleClassChange={handleClassChange}
         onShow={handleShow} loading={loading}
         errors={errors}
       />

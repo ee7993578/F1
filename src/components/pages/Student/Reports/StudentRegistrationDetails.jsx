@@ -345,7 +345,7 @@ function MobileCard({ row, idx }) {
 }
 
 // ─── MOBILE FILTER DRAWER ─────────────────────────────────────────────────────
-function FilterDrawer({ open, onClose, session, setSession, selectedClass, setSelectedClass, regDate, setRegDate, onShow, loading, errors }) {
+function FilterDrawer({ open, onClose, session, setSession, sessionOptions, classes, selectedClass, setSelectedClass, regDate, setRegDate, onShow, loading, errors }) {
   if (!open) return null
   return (
     <>
@@ -377,7 +377,7 @@ function FilterDrawer({ open, onClose, session, setSession, selectedClass, setSe
           <Field label="Class">
             <NativeSelect value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
               <option value="All Classes">All Classes</option>
-              {(studentData?.classes || []).map(c => <option key={c.classId} value={c.className}>{c.className}</option>)}
+              {(classes || []).map(c => <option key={c.classId} value={c.className}>{c.className}</option>)}
             </NativeSelect>
           </Field>
           <Field label="Registration Date">
@@ -642,6 +642,8 @@ export default function StudentRegistrationDetails() {
         onClose={() => setFilterOpen(false)}
         session={session}
         setSession={setSession}
+        sessionOptions={sessionOptions}
+        classes={studentData?.classes || []}
         selectedClass={selectedClass}
         setSelectedClass={setSelectedClass}
         regDate={regDate}

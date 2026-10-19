@@ -6,21 +6,22 @@ const text = value => value == null ? '' : String(value)
 // legacy online-registration reports.  The source remains the live
 // student_reg row; this is only a view-model adapter for the JSX table.
 export function normalizeOnlineRegistration(row = {}) {
-  const rawStatus = text(row.approvalStatus || row.registrationStatus || row.status).trim()
+  const rawStatus = text(row.approvalStatus || row.admissionStatus || row.AdmissionStatus || row.registrationStatus || row.status).trim()
   const lowerStatus = rawStatus.toLowerCase()
   const registrationStatus = lowerStatus.includes('reject') ? 'Reject'
     : lowerStatus.includes('confirm') || lowerStatus.includes('admit') ? 'Confirm'
     : lowerStatus.includes('accept') ? 'Accept'
     : rawStatus ? 'Accept' : 'Not Select'
   const paymentValue = row.paymentAmount ?? row.amount
-  const paymentStatus = text(row.paymentUid || row.receiptNo || row.transactionNo || paymentValue).trim()
-    ? 'Success' : 'Pending'
+  const paymentStatus = text(row.paymentStatus || row.PaymentStatus).trim()
+    || (text(row.paymentUid || row.receiptNo || row.transactionNo || paymentValue).trim() ? 'Success' : 'Pending')
   const formStatus = text(row.formStatus || row.applicationStatus || row.registrationType).trim()
     || (row.onlineRegNo || row.registrationNo ? 'Completed' : 'Started')
   const date = row.registrationDate || row.registration_date || row.Registration_date || ''
   return {
     ...row,
-    registrationNO: text(row.onlineRegNo || row.registrationNo || row.formNo),
+    id: row.id ?? row.studentId ?? row.rowId ?? '',
+    registrationNO: text(row.onlineRegNo || row.registrationNO || row.registrationNo || row.formNo),
     regPhone: text(row.registrationPhone || row.mobile || row.phone),
     class: text(row.className || row.class_name || row.class),
     Name: text(row.name || [row.firstName, row.middleName, row.lastName].filter(Boolean).join(' ')),
@@ -44,7 +45,7 @@ export function normalizeOnlineRegistration(row = {}) {
     settlementDate: text(row.settlementDate),
     registrationStatus,
     AdmissionStatus: registrationStatus,
-    allotedadmno: text(row.admissionNo || row.registrationNo),
+    allotedadmno: text(row.admissionNo || row.stuAdmissionNo || row.registrationNo),
     studentType: text(row.studentType || row.student_type),
   }
 }
@@ -103,9 +104,21 @@ export async function studentApi(path, options = {}) {
       studentTypes: lookups.types || [],
     }
   }
+  if (path.startsWith('/admission/online-confirm')) {
+    return apiFetch('/students/online-registration/confirm', request)
+  }
+  if (path.startsWith('/admission/online-status')) {
+    return apiFetch('/students/online-registration/status', request)
+  }
+  if (path.startsWith('/admission/online-payment')) {
+    return apiFetch('/students/online-registration/payment', request)
+  }
+  if (path === '/admission/withdraw') {
+    return apiFetch('/students/withdraw', request)
+  }
   const registrationMatch = path.match(/^\/admission\/registrations\/(\d+)(?:\/[^?]+)?(?:\?.*)?$/)
   if (registrationMatch) {
-    const detail = await apiFetch('/students/registration/' + registrationMatch[1])
+    const detail = await apiFetch('/students/online-registration/' + registrationMatch[1])
     return { fields: detail }
   }
   return apiFetch(path, request)

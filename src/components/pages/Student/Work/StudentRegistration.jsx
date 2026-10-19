@@ -5,7 +5,6 @@ import { ChevronDown, Upload, Camera, AlertCircle, Save, Printer, X, Check, Grad
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 // Classes and sessions are read from the configured school database below.
-const STUD_TYPES = []; const MOP = []; const BLOOD = []; const RELIGIONS = []; const CATEGORIES = []; const QUOTAS = []; const OCCUPATIONS = []; const STATES = []; const CITIES = {}; const BANKS = []
 const AFFILIATIONS= ['CBSE','ICSE','U.P. BOARD','Other']
 const GROUPS      = ['Alaabhit Samooh','Durbal Varg']
 const DOCUMENTS   = ['Transfer Certificate','Birth Certificate','Marksheet','Migration Certificate','Aadhar Card','Caste Certificate']

@@ -305,7 +305,7 @@ function MobileCard({ row, idx, editingId, editValue, onEdit, onUpdate, onCancel
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function ChangeSectionName() {
-  const [sections,  setSections]  = useState(INITIAL_SECTIONS)
+  const [sections,  setSections]  = useState([])
   const [editingId, setEditingId] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [saving,    setSaving]    = useState(false)

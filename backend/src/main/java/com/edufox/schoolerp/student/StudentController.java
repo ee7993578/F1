@@ -107,8 +107,13 @@ public class StudentController {
                                              @RequestParam(required = false) Integer month,
                                              @RequestParam(required = false) String studentType,
                                              @RequestParam(required = false) String fromDate,
-                                             @RequestParam(required = false) String toDate) {
-        return service.report(school(claims(authentication)), type, query, classId, sectionId, status, session, month, studentType, fromDate, toDate);
+                                             @RequestParam(required = false) String toDate,
+                                             @RequestParam(required = false) Integer fromDay,
+                                             @RequestParam(required = false) Integer fromMonth,
+                                             @RequestParam(required = false) Integer toDay,
+                                             @RequestParam(required = false) Integer toMonth) {
+        return service.report(school(claims(authentication)), type, query, classId, sectionId, status, session, month,
+            studentType, fromDate, toDate, fromDay, fromMonth, toDay, toMonth);
     }
 
     private static Claims claims(Authentication authentication) {

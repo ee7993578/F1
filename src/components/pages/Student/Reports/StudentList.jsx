@@ -143,19 +143,19 @@ function SummaryCard({ icon: Icon, label, value, color }) {
 
 // ─── SCHOOL HEADER BANNER ─────────────────────────────────────────────────────
 
-function SchoolHeader({ session, type }) {
+function SchoolHeader({ session, type, schoolInfo }) {
   const meta = TYPE_META[type] || {}
   return (
     <div className="rounded-2xl border border-blue-100 dark:border-[rgba(99,102,241,0.2)] bg-gradient-to-r from-blue-50 via-white to-indigo-50 dark:from-[#1a1f35] dark:via-[#1e2238] dark:to-[#1a1f35] px-6 py-5 text-center shadow-sm">
       <div className="flex items-center justify-center gap-2 mb-1">
         <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
         <h2 className="text-[16px] sm:text-[18px] font-extrabold text-slate-800 dark:text-slate-100 tracking-tight leading-snug">
-          {schoolInfo.name}
+          {schoolInfo?.name || 'School'}
         </h2>
       </div>
       <div className="flex items-center justify-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400 mb-2">
         <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>{schoolInfo.address}</span>
+        <span>{schoolInfo?.address || ''}</span>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
         <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/25">
@@ -271,7 +271,7 @@ function MobileCard({ row, idx }) {
 
 // ─── MOBILE FILTER DRAWER ─────────────────────────────────────────────────────
 
-function FilterDrawer({ open, onClose, session, setSession, type, setType, onShow, loading, errors }) {
+function FilterDrawer({ open, onClose, session, setSession, sessionOptions, type, setType, onShow, loading, errors }) {
   if (!open) return null
   return (
     <>
@@ -563,6 +563,7 @@ export default function StudentList() {
         onClose={() => setFilterOpen(false)}
         session={session}
         setSession={setSession}
+        sessionOptions={sessionOptions}
         type={type}
         setType={setType}
         onShow={handleShow}
@@ -588,7 +589,7 @@ export default function StudentList() {
       {hasResults && !loading && (
         <>
           {/* School Header */}
-          <SchoolHeader session={shownSession} type={shownType} />
+          <SchoolHeader session={shownSession} type={shownType} schoolInfo={schoolInfo} />
 
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

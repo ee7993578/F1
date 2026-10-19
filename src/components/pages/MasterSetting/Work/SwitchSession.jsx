@@ -17,6 +17,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useMasterSettings } from '../../../../hooks/useMasterSettings'
+import { apiFetch } from '../../../../lib/api'
 import {
   ArrowRightLeft, ChevronDown, AlertCircle, X, Check,
   Loader2, RefreshCw, SlidersHorizontal,
@@ -260,7 +261,7 @@ function ResultModal({ open, message, onOk, onCancel }) {
 }
 
 // ─── MOBILE FILTER DRAWER ─────────────────────────────────────────────────────
-function FilterDrawer({ open, onClose, fromSession, setFromSession, toSession, setToSession, errors, onGo, loading }) {
+function FilterDrawer({ open, onClose, sessionOptions, fromSession, setFromSession, toSession, setToSession, errors, onGo, loading }) {
   if (!open) return null
   return (
     <>
@@ -322,27 +323,29 @@ function SessionBadge({ label, session }) {
 }
 
 // ─── ACTION BUTTON ────────────────────────────────────────────────────────────
-function ActionButton({ action, color, onClick, active }) {
+function ActionButton({ action, color, onClick, active, completed }) {
   const c = GROUP_COLORS[color]
   const Icon = action.icon
   return (
     <button
       type="button"
       onClick={() => onClick(action)}
+      disabled={completed}
+      title={completed ? 'Already defined for the selected session' : action.label}
       className={`relative flex items-center gap-3 w-full px-4 py-3 rounded-xl border text-left transition-all duration-150 active:scale-[0.98]
-        ${active ? c.btnActive : c.btn}`}
+        ${active ? c.btnActive : c.btn} ${completed ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${active ? 'bg-white/20' : 'bg-white dark:bg-white/10'}`}>
         <Icon className="w-4 h-4" />
       </span>
-      <span className="text-[12px] font-semibold leading-snug flex-1">{action.label}</span>
+      <span className="text-[12px] font-semibold leading-snug flex-1">{action.label}{completed ? ' (Done)' : ''}</span>
       <ChevronRight className={`w-3.5 h-3.5 flex-shrink-0 opacity-50 ${active ? 'opacity-80' : ''}`} />
     </button>
   )
 }
 
 // ─── ACTION GROUP CARD ────────────────────────────────────────────────────────
-function ActionGroupCard({ group, onAction, activeAction }) {
+function ActionGroupCard({ group, onAction, activeAction, actionStatus }) {
   const c = GROUP_COLORS[group.color]
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-[rgba(99,102,241,0.15)] bg-white dark:bg-[#1a1f35] shadow-sm overflow-hidden">
@@ -363,6 +366,7 @@ function ActionGroupCard({ group, onAction, activeAction }) {
             color={group.color}
             onClick={onAction}
             active={activeAction?.id === action.id}
+            completed={!!actionStatus[action.id]}
           />
         ))}
       </div>
@@ -374,11 +378,12 @@ function ActionGroupCard({ group, onAction, activeAction }) {
 export default function SwitchSession() {
   const [fromSession,  setFromSession]  = useState('')
   const { data } = useMasterSettings()
-  const sessionOptions = data?.sessions?.map(s => s.session).filter(Boolean) || SESSIONS
+  const sessionOptions = data?.sessions?.map(s => s.session).filter(Boolean) || []
   const [toSession,    setToSession]    = useState('')
   const [errors,       setErrors]       = useState({})
   const [loading,      setLoading]      = useState(false)
   const [actionsVisible, setActionsVisible] = useState(false)
+  const [actionStatus, setActionStatus] = useState({})
   const [filterOpen,   setFilterOpen]   = useState(false)
 
   // Confirm modal state
@@ -405,40 +410,46 @@ export default function SwitchSession() {
     if (Object.keys(err).length) { setErrors(err); return }
     setErrors({})
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      setActionsVisible(true)
+    apiFetch(`/master-settings/session-switch/status?session=${encodeURIComponent(toSession)}`)
+      .then(status => { setActionStatus(status || {}); setActionsVisible(true) })
+      .catch(err => showToast(err.message, 'error'))
+      .finally(() => setLoading(false))
       showToast(`Session switched: ${fromSession} → ${toSession}`)
-    }, 700)
   }, [fromSession, toSession])
 
   const handleReset = () => {
     setFromSession(''); setToSession('')
-    setErrors({}); setActionsVisible(false); setActiveAction(null)
+    setErrors({}); setActionsVisible(false); setActiveAction(null); setActionStatus({})
   }
 
   // ── Action click → show confirm modal ────────────────────────────────────
   const handleAction = useCallback((action) => {
+    if (actionStatus[action.id]) return
     setActiveAction(action)
     setConfirmModal({
       open: true,
       action,
       message: `Are you sure you want to copy "${action.label}" data from session "${fromSession}" to session "${toSession}"?`,
     })
-  }, [fromSession, toSession])
+  }, [fromSession, toSession, actionStatus])
 
   // ── Confirm Yes ───────────────────────────────────────────────────────────
   const handleConfirmYes = () => {
+    if (!activeAction) return
     setConfirmLoading(true)
-    setTimeout(() => {
+    apiFetch('/master-settings/session-switch', {
+      method: 'POST',
+      body: JSON.stringify({ fromSession, toSession, action: activeAction.id }),
+    }).then(result => {
       setConfirmLoading(false)
       setConfirmModal({ open: false, action: null, message: '' })
       // Show result modal
       setResultModal({
         open: true,
-        message: `"${activeAction?.label}" data has been successfully copied from ${fromSession} to ${toSession}. Please verify the data in the target session.`,
+        message: `"${activeAction.label}" data has been copied from ${fromSession} to ${toSession}. ${result.rows || 0} rows were processed.`,
       })
-    }, 900)
+    }).catch(err => showToast(err.message, 'error'))
+      .finally(() => setConfirmLoading(false))
   }
 
   const handleConfirmNo = () => {
@@ -571,6 +582,7 @@ export default function SwitchSession() {
       <FilterDrawer
         open={filterOpen}
         onClose={() => setFilterOpen(false)}
+        sessionOptions={sessionOptions}
         fromSession={fromSession}
         setFromSession={setFromSession}
         toSession={toSession}
@@ -622,6 +634,7 @@ export default function SwitchSession() {
                 group={group}
                 onAction={handleAction}
                 activeAction={activeAction}
+                actionStatus={actionStatus}
               />
             ))}
           </div>

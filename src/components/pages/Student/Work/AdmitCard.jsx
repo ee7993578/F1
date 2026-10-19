@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchStudentSearch, useStudents } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
+import { useAuth } from '../../../../auth/AuthContext'
 import {
   AlertCircle, Download, Eye, Printer, ChevronDown,
   GraduationCap, Users, BookOpen, Calendar, FileText,
@@ -112,8 +113,12 @@ function AdmitCardTemplate({ student, filter, index, schoolInfo }) {
     >
       {/* Header */}
       <div style={{ background: 'linear-gradient(135deg,#1a56db,#1e40af)', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <span style={{ fontSize: 10, fontWeight: 800, color: '#1a56db' }}>DPS</span>
+        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+          {schoolInfo.logo
+            ? <img src={schoolInfo.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            : <span style={{ fontSize: 10, fontWeight: 800, color: '#1a56db' }}>
+                {(schoolInfo.name || 'School').split(/\s+/).filter(Boolean).map(word => word[0]).join('').slice(0, 3)}
+              </span>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: 9, fontWeight: 800, color: '#fff', letterSpacing: '0.04em', lineHeight: 1.2 }}>
@@ -192,6 +197,7 @@ function AdmitCardTemplate({ student, filter, index, schoolInfo }) {
 // ─── PDF DOWNLOAD ─────────────────────────────────────────────────────────────
 // Uses browser print with custom CSS — 4 cards per A4 page in a 2×2 grid
 function downloadAdmitCards(students, filter, schoolInfo) {
+  const schoolMark = (schoolInfo.name || 'School').split(/\s+/).filter(Boolean).map(word => word[0]).join('').slice(0, 3)
   const cardsHTML = students.map((student, i) => `
     <div style="
       width:336px; height:192px;
@@ -202,8 +208,8 @@ function downloadAdmitCards(students, filter, schoolInfo) {
       page-break-inside:avoid;
     ">
       <div style="background:linear-gradient(135deg,#1a56db,#1e40af);padding:6px 10px;display:flex;align-items:center;gap:6px">
-        <div style="width:28px;height:28px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <span style="font-size:10px;font-weight:800;color:#1a56db">DPS</span>
+        <div style="width:28px;height:28px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+          ${schoolInfo.logo ? `<img src="${schoolInfo.logo}" alt="" style="width:100%;height:100%;object-fit:contain" />` : `<span style="font-size:10px;font-weight:800;color:#1a56db">${schoolMark}</span>`}
         </div>
         <div style="flex:1;min-width:0">
           <p style="margin:0;font-size:9px;font-weight:800;color:#fff;letter-spacing:.04em;line-height:1.2">${schoolInfo.name}</p>
@@ -311,7 +317,8 @@ export default function AdmitCard({ title = 'Admit Card' }) {
   const [loading,       setLoading]       = useState(false)
   const [successMsg,    setSuccessMsg]    = useState('')
   const [academic,      setAcademic]      = useState({ terms: [], exams: [] })
-  const [schoolInfo,    setSchoolInfo]    = useState({ name: '', address: '' })
+  const { user } = useAuth()
+  const [schoolInfo,    setSchoolInfo]    = useState({ name: '', address: '', logo: '' })
   const { data: studentData } = useStudents()
 
   const [errors, setErrors] = useState({})
@@ -329,10 +336,12 @@ export default function AdmitCard({ title = 'Admit Card' }) {
   }, [sessions, session])
 
   useEffect(() => {
-    apiFetch('/menu').then(menu => setSchoolInfo({
-      name: menu.schoolName || '', address: menu.schoolAddress || '', logo: menu.logoPath || ''
-    })).catch(() => {})
-  }, [])
+    apiFetch('/menu').then(menu => setSchoolInfo(current => ({
+      ...current,
+      name: user?.schoolName || menu.schoolName || '',
+      address: menu.schoolAddress || '', logo: user?.logoPath || menu.schoolLogo || menu.logo || ''
+    }))).catch(() => setSchoolInfo(current => ({ ...current, name: user?.schoolName || current.name, logo: user?.logoPath || current.logo })))
+  }, [user])
 
   useEffect(() => {
     setAcademic({ terms: [], exams: [] })

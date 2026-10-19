@@ -15,10 +15,11 @@
 import { useState, useCallback, useEffect } from 'react'
 import { fetchStudentDetails, fetchStudentSearch } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
+import { downloadExcel } from '../../../../lib/exportExcel'
 import {
   ChevronDown, AlertCircle, X, Check, Loader2,
   RefreshCw, Eye, Printer, GraduationCap, ClipboardList,
-  Info, School2, User, Hash,
+  Info, School2, User, Hash, FileSpreadsheet,
 } from 'lucide-react'
 
 function NativeSelect({ value, onChange, children, placeholder, error, disabled }) {
@@ -161,16 +162,28 @@ export default function StudentRecord() {
   const title_adm = record ? pick(record, 'registration_no', 'Registration_NO', 'admNo', 'adm_no', 'form_no') : admNo
   const title_cls = record ? pick(record, 'class', 'class_name', 'Class') : ''
 
+  const handleExcel = () => {
+    if (!record) { showToast('Load a student record first.', 'error'); return }
+    downloadExcel(`StudentRecord_${title_adm || 'record'}`, [record])
+    showToast('Student record exported to Excel.')
+  }
+
   return (
     <div className="space-y-4 pb-10">
-      <div>
-        <h1 className="text-[20px] font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-          <GraduationCap className="w-5 h-5 text-blue-600 dark:text-indigo-400" />
-          Student Record
-        </h1>
-        <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
-          Session → Class → Student select karke registration record dekhein (bind_studentrecord).
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+        <div>
+          <h1 className="text-[20px] font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <GraduationCap className="w-5 h-5 text-blue-600 dark:text-indigo-400" />
+            Student Record
+          </h1>
+          <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+            Session → Class → Student select karke registration record dekhein (bind_studentrecord).
+          </p>
+        </div>
+        {record && <button type="button" onClick={handleExcel}
+          className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+          <FileSpreadsheet className="w-4 h-4" /> Excel
+        </button>}
       </div>
 
       <div className="rounded-2xl border border-slate-200 dark:border-[rgba(99,102,241,0.2)] bg-white dark:bg-[#1a1f35] shadow-sm overflow-hidden">

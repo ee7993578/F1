@@ -458,7 +458,7 @@ function MobileCard({ role, idx, editData, onEdit, onCancel, onSave, onChange, s
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function RoleList() {
-  const [roles,      setRoles]      = useState(INITIAL_ROLES)
+  const [roles,      setRoles]      = useState([])
   const [editId,     setEditId]     = useState(null)
   const [editData,   setEditData]   = useState(null)
   const [saving,     setSaving]     = useState(false)

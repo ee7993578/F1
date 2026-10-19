@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useStudents } from '../../../../hooks/useStudents'
+import { useStudents, fetchStudentSearch } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
 import {
   ArrowRight, ArrowLeft, ArrowLeftRight, Users, GraduationCap,
@@ -294,16 +294,21 @@ function MobileTransferView({ mode, leftPanel, rightPanel, onRight, onLeft, canR
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function PromoteDemote({ title = 'Promote / Change Section' }) {
   const { data: liveStudentData } = useStudents()
+  const sourceSchool = liveStudentData?.schoolId || ''
   const liveSessions = liveStudentData?.sessions?.map(item => item.session).filter(Boolean) || []
   const liveSections = liveStudentData?.sections?.map(item => ({
     value: String(item.sectionId),
     label: item.className && item.sectionName ? `${item.className} (${item.sectionName})` : (item.className || item.sectionName || ''),
   })).filter(item => item.value && item.label) || []
-  const liveStudentsForSection = (sectionId, session) => (liveStudentData?.students || []).filter(row =>
-    String(row.sectionId) === String(sectionId) && (!session || !row.session || row.session === session)
-  ).map(row => ({ ...row, id: row.studentId, name: row.name, roll: row.rollNo || '', gender: row.gender }))
+  const liveStudentsForSection = (sectionId, session) => fetchStudentSearch({ session, sectionId, status: 'Registered' })
+    .then(rows => rows.map(row => ({ ...row, id: row.studentId, name: row.name, roll: row.rollNo || '', gender: row.gender })))
   // Mode: 'promote' | 'section'
   const [mode, setMode]   = useState('section')
+  const [moveDirection, setMoveDirection] = useState('right')
+  const [schoolOptions, setSchoolOptions] = useState([])
+  const [targetSchool, setTargetSchool] = useState('')
+  const [targetOptions, setTargetOptions] = useState({ sessions: [], sections: [] })
+  const [sameRegistration, setSameRegistration] = useState(false)
   const [saving, setSaving] = useState(false)
   const [toasts, setToasts] = useState([])
 
@@ -324,6 +329,13 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
   const [rightSessErr,  setRightSessErr]  = useState('')
   const [rightClsErr,   setRightClsErr]   = useState('')
 
+  const rightSessions = mode === 'transfer' && targetOptions.sessions.length
+    ? targetOptions.sessions.map(item => item.session).filter(Boolean)
+    : liveSessions
+  const rightSections = mode === 'transfer' && targetOptions.sections.length
+    ? targetOptions.sections.map(item => ({ value: String(item.sectionId), label: item.className && item.sectionName ? `${item.className} (${item.sectionName})` : (item.className || item.sectionName || '') })).filter(item => item.value && item.label)
+    : liveSections
+
   useEffect(() => {
     if (!liveSessions.length) return
     const current = liveStudentData?.sessions?.find(row => String(row.status).toLowerCase() === 'default')?.session || liveSessions[0]
@@ -333,6 +345,21 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
       setRightSession(liveSessions[index + 1] || current)
     }
   }, [liveStudentData, liveSessions, leftSession, rightSession])
+
+  useEffect(() => {
+    apiFetch('/students/update/schools').then(rows => {
+      const values = Array.isArray(rows) ? rows : []
+      setSchoolOptions(values)
+      if (!targetSchool && sourceSchool) setTargetSchool(sourceSchool)
+    }).catch(() => {})
+  }, [sourceSchool, targetSchool])
+
+  useEffect(() => {
+    if (mode !== 'transfer' || !targetSchool) return
+    apiFetch('/students/update/options?' + new URLSearchParams({ schoolId: targetSchool }))
+      .then(data => { setTargetOptions(data || {}); setRightClass(''); setRightStudents([]) })
+      .catch(error => addToast(error.message || 'Unable to load target school options', 'error'))
+  }, [mode, targetSchool])
 
   // ── Toast ──────────────────────────────────────────────────────────────────
   const addToast = useCallback((msg, type = 'success') => {
@@ -349,23 +376,25 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
     setLeftStudents([]); setRightStudents([])
     setLeftSelected(new Set()); setRightSelected(new Set())
     setPendingMoves([])
+    setMoveDirection('right')
+    if (m === 'transfer' && sourceSchool) setTargetSchool(sourceSchool)
   }
 
   // ── Left class change ──────────────────────────────────────────────────────
-  const handleLeftClass = (cls) => {
+  const handleLeftClass = async (cls) => {
     setLeftClass(cls)
     setLeftClsErr('')
     setLeftSelected(new Set())
     setPendingMoves([])
     if (cls) {
-      const students = liveStudentsForSection(cls, leftSession)
+      const students = await liveStudentsForSection(cls, leftSession)
       setLeftStudents(students)
       // In promote mode, auto-set right class to next class
       if (mode === 'promote') {
         const currentIndex = liveSections.findIndex(item => item.value === String(cls))
         const nextSection = liveSections[currentIndex + 1]?.value || ''
         setRightClass(nextSection)
-        setRightStudents(nextSection ? liveStudentsForSection(nextSection, rightSession) : [])
+        setRightStudents(nextSection ? await liveStudentsForSection(nextSection, rightSession) : [])
         setRightSelected(new Set())
       }
     } else {
@@ -374,11 +403,11 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
   }
 
   // ── Right class change ─────────────────────────────────────────────────────
-  const handleRightClass = (cls) => {
+  const handleRightClass = async (cls) => {
     setRightClass(cls)
     setRightClsErr('')
     setRightSelected(new Set())
-    setRightStudents(cls ? liveStudentsForSection(cls, rightSession) : [])
+    setRightStudents(cls ? await liveStudentsForSection(cls, rightSession) : [])
     setPendingMoves([])
   }
 
@@ -404,6 +433,7 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
     if (!validate()) return
     if (leftSelected.size === 0) { addToast('Select at least one student from source.', 'error'); return }
     const moving = leftStudents.filter(s => leftSelected.has(s.id))
+    setMoveDirection('right')
     setLeftStudents(p => p.filter(s => !leftSelected.has(s.id)))
     setLeftSelected(new Set())
     setRightStudents(p => {
@@ -418,13 +448,14 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
     if (!validate()) return
     if (rightSelected.size === 0) { addToast('Select at least one student from destination.', 'error'); return }
     const moving = rightStudents.filter(s => rightSelected.has(s.id))
+    setMoveDirection('left')
     setRightStudents(p => p.filter(s => !rightSelected.has(s.id)))
     setRightSelected(new Set())
     setLeftStudents(p => {
       const existIds = new Set(p.map(s => s.id))
       return [...p, ...moving.filter(s => !existIds.has(s.id))]
     })
-    setPendingMoves(p => p.filter(old => !moving.some(next => next.id === old.id)))
+    setPendingMoves(p => mode === 'promote' ? moving : p.filter(old => !moving.some(next => next.id === old.id)))
   }
 
   // ── Save / Change ──────────────────────────────────────────────────────────
@@ -434,8 +465,18 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
     if (!selected.length) { addToast('Select at least one student from source.', 'error'); return }
     setSaving(true)
     try {
-      await Promise.all(selected.map(student => apiFetch('/students/' + encodeURIComponent(student.uid || student.id), { method: 'PUT', body: JSON.stringify({ sectionId: Number(rightClass), session: rightSession }) })))
-      addToast((mode === 'promote' ? 'Promotion' : 'Section change') + ' saved for ' + selected.length + ' student(s).')
+      await apiFetch('/students/update/move', { method: 'POST', body: JSON.stringify({
+        operation: mode === 'transfer' ? 'TRANSFER' : mode === 'promote' ? (moveDirection === 'left' ? 'DEMOTE' : 'PROMOTE') : 'SECTION',
+        sourceSession: leftSession,
+        targetSession: rightSession,
+        sourceSectionId: Number(leftClass),
+        targetSectionId: Number(rightClass),
+        studentUids: selected.map(student => String(student.uid || student.id)),
+        sameRegistrationNo: mode === 'transfer' ? sameRegistration : true,
+        sourceSchoolId: sourceSchool,
+        targetSchoolId: mode === 'transfer' ? targetSchool : sourceSchool,
+      }) })
+      addToast((mode === 'transfer' ? 'Transfer' : mode === 'promote' ? (moveDirection === 'left' ? 'Demotion' : 'Promotion') : 'Section change') + ' saved for ' + selected.length + ' student(s).')
       setLeftStudents(p => p.filter(s => !selected.some(moved => moved.id === s.id))); setLeftSelected(new Set()); setPendingMoves([])
     } catch (error) { addToast(error.message || 'Student movement failed', 'error') } finally { setSaving(false) }
   }
@@ -480,10 +521,10 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
       accent="rose"
       session={rightSession}
       onSessionChange={s => { setRightSession(s); setRightSessErr('') }}
-      sessions={liveSessions}
+      sessions={rightSessions}
       cls={rightClass}
       onClassChange={handleRightClass}
-      classes={liveSections}
+      classes={rightSections}
       students={rightStudents}
       selectedIds={rightSelected}
       onToggle={toggleRight}
@@ -521,7 +562,7 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
           <span className="text-[13px] font-bold text-slate-700 dark:text-slate-200">Operation Mode</span>
         </div>
         <div className="p-4 sm:p-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {[
               {
                 id: 'promote',
@@ -537,6 +578,13 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
                 desc: 'Transfer students between sections within the same or different class. Both panels use the same session.',
                 color: 'violet',
               },
+              {
+                id: 'transfer',
+                icon: ArrowLeftRight,
+                label: 'Transfer Student',
+                desc: 'Transfer students to another school with the same legacy registration choices.',
+                color: 'emerald',
+              },
             ].map(opt => (
               <button key={opt.id} type="button" onClick={() => handleModeChange(opt.id)}
                 className={cx(
@@ -544,19 +592,21 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
                   mode === opt.id
                     ? opt.color === 'blue'
                       ? 'border-blue-400 bg-blue-50 dark:border-indigo-500 dark:bg-indigo-500/10'
-                      : 'border-violet-400 bg-violet-50 dark:border-violet-500 dark:bg-violet-500/10'
+                      : opt.color === 'violet'
+                        ? 'border-violet-400 bg-violet-50 dark:border-violet-500 dark:bg-violet-500/10'
+                        : 'border-emerald-400 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-500/10'
                     : 'border-slate-200 bg-white hover:border-slate-300 dark:border-[rgba(99,102,241,0.2)] dark:bg-transparent dark:hover:border-indigo-400/40'
                 )}>
                 <div className={cx(
                   'p-2 rounded-lg flex-shrink-0 mt-0.5',
                   mode === opt.id
-                    ? opt.color === 'blue' ? 'bg-blue-100 text-blue-600 dark:bg-indigo-500/20 dark:text-indigo-300' : 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-300'
+                    ? opt.color === 'blue' ? 'bg-blue-100 text-blue-600 dark:bg-indigo-500/20 dark:text-indigo-300' : opt.color === 'violet' ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-300' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300'
                     : 'bg-slate-100 text-slate-500 dark:bg-white/[0.08] dark:text-slate-400'
                 )}>
                   <opt.icon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={cx('text-[13px] font-bold', mode === opt.id ? (opt.color === 'blue' ? 'text-blue-700 dark:text-indigo-300' : 'text-violet-700 dark:text-violet-300') : 'text-slate-700 dark:text-slate-200')}>
+                  <p className={cx('text-[13px] font-bold', mode === opt.id ? (opt.color === 'blue' ? 'text-blue-700 dark:text-indigo-300' : opt.color === 'violet' ? 'text-violet-700 dark:text-violet-300' : 'text-emerald-700 dark:text-emerald-300') : 'text-slate-700 dark:text-slate-200')}>
                     {opt.label}
                   </p>
                   <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 leading-relaxed">{opt.desc}</p>
@@ -564,7 +614,7 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
                 <div className={cx(
                   'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all',
                   mode === opt.id
-                    ? opt.color === 'blue' ? 'border-blue-500 bg-blue-500 dark:border-indigo-500 dark:bg-indigo-500' : 'border-violet-500 bg-violet-500'
+                    ? opt.color === 'blue' ? 'border-blue-500 bg-blue-500 dark:border-indigo-500 dark:bg-indigo-500' : opt.color === 'violet' ? 'border-violet-500 bg-violet-500' : 'border-emerald-500 bg-emerald-500'
                     : 'border-slate-300 dark:border-slate-600'
                 )}>
                   {mode === opt.id && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
@@ -582,6 +632,12 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
               </p>
             </div>
           )}
+          {mode === 'transfer' && (
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Sel label="Target School" value={targetSchool} onChange={e => setTargetSchool(e.target.value)} options={schoolOptions.map(s => ({ value: s.schoolId, label: s.schoolName }))} />
+              <Sel label="Registration No." value={sameRegistration ? 'same' : 'new'} onChange={e => setSameRegistration(e.target.value === 'same')} options={[{ value: 'new', label: 'Transfer without registration no.' }, { value: 'same', label: 'Transfer with same registration no.' }]} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -592,7 +648,7 @@ export default function PromoteDemote({ title = 'Promote / Change Section' }) {
           <span className="w-1 h-5 rounded-full bg-blue-500 flex-shrink-0" />
           <ArrowLeftRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
           <span className="text-[13px] font-bold text-slate-700 dark:text-slate-200 flex-1">
-            {mode === 'promote' ? 'Promote / Demote Students' : 'Change Section'}
+            {mode === 'promote' ? 'Promote / Demote Students' : mode === 'transfer' ? 'Transfer Students' : 'Change Section'}
           </span>
           {/* Stats */}
           {(leftStudents.length > 0 || rightStudents.length > 0) && (

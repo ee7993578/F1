@@ -13,8 +13,9 @@
  *  - Toast feedback, loading states, empty states
  */
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useStudents } from '../../../../hooks/useStudents'
+import { apiFetch } from '../../../../lib/api'
 import {
   UserCheck, ChevronDown, AlertCircle, X, Check,
   Loader2, RefreshCw, Save, School2, Users,
@@ -280,7 +281,10 @@ export default function ClassRepresentative() {
   const handleSubmit = async () => {
     setSaving(true)
     try {
-      const assignments = Object.entries(reps).filter(([, facultyId]) => facultyId).map(([classId, facultyId]) => ({ classId: Number(classId), facultyId: Number(facultyId) }))
+      const assignments = classes.map(row => ({
+        classId: Number(row.class_id),
+        facultyId: reps[row.class_id] ? Number(reps[row.class_id]) : null,
+      }))
       const result = await apiFetch('/student-settings/class-representatives', { method: 'POST', body: JSON.stringify({ session: currentSession, assignments }) })
       const data = await apiFetch('/student-settings/class-representatives?session=' + encodeURIComponent(currentSession)); setRepData(data); showToast(result.message || 'Class representatives saved.')
     } catch (error) { showToast(error.message || 'Representative save failed', 'error') } finally { setSaving(false) }

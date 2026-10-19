@@ -439,7 +439,7 @@ export default function HouseMaster() {
     if (!validate()) return
     setSubmitting(true)
     try {
-      const body = { ...formData, inchargeId: Number(formData.inchargeId), color: 'blue' }
+      const body = { ...formData, inchargeId: Number(formData.inchargeId) }
       const result = await apiFetch(editingId ? '/student-settings/houses/' + editingId : '/student-settings/houses', { method: editingId ? 'PUT' : 'POST', body: JSON.stringify({ ...body, id: editingId }) })
       const next = await apiFetch('/student-settings/houses')
       setHouses(next); resetForm(); showToast(result.message || 'House saved successfully.')
@@ -456,14 +456,15 @@ export default function HouseMaster() {
       prefect:     house.prefect,
     })
     setErrors({})
-    setEditingId(house.id)
+    setEditingId(house.houseId ?? house.id)
     formRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
   // ── Delete ─────────────────────────────────────────────────────────────────
   const handleDeleteConfirm = useCallback(async () => {
     if (!deleteTarget) return
-    try { await apiFetch('/student-settings/houses/' + deleteTarget.id, { method: 'DELETE' }); setHouses(prev => prev.filter(h => h.id !== deleteTarget.id)); showToast('House deleted successfully.') } catch (error) { showToast(error.message || 'House delete failed', 'error') } finally { setDeleteTarget(null) }
+    const houseId = deleteTarget.houseId ?? deleteTarget.id
+    try { await apiFetch('/student-settings/houses/' + houseId, { method: 'DELETE' }); setHouses(prev => prev.filter(h => (h.houseId ?? h.id) !== houseId)); showToast('House deleted successfully.') } catch (error) { showToast(error.message || 'House delete failed', 'error') } finally { setDeleteTarget(null) }
   }, [deleteTarget])
 
   // ── Filtered list ──────────────────────────────────────────────────────────
@@ -471,11 +472,11 @@ export default function HouseMaster() {
     if (!search.trim()) return houses
     const q = search.toLowerCase()
     return houses.filter(h =>
-      h.houseName.toLowerCase().includes(q) ||
-      h.inchargeName.toLowerCase().includes(q) ||
-      h.captain.toLowerCase().includes(q) ||
-      h.viceCaptain.toLowerCase().includes(q) ||
-      h.prefect.toLowerCase().includes(q)
+      String(h.houseName || '').toLowerCase().includes(q) ||
+      String(h.inchargeName || '').toLowerCase().includes(q) ||
+      String(h.captain || '').toLowerCase().includes(q) ||
+      String(h.viceCaptain || '').toLowerCase().includes(q) ||
+      String(h.prefect || '').toLowerCase().includes(q)
     )
   }, [houses, search])
 

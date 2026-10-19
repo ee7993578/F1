@@ -150,6 +150,7 @@ function FilterDrawer({
   session, setSession,
   regNo, setRegNo,
   fatherName, setFatherName,
+  sessions,
   errors, onShow, loading,
 }) {
   if (!open) return null
@@ -754,6 +755,7 @@ export default function SiblingReport() {
       <FilterDrawer
         open={filterOpen} onClose={() => setFilterOpen(false)}
         session={session} setSession={setSession}
+        sessions={sessions}
         regNo={regNo} setRegNo={setRegNo}
         fatherName={fatherName} setFatherName={setFatherName}
         errors={errors} onShow={handleShow} loading={loading}

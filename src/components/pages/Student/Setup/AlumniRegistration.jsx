@@ -16,7 +16,7 @@
  *  - Empty state, loading skeleton
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   UserPlus, Users, Search, X, RefreshCw, AlertCircle, Check,
   Loader2, Filter, SlidersHorizontal, ChevronDown, Info,
@@ -25,6 +25,7 @@ import {
   BookOpen, TrendingUp, Eye, EyeOff, Upload
 } from 'lucide-react'
 import { downloadCsv } from '../../../../lib/exportCsv'
+import { apiFetch } from '../../../../lib/api'
 
 // ─── STATIC DUMMY DATA ────────────────────────────────────────────────────────
 const INITIAL_ALUMNI = []
@@ -390,10 +391,10 @@ function RegistrationForm({ onSubmit, loading }) {
     return Object.keys(err).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validate()) return
-    onSubmit({ ...form, id: Date.now() })
+    await onSubmit({ ...form, id: Date.now() })
     setForm({ ...EMPTY_FORM })
     setErrors({})
   }
@@ -501,7 +502,6 @@ function RegistrationForm({ onSubmit, loading }) {
               >
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
-                <option value="Other">Other</option>
               </NativeSelect>
             </Field>
           </div>
@@ -562,7 +562,13 @@ export default function AlumniRegistration() {
   const handleSubmit = useCallback(async (form) => {
     setSubmitting(true)
     try {
-      const result = await apiFetch('/student-settings/alumni', { method: 'POST', body: JSON.stringify({ fullName: form.FullName, studentId: form.StudentId, batch: form.Batch, dob: form.DOB, qualification: form.Qualification, currentStatus: form.CurrentStatus, emailAddress: form.EmailAddress, phoneNumber: form.PhoneNumber, gender: form.Gender, address: form.PermanentAddress, alumniPhoto: form.Photo?.name || '' }) })
+      const photoData = form.Photo ? await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = reject
+        reader.readAsDataURL(form.Photo)
+      }) : ''
+      const result = await apiFetch('/student-settings/alumni', { method: 'POST', body: JSON.stringify({ fullName: form.FullName, studentId: form.StudentId, batch: form.Batch, dob: form.DOB, qualification: form.Qualification, currentStatus: form.CurrentStatus, emailAddress: form.EmailAddress, phoneNumber: form.PhoneNumber, gender: form.Gender, address: form.PermanentAddress, alumniPhotoBase64: photoData, alumniPhotoName: form.Photo?.name || '' }) })
       const next = await apiFetch('/student-settings/alumni'); setAlumni(next); showToast(result.message || 'Alumni registered successfully.')
     } catch (error) { showToast(error.message || 'Alumni registration failed', 'error') } finally { setSubmitting(false) }
   }, [])

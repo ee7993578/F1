@@ -113,7 +113,11 @@ function ImageUploader({ label, preview, onChange }) {
         <Upload className="w-3 h-3" /> Upload
       </button>
       <input ref={ref} type="file" accept="image/*" className="hidden" onChange={e => {
-        const f = e.target.files[0]; if (f && onChange) onChange(URL.createObjectURL(f))
+        const f = e.target.files[0]
+        if (!f || !onChange) return
+        const reader = new FileReader()
+        reader.onload = () => onChange({ preview: URL.createObjectURL(f), data: reader.result })
+        reader.readAsDataURL(f)
       }} />
     </div>
   )
@@ -168,7 +172,7 @@ const EMPTY_FORM = {
   dobDay:'', dobMonth:'', dobYear:'',
   gender:'Male', blood:'', category:'', religion:'', quota:'',
   address:'', state:'', city:'', ncc:'0', house:'', aadhar:'', pen:'', udise:'', apaar:'',
-  admDate:'', admClass:'', group:'',
+  admDate:'', admClass:'', group:'', stream:'', optSub:'',
   fName:'', fQual:'', fOcc:'', fMobile:'', fEmail:'', fIncome:'', fWhats:'', fAadhar:'',
   mName:'', mQual:'', mOcc:'', mMobile:'', mEmail:'', mIncome:'', mWhats:'', mAadhar:'',
   accHolder:'', bank:'', branch:'', accType:'', accNo:'', ifsc:'',
@@ -276,12 +280,22 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
       gender: row.gender || '', blood: row.bloodGroup || '', category: row.category || '', religion: row.religion || '', quota: row.quota || '', ncc: row.ncc || '0',
       address: row.address || '', state: row.stateId ? String(row.stateId) : '', city: row.cityId ? String(row.cityId) : '', house: row.houseId ? String(row.houseId) : '',
       aadhar: row.studentAadhar || '', pen: row.penNo || '', udise: row.udise || '', apaar: row.apaarId || '',
-      admDate: row.admissionDate || '', rollNo: row.rollNo || '', group: row.studentGroup || '',
+      admDate: row.admissionDate || '', rollNo: row.rollNo || '', group: row.studentGroup || '', stream: row.stream || '', optSub: row.optionalSubject || '',
       prevSchool: row.previousSchool || '', affiliation: row.previousSchoolAffiliation || '', prevClass: row.previousClass ? String(row.previousClass).split(',').filter(Boolean) : [], remark: row.remark || '', docs,
       fName: row.fatherName || '', fQual: row.fatherQualification || '', fOcc: row.fatherOccupation || '', fMobile: row.mobile || '', fEmail: row.fatherEmail || '', fWhats: row.fatherWhatsapp || '',
+      fIncome: row.fatherIncome || '', fAadhar: row.fatherAadhar || '',
       mName: row.motherName || '', mQual: row.motherQualification || '', mOcc: row.motherOccupation || '', mMobile: row.phone || '', mEmail: row.motherEmail || '', mWhats: row.motherWhatsapp || '',
+      mIncome: row.motherIncome || '', mAadhar: row.motherAadhar || '',
+      accHolder: row.accountHolder || '', bank: row.bankName || '', branch: row.branchName || '', accType: row.accountType || '', accNo: row.accountNo || '', ifsc: row.ifscCode || '',
+      sibAdm: row.siblingAdmNo || '', sibName: '',
     }
   }
+
+  const setLoadedPhotos = row => setPhotos({
+    stu: row.studentImage ? { preview: row.studentImage, data: null } : null,
+    father: row.fatherImage ? { preview: row.fatherImage, data: null } : null,
+    mother: row.motherImage ? { preview: row.motherImage, data: null } : null,
+  })
 
   const handleStudentChange = v => {
     const request = ++recordRequest.current
@@ -297,7 +311,7 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
       if (String(row.sectionId) !== form.class_ || row.session !== form.session) {
         throw new Error('Student session/section changed. Please reload the student list.')
       }
-      setForm(applyLiveStudent(row)); setOpenSection(1); showToast('Student record loaded.')
+      setForm(applyLiveStudent(row)); setLoadedPhotos(row); setOpenSection(1); showToast('Student record loaded.')
     }).catch(error => { if (request === recordRequest.current) showToast(error.message || 'Request failed', 'error') })
       .finally(() => { if (request === recordRequest.current) setLoading(false) })
   }
@@ -310,7 +324,8 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
       const rows = await apiFetch('/students/infosheet-lookup?' + new URLSearchParams({ session: form.session, withdrawn: String(withdrawnOnly), [field]: value.trim() }))
       if (request !== recordRequest.current) return
       if (!rows.length) { showToast('No record found for this student.', 'error'); return }
-      setForm(applyLiveStudent(normalizeStudent(rows[0]))); setOpenSection(1); showToast('Student record loaded.')
+      const row = normalizeStudent(rows[0])
+      setForm(applyLiveStudent(row)); setLoadedPhotos(row); setOpenSection(1); showToast('Student record loaded.')
     } catch (error) { if (request === recordRequest.current) showToast(error.message || 'Request failed', 'error') }
     finally { if (request === recordRequest.current) setLoading(false) }
   }
@@ -357,10 +372,22 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
         session: form.session, sectionId: Number(form.class_), className: sectionOptions.find(c => c.id === form.class_)?.className, rollNo: form.rollNo, feeBookNo: form.feebook, houseId: form.house,
         penNo: form.pen, apaarId: form.apaar, udise: form.udise, fatherOccupation: form.fOcc, motherOccupation: form.mOcc,
         fatherWhatsapp: form.fWhats, motherWhatsapp: form.mWhats, stateId: form.state, cityId: form.city, admissionDate: form.admDate,
+        previousSchool: form.prevSchool, previousSchoolAffiliation: form.affiliation, previousClass: form.prevClass.join(','), remark: form.remark,
+        fatherQualification: form.fQual, motherQualification: form.mQual, fatherEmail: form.fEmail, motherEmail: form.mEmail,
+        fatherIncome: form.fIncome, motherIncome: form.mIncome, fatherAadhar: form.fAadhar, motherAadhar: form.mAadhar,
+        accountHolder: form.accHolder, bankName: form.bank, branchName: form.branch, accountType: form.accType, accountNo: form.accNo, ifscCode: form.ifsc,
+        studentGroup: form.group, ncc: form.ncc, stream: form.stream, optionalSubject: form.optSub, siblingId: form.sibAdm, siblingAdmNo: form.sibAdm,
+        withdrawnDate: withdrawnOnly ? form.admDate : undefined, withdrawnSession: withdrawnOnly ? form.session : undefined,
         transferCertificate: form.docs.includes('Transfer Certificate') ? 'Yes' : 'No', birthCertificate: form.docs.includes('Birth Certificate') ? 'Yes' : 'No',
         marksheet: form.docs.includes('Marksheet') ? 'Yes' : 'No', migration: form.docs.includes('Migration Certificate') ? 'Yes' : 'No',
         aadharCard: form.docs.includes('Aadhar Card') ? 'Yes' : 'No', castCertificate: form.docs.includes('Cast Certificate') ? 'Yes' : 'No',
       }) })
+      const imageWrites = Object.entries(photos)
+        .filter(([, image]) => image?.data)
+        .map(([type, image]) => apiFetch('/students/' + encodeURIComponent(form.studentId) + '/image', {
+          method: 'PUT', body: JSON.stringify({ imageData: image.data, type: type === 'stu' ? 'student' : type }),
+        }))
+      if (imageWrites.length) await Promise.all(imageWrites)
       setShowSuccessScreen(true)
     } catch (error) { showToast(error.message || 'Student update failed', 'error') } finally { setSaving(false) }
   }
@@ -599,6 +626,8 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
             </Field>
             <Field label="Adm. Class"><NativeSelect value={form.admClass} onChange={set('admClass')} placeholder="-- Select --">{liveClasses.map(c=><option key={c}>{c}</option>)}</NativeSelect></Field>
             <Field label="Group"><NativeSelect value={form.group} onChange={set('group')} placeholder="-- Select --">{GROUPS.map(g=><option key={g}>{g}</option>)}</NativeSelect></Field>
+            <Field label="Stream"><NativeSelect value={form.stream} onChange={set('stream')} placeholder="-- Select --">{(lookups.streams || []).map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</NativeSelect></Field>
+            <Field label="Optional Subject"><NativeSelect value={form.optSub} onChange={set('optSub')} placeholder="-- Select --">{(lookups.optionalSubjects || []).map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</NativeSelect></Field>
           </div>
 
           <Divider label="Address & IDs" />
@@ -616,9 +645,9 @@ export default function UpdateStudentInfosheet({ withdrawnOnly = false }) {
 
           <Divider label="Photo Upload" />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <ImageUploader label="Student Photo"  preview={photos.stu}    onChange={v => setPhotos(p => ({...p, stu:v}))} />
-            <ImageUploader label="Father Photo"   preview={photos.father} onChange={v => setPhotos(p => ({...p, father:v}))} />
-            <ImageUploader label="Mother Photo"   preview={photos.mother} onChange={v => setPhotos(p => ({...p, mother:v}))} />
+            <ImageUploader label="Student Photo"  preview={photos.stu?.preview}    onChange={v => setPhotos(p => ({...p, stu:v}))} />
+            <ImageUploader label="Father Photo"   preview={photos.father?.preview} onChange={v => setPhotos(p => ({...p, father:v}))} />
+            <ImageUploader label="Mother Photo"   preview={photos.mother?.preview} onChange={v => setPhotos(p => ({...p, mother:v}))} />
           </div>
         </div>
       </SectionCard>

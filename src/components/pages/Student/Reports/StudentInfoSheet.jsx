@@ -294,7 +294,7 @@ function Toast({ items, onRemove }) {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function StudentInfoSheet({ title = 'Student Info Sheet' }) {
-  const { sessions, classes, session: currentSession, setSession } = useSessionsClasses()
+  const { sessions, classes, session, setSession } = useSessionsClasses()
   const [allSections, setAllSections] = useState([])
 
   useEffect(() => {
@@ -350,12 +350,34 @@ export default function StudentInfoSheet({ title = 'Student Info Sheet' }) {
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = () => {
     setLoading(true); setHasLoaded(true); setPage(1); setTableSearch('')
-    fetchStudentReport('student-list', { session }).then(data => { let result = data; if (selClasses.size) result = result.filter(r => selClasses.has(r.className) || selClasses.has(r.class_name)); if (selSections.size) result = result.filter(r => selSections.has(r.sectionName) || selSections.has(r.section_name)); if (studentType === '2') result = result.filter(r => String(r.gender).toLowerCase() === 'male'); if (studentType === '3') result = result.filter(r => String(r.gender).toLowerCase() === 'female'); if (stuStatus !== '0') result = result.filter(r => String(r.status).toLowerCase() === (stuStatus === '1' ? 'registered' : 'withdrawn')); setResults(result.map((r, i) => ({ ...r, sno: i + 1, studentTypeNew: '', rte: '', certStatus: '' }))); setLoading(false); addToast(result.length + ' students found') }).catch(err => { setLoading(false); addToast(err.message || 'Request failed', 'error') })
+    fetchStudentReport('student-list', { session }).then(data => {
+      let result = data
+      if (selClasses.size) result = result.filter(r => selClasses.has(r.className) || selClasses.has(r.class_name))
+      if (selSections.size) result = result.filter(r => selSections.has(r.sectionName) || selSections.has(r.section_name))
+      if (classType !== 'All') result = result.filter(r => String(r.classType || '').toLowerCase() === classType.toLowerCase())
+      if (newOldType === '1') result = result.filter(r => String(r.isNew ?? '').toLowerCase() === '1' || ['new', 'new admission'].includes(String(r.studentType || '').toLowerCase()))
+      if (newOldType === '2') result = result.filter(r => String(r.isNew ?? '').toLowerCase() === '0' || ['old', 'regular'].includes(String(r.studentType || '').toLowerCase()))
+      if (studentType === '1') result = result.filter(r => String(r.rte || '').toLowerCase() === '1' || String(r.quota || '') === '5')
+      if (studentType === '2') result = result.filter(r => String(r.gender).toLowerCase() === 'male')
+      if (studentType === '3') result = result.filter(r => String(r.gender).toLowerCase() === 'female')
+      if (stuStatus !== '0') result = result.filter(r => String(r.status).toLowerCase() === (stuStatus === '1' ? 'registered' : 'withdrawn'))
+      const certificateFields = ['birthCertificate', 'transferCertificate', 'migration', 'marksheet', 'aadharCard', 'castCertificate']
+      const hasCertificate = row => certificateFields.some(field => ['yes', '1', 'true'].includes(String(row[field] ?? '').trim().toLowerCase()))
+      if (certStatus !== '0') result = result.filter(row => hasCertificate(row) === (certStatus === 'Yes'))
+      setResults(result.map((r, i) => ({
+        ...r,
+        sno: i + 1,
+        studentTypeNew: String(r.isNew ?? '').toLowerCase() === '1' ? 'NEW' : 'OLD',
+        rte: String(r.rte || '').toLowerCase() === '1' || String(r.quota || '') === '5' ? 'RTE' : 'NO',
+        certStatus: hasCertificate(r) ? 'Yes' : 'No',
+      })))
+      setLoading(false); addToast(result.length + ' students found')
+    }).catch(err => { setLoading(false); addToast(err.message || 'Request failed', 'error') })
   }
 
   // ── Reset ─────────────────────────────────────────────────────────────────
   const handleReset = () => {
-    setSession(currentSession || sessions[0] || ''); setSelClasses(new Set()); setClassType('All')
+    setSession(session || sessions[0] || ''); setSelClasses(new Set()); setClassType('All')
     setSelSections(new Set()); setNewOldType('0'); setStudentType('0')
     setStuStatus('1'); setCertStatus('0'); setResults([]); setHasLoaded(false)
     setTableSearch(''); setPage(1)

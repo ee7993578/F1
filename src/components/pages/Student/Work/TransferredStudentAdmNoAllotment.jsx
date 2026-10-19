@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Eye, RotateCcw, Save } from 'lucide-react'
 import { apiFetch } from '../../../../lib/api'
-import { fetchStudentReport, useStudents } from '../../../../hooks/useStudents'
+import { useStudents } from '../../../../hooks/useStudents'
 
 const inputClass = 'w-full px-2.5 py-1.5 text-[12px] border rounded-md outline-none border-slate-200 bg-white text-slate-800 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-white/10 dark:bg-[#1e2238] dark:text-slate-200'
 
@@ -23,11 +23,8 @@ export default function TransferredStudentAdmNoAllotment() {
     if (!session) return
     setLoading(true); setMessage('')
     try {
-      const result = await fetchStudentReport('registration', { session })
-      // Transferred candidates are registration rows that do not yet have an
-      // admission number in TB_StudentMaster.  This is the same boundary used
-      // by the legacy admission-allotment page before its insert operation.
-      const candidates = result.filter(row => !String(row.admissionNo || '').trim()).map(row => ({
+      const result = await apiFetch('/students/transferred-admission?session=' + encodeURIComponent(session))
+      const candidates = (result || []).map(row => ({
         ...row,
         admNo: '',
         feeBookNo: row.feeBookNo || '',

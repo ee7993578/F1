@@ -22,4 +22,10 @@ public class StudentMutationService {
         writeGuard.requireWritable();
         return repository.softDelete(schoolId, uid);
     }
+
+    @Transactional
+    public StudentMutationDtos.MutationResponse updateWithdrawnReason(String schoolId, StudentMutationDtos.WithdrawReasonRequest request) {
+        writeGuard.requireWritable();
+        return repository.updateWithdrawnReason(schoolId, request);
+    }
 }

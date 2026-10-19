@@ -342,7 +342,7 @@ function MobileSessionCard({ row, sno, onToggleDefault, onDelete, toggleLoading 
 
 export default function SessionMaster() {
   const [selectedYear,  setSelectedYear]  = useState('0')
-  const [sessions,      setSessions]      = useState(INITIAL_SESSIONS)
+  const [sessions,      setSessions]      = useState([])
   const [submitting,    setSubmitting]    = useState(false)
   const [toggleLoading, setToggleLoading] = useState(null) // row id being toggled
   const [errors,        setErrors]        = useState({})

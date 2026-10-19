@@ -23,6 +23,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useSessionsClasses } from '../../../../lib/useStudentReport'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
 import { studentApi as api } from '../../../../lib/studentApi'
+import { downloadExcel } from '../../../../lib/exportExcel'
 import {
   Filter, RefreshCw, Eye,
   AlertCircle, X, Check, Loader2, ChevronDown,
@@ -559,10 +560,7 @@ export default function StudentWithdrawnReport() {
         body: {
           registrationNo: row.registration_no,
           session: shownSession || session,
-          status: 'Withdrawn',
-          date: row.withdrawn_date || '',
           reason: editValue,
-          tcNo: row.tc_no || '',
         },
       })
       setRows((prev) => prev.map((r) => r.id === id ? { ...r, withdrawn_reason: editValue } : r))
@@ -588,6 +586,22 @@ export default function StudentWithdrawnReport() {
     )
   }, [rows, search])
 
+  const handleExcel = () => {
+    if (!filtered.length) { showToast('No records to export.', 'error'); return }
+    downloadExcel(`StudentWithdrawn_${shownSession || session}`, filtered, [
+      { key: 'registration_no', label: 'Registration No' },
+      { key: 'name', label: 'Student Name' },
+      { key: 'class_name', label: 'Class' },
+      { key: 'section_name', label: 'Section' },
+      { key: 'address', label: 'Address' },
+      { key: 'mobile', label: 'Mobile' },
+      { key: 'dob', label: 'DOB' },
+      { key: 'withdrawn_date', label: 'Withdrawn Date' },
+      { key: 'withdrawn_reason', label: 'Withdrawn Reason' },
+    ])
+    showToast(`${filtered.length} records exported to Excel.`)
+  }
+
   // ── Summary counts ────────────────────────────────────────────────────────
   const maleCount   = filtered.filter(r => r.Gender === 'Male').length
   const femaleCount = filtered.filter(r => r.Gender === 'Female').length
@@ -608,6 +622,12 @@ export default function StudentWithdrawnReport() {
             View and manage withdrawn students with editable reasons.
           </p>
         </div>
+        {hasResults && (
+          <button type="button" onClick={handleExcel}
+            className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-500/20 transition-all active:scale-95">
+            <FileSpreadsheet className="w-4 h-4" /> Excel
+          </button>
+        )}
       </div>
 
       {/* ── DESKTOP Filter Card ──────────────────────────────────────────── */}

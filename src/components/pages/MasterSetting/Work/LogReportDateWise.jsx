@@ -106,7 +106,7 @@ function StatCard({ label, value, icon: Icon, color }) {
 
 // ─── Filter Panel ──────────────────────────────────────────────────────────────
 
-function FilterPanel({ filters, onChange, onSearch, onReset, loading }) {
+function FilterPanel({ filters, onChange, onSearch, onReset, loading, users, pages }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -150,7 +150,7 @@ function FilterPanel({ filters, onChange, onSearch, onReset, loading }) {
               onChange={(e) => onChange("userId", e.target.value)}
               className="w-full pl-8 pr-8 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent bg-slate-50 text-slate-700 appearance-none"
             >
-              {USERS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+              {users.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
             </select>
             <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
@@ -166,7 +166,7 @@ function FilterPanel({ filters, onChange, onSearch, onReset, loading }) {
               onChange={(e) => onChange("page", e.target.value)}
               className="w-full pl-8 pr-8 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent bg-slate-50 text-slate-700 appearance-none"
             >
-              {PAGES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+              {pages.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
             <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
@@ -367,9 +367,8 @@ export default function LogReportDateWise() {
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState([]);
   const { data } = useMasterSettings();
-  useEffect(() => {
-    if (data?.logs) setLogs(data.logs.map(l => ({ id: l.id, activity: l.activityType || "View", dateTime: l.createdOn || "", userName: l.loginId || l.staffUid || "User", userId: l.loginId || l.staffUid || "", page: l.pageName || "", ipAddress: l.ipAddress || "", remarks: l.fullPageName || "" })));
-  }, [data]);
+  const users = [{ value: "0", label: "<Select All>" }, ...(data?.staff || []).map(s => ({ value: String(s.staffUid), label: `${s.name} (${s.staffUid})` }))]
+  const pages = [{ value: "0", label: "<Select All>" }, ...(data?.pages || []).map(p => ({ value: String(p.pageId), label: p.displayName || p.pageName }))]
 
   const handleFilterChange = useCallback((key, val) => {
     setFilters((prev) => {
@@ -382,13 +381,14 @@ export default function LogReportDateWise() {
 
   // Simulate API call with filtering on dummy data
   const handleSearch = useCallback(() => {
-    if (!filters.fromDate || !filters.toDate) return;
+    if (!filters.fromDate || !filters.toDate || filters.fromDate === filters.toDate) return;
     setLoading(true);
     const query = new URLSearchParams({
       from: filters.fromDate,
       to: filters.toDate,
       ...(filters.page !== '0' ? { page: filters.page } : {}),
       ...(filters.activity !== '0' ? { activity: filters.activity } : {}),
+      ...(filters.userId !== '0' ? { staff: filters.userId } : {}),
     });
     apiFetch('/master-settings/logs?' + query.toString())
       .then(result => {
@@ -443,6 +443,8 @@ export default function LogReportDateWise() {
           onSearch={handleSearch}
           onReset={handleReset}
           loading={loading}
+          users={users}
+          pages={pages}
         />
 
         {/* Stats (only when results exist) */}

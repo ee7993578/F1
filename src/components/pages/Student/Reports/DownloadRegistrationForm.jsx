@@ -18,13 +18,14 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
 import { studentApi as api } from '../../../../lib/studentApi'
+import { downloadExcel } from '../../../../lib/exportExcel'
 import {
   Filter, RefreshCw, Download, AlertCircle, X, Check,
   Loader2, ChevronDown, Search, SlidersHorizontal, Info,
   FileText, School2, User, Phone, Calendar, BookOpen,
   ChevronRight, Eye, Printer, FileDown, Users, ClipboardList,
   GraduationCap, BadgeCheck, Clock, Building2, MapPin,
-  BarChart3, TrendingUp
+  BarChart3, TrendingUp, FileSpreadsheet
 } from 'lucide-react'
 
 // ─── STATIC DATA ─────────────────────────────────────────────────────────────
@@ -405,6 +406,13 @@ function MobileCard({ row, idx, onDownload, onPreview }) {
 function PreviewModal({ row, session, onClose, onDownload }) {
   if (!row) return null
   const { fg, bg } = classColor(row.class)
+  let schoolName = 'School'
+  let schoolAddress = ''
+  try {
+    const u = JSON.parse(localStorage.getItem('erp_user') || '{}')
+    schoolName = u.schoolName || schoolName
+    schoolAddress = u.schoolAddress || ''
+  } catch { /* ignore */ }
 
   return (
     <>
@@ -495,7 +503,7 @@ function PreviewModal({ row, session, onClose, onDownload }) {
 
 // ─── MOBILE FILTER DRAWER ─────────────────────────────────────────────────────
 
-function FilterDrawer({ open, onClose, session, setSession, selectedClass, setSelectedClass, onShow, loading, errors }) {
+function FilterDrawer({ open, onClose, session, setSession, selectedClass, setSelectedClass, sessions, classes, onShow, loading, errors }) {
   if (!open) return null
   return (
     <>
@@ -656,6 +664,20 @@ export default function DownloadRegistrationForm() {
     }
   }
 
+  const handleExcel = () => {
+    if (!filtered.length) { showToast('No records to export.', 'error'); return }
+    downloadExcel(`RegistrationForms_${session}`, filtered, [
+      { key: 'form_no', label: 'Form No' },
+      { key: 'name', label: 'Name' },
+      { key: 'father', label: 'Father' },
+      { key: 'mobile', label: 'Mobile' },
+      { key: 'class', label: 'Class' },
+      { key: 'dob', label: 'DOB' },
+      { key: 'status', label: 'Status' },
+    ])
+    showToast(`${filtered.length} records exported to Excel.`)
+  }
+
   // ── Search + Status filter ────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let data = rows
@@ -698,17 +720,17 @@ export default function DownloadRegistrationForm() {
           </p>
         </div>
         {hasResults && (
-          <button
-            type="button"
-            onClick={handleDownloadAll}
-            disabled={loading}
-            className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold
-              bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-500/20
-              transition-all active:scale-95 disabled:opacity-70 flex-shrink-0"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Download All ({filtered.length})
-          </button>
+          <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+            <button type="button" onClick={handleExcel}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-500/20 transition-all active:scale-95">
+              <FileSpreadsheet className="w-4 h-4" /> Excel
+            </button>
+            <button type="button" onClick={handleDownloadAll} disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-70">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Download All ({filtered.length})
+            </button>
+          </div>
         )}
       </div>
 
@@ -796,6 +818,7 @@ export default function DownloadRegistrationForm() {
         setSession={setSession}
         selectedClass={selectedClass}
         setSelectedClass={setSelectedClass}
+        sessions={sessions} classes={classes}
         onShow={handleShow}
         loading={loading}
         errors={errors}

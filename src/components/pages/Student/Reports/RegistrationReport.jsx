@@ -359,6 +359,7 @@ function MobileCard({ row, idx, onReprint }) {
 function FilterDrawer({
   open, onClose,
   session, setSession,
+  sessionOptions,
   regDate, setRegDate,
   status, setStatus,
   onShow, loading, errors
@@ -725,6 +726,7 @@ export default function RegistrationReport() {
         open={filterOpen}
         onClose={() => setFilterOpen(false)}
         session={session}        setSession={setSession}
+        sessionOptions={sessionOptions}
         regDate={regDate}        setRegDate={setRegDate}
         status={status}          setStatus={setStatus}
         onShow={handleShow}

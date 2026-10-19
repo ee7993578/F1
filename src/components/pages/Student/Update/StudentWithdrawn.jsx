@@ -216,7 +216,7 @@ function FilterDrawer({ open, onClose, session, setSession, cls, setCls, regNo, 
 }
 
 // ─── DESKTOP TABLE ROW ────────────────────────────────────────────────────────
-function DesktopRow({ row, onStatusChange, onReasonChange, onDateChange, onSaveRow, saving }) {
+function DesktopRow({ row, onStatusChange, onReasonChange, onDateChange, onTcNoChange, onSaveRow, saving }) {
   const [fg, bg] = avatarColor(row.name)
   const isWithdrawn = row.status === 'Withdrawn'
   const isDirty = row._dirty
@@ -284,6 +284,11 @@ function DesktopRow({ row, onStatusChange, onReasonChange, onDateChange, onSaveR
         </div>
       </td>
 
+      {/* Transfer Certificate No. */}
+      <td className="px-4 py-3 w-36">
+        <TextInput value={row.tcNo} onChange={e => onTcNoChange(row.id, e.target.value)} placeholder="TC No." />
+      </td>
+
       {/* Save per row */}
       <td className="px-4 py-3 w-20">
         <button
@@ -307,7 +312,7 @@ function DesktopRow({ row, onStatusChange, onReasonChange, onDateChange, onSaveR
 }
 
 // ─── MOBILE CARD ──────────────────────────────────────────────────────────────
-function MobileCard({ row, onStatusChange, onReasonChange, onDateChange, onSaveRow, saving }) {
+function MobileCard({ row, onStatusChange, onReasonChange, onDateChange, onTcNoChange, onSaveRow, saving }) {
   const [expanded, setExpanded] = useState(false)
   const [fg, bg] = avatarColor(row.name)
   const isWithdrawn = row.status === 'Withdrawn'
@@ -400,6 +405,12 @@ function MobileCard({ row, onStatusChange, onReasonChange, onDateChange, onSaveR
             </div>
           </div>
 
+          {/* Transfer Certificate No. */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1.5">Transfer Certificate No.</p>
+            <TextInput value={row.tcNo} onChange={e => onTcNoChange(row.id, e.target.value)} placeholder="TC No." />
+          </div>
+
           {/* Save button */}
           <button
             type="button"
@@ -472,7 +483,7 @@ export default function StudentWithdrawn() {
     const request = ++listRequest.current
     fetchStudentReport('withdrawn-management', { session, sectionId: cls || undefined, query: regNo || stuName }).then(result => {
       if (request !== listRequest.current) return
-      const data = result.map((s, i) => ({ id: s.studentId, uid: s.uid || s.studentId, name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' '), class: s.className || '', adm: s.registrationNo || '', status: String(s.status || '').toLowerCase().includes('withdraw') ? 'Withdrawn' : 'Registered', reason: '', date: '', _idx: i + 1, _dirty: false }))
+      const data = result.map((s, i) => ({ id: s.studentId, uid: s.uid || s.studentId, name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' '), class: s.className || '', adm: s.registrationNo || '', status: String(s.status || '').toLowerCase().includes('withdraw') ? 'Withdrawn' : 'Registered', reason: s.withdrawnReason || '', date: s.withdrawnDate ? String(s.withdrawnDate).slice(0, 11) : '', tcNo: s.tcNo || '', withdrawnSession: s.withdrawnSession || session, _idx: i + 1, _dirty: false }))
       setRows(data);
     }).catch(err => { if (request === listRequest.current) { setRows([]); showToast(err.message || 'Request failed', 'error') } })
       .finally(() => { if (request === listRequest.current) setLoading(false) })
@@ -495,6 +506,7 @@ export default function StudentWithdrawn() {
 
   const onReasonChange = useCallback((id, v) => updateRow(id, { reason: v }), [])
   const onDateChange   = useCallback((id, v) => updateRow(id, { date: v }),   [])
+  const onTcNoChange   = useCallback((id, v) => updateRow(id, { tcNo: v }),   [])
 
   // ── Save single row ───────────────────────────────────────────────────────
   const onSaveRow = useCallback(async (id) => {
@@ -505,7 +517,7 @@ export default function StudentWithdrawn() {
     try {
       await apiFetch('/students/' + encodeURIComponent(row.uid || row.id), {
         method: 'PUT',
-        body: JSON.stringify({ status: row.status, remark: row.reason }),
+        body: JSON.stringify({ status: row.status, remark: row.reason, withdrawnDate: row.date, withdrawnSession: row.withdrawnSession || session, tcNo: row.tcNo }),
       })
       setRows(previous => previous.map(item => item.id === id ? { ...item, _dirty: false } : item))
       showToast(row.name + ' updated successfully.')
@@ -521,7 +533,7 @@ export default function StudentWithdrawn() {
     if (invalid) { showToast('Withdrawal reason is required for ' + invalid.name, 'error'); return }
     setSavingAll(true)
     try {
-      await Promise.all(dirtyRows.map(row => apiFetch('/students/' + encodeURIComponent(row.uid || row.id), { method: 'PUT', body: JSON.stringify({ status: row.status, remark: row.reason }) })))
+      await Promise.all(dirtyRows.map(row => apiFetch('/students/' + encodeURIComponent(row.uid || row.id), { method: 'PUT', body: JSON.stringify({ status: row.status, remark: row.reason, withdrawnDate: row.date, withdrawnSession: row.withdrawnSession || session, tcNo: row.tcNo }) })))
       setRows(previous => previous.map(row => ({ ...row, _dirty: false })))
       showToast(dirtyRows.length + ' record' + (dirtyRows.length > 1 ? 's' : '') + ' saved successfully.')
     } catch (error) {
@@ -726,7 +738,7 @@ export default function StudentWithdrawn() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-100 dark:border-[rgba(99,102,241,0.1)] bg-slate-50/50 dark:bg-white/[0.02]">
-                    {['S.No', 'Adm No.', 'Student Name', 'Status', 'Reason', 'Date', 'Action'].map((h, i) => (
+                    {['S.No', 'Adm No.', 'Student Name', 'Status', 'Reason', 'Date', 'TC No.', 'Action'].map((h, i) => (
                       <th key={i} className="px-4 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         {h}
                       </th>
@@ -741,6 +753,7 @@ export default function StudentWithdrawn() {
                       onStatusChange={onStatusChange}
                       onReasonChange={onReasonChange}
                       onDateChange={onDateChange}
+                      onTcNoChange={onTcNoChange}
                       onSaveRow={onSaveRow}
                       saving={savingId}
                     />
@@ -770,6 +783,7 @@ export default function StudentWithdrawn() {
                     onStatusChange={onStatusChange}
                     onReasonChange={onReasonChange}
                     onDateChange={onDateChange}
+                    onTcNoChange={onTcNoChange}
                     onSaveRow={onSaveRow}
                     saving={savingId}
                   />

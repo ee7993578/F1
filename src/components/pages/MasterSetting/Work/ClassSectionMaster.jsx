@@ -572,9 +572,7 @@ export default function ClassSectionMaster() {
   const [mode, setMode] = useState('class') // 'class' | 'section'
 
   // ── Class Mode State ──────────────────────────────────────────────────────
-  const [classes, setClasses] = useState(() =>
-    CLASS_LIST.map(c => ({ ...c, selected: c.sts }))
-  )
+  const [classes, setClasses] = useState([])
 
   const handleClassChange = useCallback((id, field, value) => {
     setClasses(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c))
@@ -587,7 +585,7 @@ export default function ClassSectionMaster() {
   const [sectionErrors,    setSectionErrors]    = useState({})
 
   // ── Records (Section Table) ────────────────────────────────────────────────
-  const [records,   setRecords]   = useState(SECTION_RECORDS)
+  const [records,   setRecords]   = useState([])
   const [updating,  setUpdating]  = useState(null) // Sec_id being updated
 
   const handleTypeChange = (secId, type) => {
@@ -603,10 +601,11 @@ export default function ClassSectionMaster() {
 
   const handleBulkUpdate = () => {
     setUpdating('bulk')
-    setTimeout(() => {
-      setUpdating(null)
-      showToast(`All ${records.length} records updated.`)
-    }, 900)
+    Promise.all(records.map(row => apiFetch('/master-settings/sections/' + row.Sec_id, {
+      method: 'PUT',
+      body: JSON.stringify({ sectionName: row.Section, sectionType: row.Type })
+    }))).then(async () => { await refresh(); showToast(`All ${records.length} records updated.`) })
+      .catch(err => showToast(err.message, 'error')).finally(() => setUpdating(null))
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -638,11 +637,16 @@ export default function ClassSectionMaster() {
     }
     const classSelections = classes.filter(c => c.selected)
     if (classSelections.length === 0) { showToast('Please select at least one class.', 'error'); return }
-    showToast('Class master records are read-only in the legacy database.', 'error')
+    setLoading(true)
+    Promise.all(classSelections.map(row => apiFetch('/master-settings/classes', {
+      method: 'POST',
+      body: JSON.stringify({ classId: Number(row.id), className: row.altClass || row.class, classGroup: row.group })
+    }))).then(async () => { await refresh(); showToast('Record saved successfully') })
+      .catch(err => showToast(err.message, 'error')).finally(() => setLoading(false))
   }
   const handleReset = () => {
     if (mode === 'class') {
-      setClasses(CLASS_LIST.map(c => ({ ...c, selected: c.sts })))
+      setClasses(prev => prev.map(c => ({ ...c, selected: !!c.sts })))
     } else {
       setSectionName('')
       setSelectedClasses([])

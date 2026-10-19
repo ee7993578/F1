@@ -635,7 +635,13 @@ export default function OnlineRegistrationReportStatus() {
   // ── Show (mirrors onlineStudentRegistrationLog grid bind) ───────────────────
   const handleShow = useCallback(() => {
     setLoading(true); setSearch('')
-    fetchStudentReport('registration', { session: filters.session }).then(data => {
+    fetchStudentReport('online-registration-status', {
+      session: filters.session,
+      classId: classes.find(c => c.className === filters.cls)?.id,
+      month: filters.month ? MONTHS.indexOf(filters.month) + 1 : '',
+      studentType: filters.studentType,
+      status: filters.appStatus,
+    }).then(data => {
       const normalized = data.map(normalizeOnlineRegistration)
       const month = filters.month ? MONTHS.indexOf(filters.month) + 1 : 0
       const result = normalized.filter(row => {

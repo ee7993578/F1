@@ -365,14 +365,14 @@ export default function SessionTerm() {
   const [loading,    setLoading]    = useState(false)
 
   // ── Records (grid) ──────────────────────────────────────────────────────────
-  const [records, setRecords] = useState(INITIAL_RECORDS)
+  const [records, setRecords] = useState([])
   const [search,  setSearch]  = useState('')
 
   // ── Toast ───────────────────────────────────────────────────────────────────
   const [toast, setToast] = useState(null)
   const { data, refresh } = useMasterSettings()
-  const classOptions = data?.classes?.map(c => ({ value: String(c.classId), label: c.className })) || CLASSES
-  const termOptions = data?.termOptions?.map(t => ({ value: String(t.id), label: t.name })) || [{ value: '1', label: 'Term 1' }, { value: '2', label: 'Term 2' }, { value: '3', label: 'Term 3' }]
+  const classOptions = data?.classes?.map(c => ({ value: String(c.classId), label: c.className })) || []
+  const termOptions = data?.termOptions?.map(t => ({ value: String(t.id), label: t.name })) || []
   useEffect(() => {
     if (data?.terms) setRecords(data.terms.map(t => ({ s_no: t.id, class: String(t.classId), classLabel: t.className, term: String(t.term), term_name: String(t.term), startdate: t.startDate, enddate: t.endDate, session: t.session })))
   }, [data])

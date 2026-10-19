@@ -1,907 +1,167 @@
-/**
- * Roles_Permission.jsx
- * Folder: src/pages/Configuration/Roles_Permission.jsx
- *
- * Converts legacy ASPX "Assign Roles" page to fully-responsive React + Tailwind.
- *
- * Features:
- *  - Role dropdown → shows Staff + Module dropdowns
- *  - Add New Role: Role Name + Code + Save
- *  - Select Class checkboxes (All + individual)
- *  - Module GridView with nested sub-module permission checkboxes
- *  - Select All per sub-module
- *  - Submit per module row
- *  - Mobile: stacked cards with accordion sub-modules
- *  - Desktop: dense ERP-style nested table
- */
-
-import { useState, useMemo, useCallback, useEffect } from 'react'
-import {
-  ChevronDown, ChevronRight, AlertCircle, X, Check, Loader2,
-  Shield, Users, BookOpen, Settings2, SlidersHorizontal,
-  RefreshCw, Save, Plus, CheckSquare, Square, Info,
-  ChevronUp, Layout, Search, Building2
-} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { apiFetch } from '../../../../lib/api'
 import { useMasterSettings } from '../../../../hooks/useMasterSettings'
 
-// ─── STATIC / DUMMY DATA ──────────────────────────────────────────────────────
+const input = 'rounded border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100'
 
-const ROLES = [
-  { id: '1', name: 'Admin' },
-  { id: '2', name: 'Principal' },
-  { id: '3', name: 'Teacher' },
-  { id: '4', name: 'Accountant' },
-  { id: '5', name: 'Librarian' },
-  { id: '6', name: 'Receptionist' },
-]
-
-const STAFF_LIST = [
-  { id: '101', name: 'Ramesh Kumar' },
-  { id: '102', name: 'Sunita Sharma' },
-  { id: '103', name: 'Ajay Verma' },
-  { id: '104', name: 'Priya Singh' },
-  { id: '105', name: 'Mohit Agarwal' },
-]
-
-const CLASSES = [
-  'Nursery', 'LKG', 'UKG', 'Class I', 'Class II', 'Class III',
-  'Class IV', 'Class V', 'Class VI', 'Class VII', 'Class VIII',
-  'Class IX', 'Class X', 'Class XI', 'Class XII',
-]
-
-const MODULES_DATA = [
-  {
-    module_id: 'M1',
-    module_name: 'Student Management',
-    status: '1',
-    pages: [
-      { pageid: 'P1', Page_name: 'Student Registration', module_id: 'M1' },
-      { pageid: 'P2', Page_name: 'Student List', module_id: 'M1' },
-      { pageid: 'P3', Page_name: 'Student Profile', module_id: 'M1' },
-      { pageid: 'P4', Page_name: 'Bulk Import', module_id: 'M1' },
-    ],
-  },
-  {
-    module_id: 'M2',
-    module_name: 'Attendance',
-    status: '1',
-    pages: [
-      { pageid: 'P5', Page_name: 'Mark Attendance', module_id: 'M2' },
-      { pageid: 'P6', Page_name: 'Attendance Report', module_id: 'M2' },
-      { pageid: 'P7', Page_name: 'Leave Management', module_id: 'M2' },
-    ],
-  },
-  {
-    module_id: 'M3',
-    module_name: 'Fee Management',
-    status: '0',
-    pages: [
-      { pageid: 'P8',  Page_name: 'Fee Collection', module_id: 'M3' },
-      { pageid: 'P9',  Page_name: 'Fee Structure', module_id: 'M3' },
-      { pageid: 'P10', Page_name: 'Due Report', module_id: 'M3' },
-      { pageid: 'P11', Page_name: 'Receipt Print', module_id: 'M3' },
-    ],
-  },
-  {
-    module_id: 'M4',
-    module_name: 'Examination',
-    status: '1',
-    pages: [
-      { pageid: 'P12', Page_name: 'Exam Schedule', module_id: 'M4' },
-      { pageid: 'P13', Page_name: 'Result Entry', module_id: 'M4' },
-      { pageid: 'P14', Page_name: 'Mark Sheet', module_id: 'M4' },
-    ],
-  },
-  {
-    module_id: 'M5',
-    module_name: 'Library',
-    status: '0',
-    pages: [
-      { pageid: 'P15', Page_name: 'Book Issue', module_id: 'M5' },
-      { pageid: 'P16', Page_name: 'Book Return', module_id: 'M5' },
-      { pageid: 'P17', Page_name: 'Catalogue', module_id: 'M5' },
-    ],
-  },
-  {
-    module_id: 'M6',
-    module_name: 'Transport',
-    status: '1',
-    pages: [
-      { pageid: 'P18', Page_name: 'Route Management', module_id: 'M6' },
-      { pageid: 'P19', Page_name: 'Vehicle List', module_id: 'M6' },
-      { pageid: 'P20', Page_name: 'Driver Assignment', module_id: 'M6' },
-    ],
-  },
-]
-
-// Permissions available per sub-module page
-const PERMISSIONS = ['View', 'Add', 'Edit', 'Delete']
-
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-
-const MODULE_COLORS = [
-  { fg: '#1d4ed8', bg: '#dbeafe' },
-  { fg: '#7c3aed', bg: '#ede9fe' },
-  { fg: '#059669', bg: '#d1fae5' },
-  { fg: '#d97706', bg: '#fef3c7' },
-  { fg: '#dc2626', bg: '#fee2e2' },
-  { fg: '#0369a1', bg: '#e0f2fe' },
-]
-const moduleColor = (id) => MODULE_COLORS[(parseInt(id?.replace('M','') || 0) - 1) % MODULE_COLORS.length]
-
-// Build initial permission state: { [module_id]: { enabled: bool, pages: { [pageid]: { [perm]: bool } } } }
-const buildInitialPerms = (modules) => {
-  const state = {}
-  modules.forEach(mod => {
-    state[mod.module_id] = {
-      enabled: mod.status === '1',
-      pages: {},
-    }
-    mod.pages.forEach(page => {
-      state[mod.module_id].pages[page.pageid] = {
-        View: false, Add: false, Edit: false, Delete: false,
-      }
-    })
-  })
-  return state
+function Notice({ value, error }) {
+  if (!value) return null
+  return <div className={`mb-4 rounded border px-3 py-2 text-sm ${error ? 'border-red-200 bg-red-50 text-red-700' : 'border-green-200 bg-green-50 text-green-700'}`}>{value}</div>
 }
 
-// ─── PRIMITIVE COMPONENTS ─────────────────────────────────────────────────────
-
-function NativeSelect({ value, onChange, children, placeholder, error, disabled, className = '' }) {
-  return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        className={`w-full appearance-none pl-3 pr-8 py-2 text-[13px] rounded-lg border outline-none transition-all cursor-pointer
-          bg-white text-slate-800
-          focus:border-blue-400 focus:ring-2 focus:ring-blue-100
-          dark:bg-[#1e2238] dark:text-slate-200 dark:focus:border-indigo-400 dark:focus:ring-indigo-500/20
-          disabled:opacity-50 disabled:cursor-not-allowed
-          ${error ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200 dark:border-[rgba(99,102,241,0.25)]'}
-          ${className}`}
-      >
-        {placeholder && <option value="">{placeholder}</option>}
-        {children}
-      </select>
-      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-    </div>
-  )
+function PageGroup({ group, selected, disabled, onToggle, onSelectAll }) {
+  const active = group.pages.filter(page => selected.has(String(page.pageId))).length
+  const all = group.pages.length > 0 && active === group.pages.length
+  return <div className="mb-3 rounded border dark:border-slate-700">
+    <div className="flex items-center justify-between border-b bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800"><span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{group.name}</span><label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300"><span>Select All:</span><input type="checkbox" checked={all} disabled={disabled} onChange={e => onSelectAll(group.pages, e.target.checked)} /></label></div>
+    <div className="grid gap-x-5 gap-y-2 p-3 sm:grid-cols-2 lg:grid-cols-4">{group.pages.map(page => <label key={page.pageId} className={`flex items-center gap-2 text-sm ${disabled || page.inherited ? 'text-slate-400' : 'text-slate-700 dark:text-slate-300'}`} title={page.inherited ? 'Already assigned through staff designation' : ''}><input type="checkbox" checked={selected.has(String(page.pageId))} disabled={disabled || page.inherited} onChange={() => onToggle(page.pageId)} />{page.pageName}</label>)}</div>
+  </div>
 }
-
-function Field({ label, error, required, children }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-        {label}{required && <span className="text-rose-500 ml-0.5">*</span>}
-      </label>
-      {children}
-      {error && (
-        <p className="flex items-center gap-1 text-[11px] text-rose-500 mt-0.5">
-          <AlertCircle className="w-3 h-3 flex-shrink-0" />{error}
-        </p>
-      )}
-    </div>
-  )
-}
-
-function Toast({ message, type = 'success', onClose }) {
-  return (
-    <div
-      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-5 py-3
-        rounded-2xl shadow-xl text-[13px] font-semibold min-w-[260px] max-w-[90vw]
-        ${type === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}`}
-      style={{ animation: 'slideUp .25s ease' }}
-    >
-      {type === 'success' ? <Check className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
-      <span className="flex-1">{message}</span>
-      <button onClick={onClose}><X className="w-4 h-4 opacity-75 hover:opacity-100" /></button>
-      <style>{`@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}`}</style>
-    </div>
-  )
-}
-
-// ─── PERMISSION CHECKBOX ROW ──────────────────────────────────────────────────
-
-function PermCheckbox({ label, checked, onChange }) {
-  return (
-    <label className="flex items-center gap-1.5 cursor-pointer select-none group">
-      <div
-        onClick={onChange}
-        className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
-          ${checked
-            ? 'bg-blue-600 border-blue-600 dark:bg-indigo-500 dark:border-indigo-500'
-            : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1e2238] group-hover:border-blue-400'
-          }`}
-      >
-        {checked && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
-      </div>
-      <span className={`text-[12px] font-medium transition-colors ${checked ? 'text-blue-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400'}`}>
-        {label}
-      </span>
-    </label>
-  )
-}
-
-// ─── MODULE PERMISSION ROW — SUB-MODULE PAGE ──────────────────────────────────
-
-function SubModuleRow({ page, perms, onPermChange, onSelectAll }) {
-  const allChecked = PERMISSIONS.every(p => perms[p])
-  const someChecked = PERMISSIONS.some(p => perms[p])
-
-  return (
-    <div className="border border-slate-200 dark:border-[rgba(99,102,241,0.15)] rounded-xl overflow-hidden">
-      {/* Page name + Select All */}
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-50 dark:bg-white/[0.02] border-b border-slate-100 dark:border-[rgba(99,102,241,0.1)]">
-        <div className="flex items-center gap-2 min-w-0">
-          <BookOpen className="w-3.5 h-3.5 text-blue-500 dark:text-indigo-400 flex-shrink-0" />
-          <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 truncate">{page.Page_name}</span>
-        </div>
-        <label className="flex items-center gap-1.5 cursor-pointer select-none flex-shrink-0" onClick={onSelectAll}>
-          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all
-            ${allChecked ? 'bg-blue-600 border-blue-600 dark:bg-indigo-500 dark:border-indigo-500'
-              : someChecked ? 'bg-blue-200 border-blue-400 dark:bg-indigo-500/30 dark:border-indigo-400'
-              : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1e2238]'}`}>
-            {allChecked && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
-            {!allChecked && someChecked && <div className="w-1.5 h-0.5 bg-blue-600 dark:bg-indigo-400 rounded" />}
-          </div>
-          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">All</span>
-        </label>
-      </div>
-
-      {/* Permission checkboxes */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-4 py-3">
-        {PERMISSIONS.map(perm => (
-          <PermCheckbox
-            key={perm}
-            label={perm}
-            checked={perms[perm]}
-            onChange={() => onPermChange(perm)}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ─── MODULE CARD (Mobile) ─────────────────────────────────────────────────────
-
-function ModuleCard({ mod, perms, onToggleModule, onPermChange, onSelectAllPage, onSubmit, saving }) {
-  const [expanded, setExpanded] = useState(false)
-  const { fg, bg } = moduleColor(mod.module_id)
-  const enabledCount = mod.pages.filter(p =>
-    PERMISSIONS.some(perm => perms.pages[p.pageid]?.[perm])
-  ).length
-
-  return (
-    <div className={`rounded-xl border overflow-hidden shadow-sm transition-all
-      ${perms.enabled
-        ? 'border-blue-200 dark:border-indigo-500/30'
-        : 'border-slate-200 dark:border-[rgba(99,102,241,0.12)]'}
-      bg-white dark:bg-[#1a1f35]`}>
-
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-[rgba(99,102,241,0.1)]">
-        {/* Module toggle */}
-        <div
-          onClick={() => onToggleModule(mod.module_id)}
-          className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center cursor-pointer transition-all
-            ${perms.enabled ? '' : 'opacity-40'}`}
-          style={{ background: bg, color: fg }}
-        >
-          <Shield className="w-5 h-5" />
-        </div>
-
-        <div className="flex-1 min-w-0" onClick={() => setExpanded(p => !p)}>
-          <p className="text-[14px] font-bold text-slate-800 dark:text-slate-100 leading-tight">{mod.module_name}</p>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-            {enabledCount}/{mod.pages.length} pages configured
-          </p>
-        </div>
-
-        {/* Module enable toggle */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={() => onToggleModule(mod.module_id)}
-            className={`relative w-9 h-5 rounded-full transition-all flex-shrink-0 ${perms.enabled ? 'bg-blue-600 dark:bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700'}`}
-          >
-            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${perms.enabled ? 'left-[18px]' : 'left-0.5'}`} />
-          </button>
-          <button onClick={() => setExpanded(p => !p)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Sub-modules */}
-      {expanded && perms.enabled && (
-        <div className="p-4 space-y-3">
-          {mod.pages.map(page => (
-            <SubModuleRow
-              key={page.pageid}
-              page={page}
-              perms={perms.pages[page.pageid] || {}}
-              onPermChange={(perm) => onPermChange(mod.module_id, page.pageid, perm)}
-              onSelectAll={() => onSelectAllPage(mod.module_id, page.pageid)}
-            />
-          ))}
-          <button
-            onClick={() => onSubmit(mod.module_id)}
-            disabled={saving === mod.module_id}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-semibold text-white
-              bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all active:scale-[0.98] disabled:opacity-70 mt-1"
-          >
-            {saving === mod.module_id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save {mod.module_name} Permissions
-          </button>
-        </div>
-      )}
-
-      {expanded && !perms.enabled && (
-        <div className="px-4 py-6 text-center">
-          <p className="text-[13px] text-slate-400 dark:text-slate-500">Enable this module to configure permissions.</p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── MODULE TABLE ROW (Desktop) ───────────────────────────────────────────────
-
-function ModuleTableRow({ mod, perms, onToggleModule, onPermChange, onSelectAllPage, onSubmit, saving }) {
-  const [expanded, setExpanded] = useState(true)
-  const { fg, bg } = moduleColor(mod.module_id)
-
-  return (
-    <>
-      {/* Module header row */}
-      <tr className={`border-b border-slate-100 dark:border-[rgba(99,102,241,0.08)]
-        ${perms.enabled ? 'bg-slate-50/40 dark:bg-white/[0.015]' : 'bg-slate-50/20 dark:bg-transparent opacity-60'}`}>
-
-        {/* S.No */}
-        <td className="px-3 py-3 text-center text-[12px] text-slate-400 dark:text-slate-500 w-10 align-top pt-4">
-          {mod.module_id.replace('M','')}
-        </td>
-
-        {/* Module name + toggle */}
-        <td className="px-3 py-3 align-top w-44">
-          <div className="flex items-start gap-2.5">
-            <div
-              onClick={() => onToggleModule(mod.module_id)}
-              className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center cursor-pointer mt-0.5 transition-all"
-              style={{ background: bg, color: fg }}
-            >
-              <Shield className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-[13px] font-bold text-slate-800 dark:text-slate-100 leading-snug">{mod.module_name}</p>
-              <button
-                onClick={() => onToggleModule(mod.module_id)}
-                className={`relative mt-1 w-8 h-4 rounded-full transition-all flex-shrink-0 ${perms.enabled ? 'bg-blue-600 dark:bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700'}`}
-              >
-                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all ${perms.enabled ? 'left-[17px]' : 'left-0.5'}`} />
-              </button>
-            </div>
-          </div>
-        </td>
-
-        {/* Pages + permissions */}
-        <td className="px-3 py-3" colSpan={2}>
-          {perms.enabled ? (
-            <div>
-              <button
-                onClick={() => setExpanded(p => !p)}
-                className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-600 dark:text-indigo-400 mb-2 hover:underline"
-              >
-                {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                {expanded ? 'Collapse' : 'Expand'} ({mod.pages.length} sub-modules)
-              </button>
-              {expanded && (
-                <div className="space-y-2">
-                  {mod.pages.map(page => (
-                    <SubModuleRow
-                      key={page.pageid}
-                      page={page}
-                      perms={perms.pages[page.pageid] || {}}
-                      onPermChange={(perm) => onPermChange(mod.module_id, page.pageid, perm)}
-                      onSelectAll={() => onSelectAllPage(mod.module_id, page.pageid)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <span className="text-[12px] text-slate-400 dark:text-slate-500 italic">Module disabled</span>
-          )}
-        </td>
-
-        {/* Submit button */}
-        <td className="px-3 py-3 align-top w-28">
-          <button
-            onClick={() => onSubmit(mod.module_id)}
-            disabled={saving === mod.module_id || !perms.enabled}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold text-white
-              bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
-          >
-            {saving === mod.module_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            Submit
-          </button>
-        </td>
-      </tr>
-    </>
-  )
-}
-
-// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
 export default function RolesPermission() {
-  // ── Filter state ──────────────────────────────────────────────────────────
-  const [selectedRole,   setSelectedRole]   = useState('')
-  const [selectedStaff,  setSelectedStaff]  = useState('')
-  const [selectedModule, setSelectedModule] = useState('')
-
-  // ── Add new role panel ────────────────────────────────────────────────────
-  const [showAddRole,  setShowAddRole]  = useState(false)
-  const [newRoleName,  setNewRoleName]  = useState('')
-  const [newRoleCode,  setNewRoleCode]  = useState('')
-  const [roleSaving,   setRoleSaving]   = useState(false)
-
-  // ── Class selection ───────────────────────────────────────────────────────
-  const [allClasses,      setAllClasses]      = useState(false)
+  const { data, loading } = useMasterSettings()
+  const staffId = new URLSearchParams(window.location.search).get('f_id') || ''
+  const staffMode = Boolean(staffId)
+  const [roleId, setRoleId] = useState('')
+  const [moduleId, setModuleId] = useState('')
   const [selectedClasses, setSelectedClasses] = useState([])
+  const [selectedPages, setSelectedPages] = useState(new Set())
+  const [pageRows, setPageRows] = useState([])
+  const [moduleEnabled, setModuleEnabled] = useState(true)
+  const [mobileMode, setMobileMode] = useState(false)
+  const [mobilePages, setMobilePages] = useState([])
+  const [mobileSelected, setMobileSelected] = useState(new Set())
+  const [mobileType, setMobileType] = useState('Faculty')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  // ── Module permissions ────────────────────────────────────────────────────
-  const [perms, setPerms] = useState(() => buildInitialPerms(MODULES_DATA))
-  const [saving, setSaving] = useState(null)
+  const roles = data?.designations || []
+  const staff = data?.staff || []
+  const classes = data?.classes || []
+  const modules = useMemo(() => (data?.modules || []).filter(module => module.mapped === true), [data?.modules])
+  const pages = useMemo(() => {
+    const source = data?.pages || []
+    const names = new Map(source.map(page => [String(page.newPageId ?? page.pageId), page.displayName || page.pageName]))
+    const seen = new Set()
+    return source.filter(page => page.mapped === true).reduce((out, page) => {
+      const pageId = page.newPageId ?? page.pageId
+      const key = `${page.moduleId}:${pageId}`
+      if (seen.has(key)) return out
+      seen.add(key)
+      out.push({ ...page, pageId, parentName: names.get(String(page.parentId || '')) || 'Pages' })
+      return out
+    }, [])
+  }, [data?.pages])
+  const currentStaff = staff.find(item => String(item.facultyId) === String(staffId))
+  const currentModule = modules.find(item => String(item.moduleId) === String(moduleId))
 
-  // ── UI state ──────────────────────────────────────────────────────────────
-  const [errors,    setErrors]    = useState({})
-  const [toast,     setToast]     = useState(null)
-  const [mobileTab, setMobileTab] = useState('config') // 'config' | 'modules'
-  const { data, refresh } = useMasterSettings()
-  const availableRoles = data?.designations?.map(r => ({ id: String(r.id), name: r.displayName || r.name })) || ROLES
-  const availableStaff = data?.staff?.map(s => ({ id: String(s.facultyId), name: s.name })) || STAFF_LIST
-  const availableClasses = data?.classes?.map(c => c.className) || CLASSES
-  const availableModules = data?.modules ? data.modules.map(m => ({ module_id: String(m.moduleId), module_name: m.moduleName, status: m.mapped ? '1' : '0', pages: (data.pages || []).filter(p => String(p.moduleId) === String(m.moduleId)).map(p => ({ pageid: String(p.pageId), Page_name: p.displayName || p.pageName, module_id: String(m.moduleId) })) })) : MODULES_DATA
-  useEffect(() => {
-    if (data?.modules) setPerms(buildInitialPerms(availableModules))
-  }, [data?.modules])
-
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
-
-  // ── Role change handler ───────────────────────────────────────────────────
-  const handleRoleChange = (e) => {
-    setSelectedRole(e.target.value)
-    setSelectedStaff('')
-    setSelectedModule('')
-    setShowAddRole(false)
-    setErrors({})
-    // Reset classes & perms on role change
-    setSelectedClasses([])
-    setAllClasses(false)
-    setPerms(buildInitialPerms(availableModules))
-    if (e.target.value) {
-      apiFetch('/master-settings/permissions/' + e.target.value)
-        .then(rows => {
-          setPerms(prev => {
-            const next = buildInitialPerms(availableModules)
-            rows.forEach(r => {
-              const mod = String(r.moduleId)
-              const page = String(r.pageId)
-              if (next[mod]?.pages?.[page]) next[mod].pages[page] = { View: !!r.viewRole, Add: !!r.addRole, Edit: !!r.updateRole, Delete: !!r.deleteRole }
-            })
-            return next
-          })
-        })
-        .catch(() => {})
-    }
-  }
-
-  // ── Class checkbox logic ──────────────────────────────────────────────────
-  const handleAllClasses = () => {
-    if (allClasses) {
-      setAllClasses(false)
-      setSelectedClasses([])
-    } else {
-      setAllClasses(true)
-      setSelectedClasses([...availableClasses])
-    }
-  }
-
-  const handleClassToggle = (cls) => {
-    setSelectedClasses(prev => {
-      const next = prev.includes(cls) ? prev.filter(c => c !== cls) : [...prev, cls]
-      setAllClasses(next.length === availableClasses.length)
-      return next
-    })
-  }
-
-  // ── Add new role ──────────────────────────────────────────────────────────
-  const handleSaveRole = () => {
-    const err = {}
-    if (!newRoleName.trim()) err.roleName = 'Role name required'
-    if (!newRoleCode.trim()) err.roleCode = 'Code required'
-    if (Object.keys(err).length) { setErrors(err); return }
-    setRoleSaving(true)
-    apiFetch('/master-settings/designations', { method: 'POST', body: JSON.stringify({ designName: newRoleName, designCode: newRoleCode }) }).then(async () => { await refresh(); setNewRoleName(''); setNewRoleCode(''); setShowAddRole(false); setErrors({}); showToast('Role saved successfully!') }).catch(err => showToast(err.message, 'error')).finally(() => setRoleSaving(false))
-  }
-
-  // ── Permission handlers ───────────────────────────────────────────────────
-  const handleToggleModule = useCallback((moduleId) => {
-    setPerms(prev => ({
-      ...prev,
-      [moduleId]: { ...prev[moduleId], enabled: !prev[moduleId].enabled },
+  const modulePages = useMemo(() => {
+    const permissions = new Map(pageRows.map(row => [String(row.pageId), row]))
+    return pages.filter(page => String(page.moduleId) === String(moduleId)).map(page => ({
+      pageId: page.pageId,
+      pageName: page.displayName || page.pageName,
+      parentId: page.parentId,
+      parentName: page.parentName,
+      inherited: permissions.get(String(page.pageId))?.inherited === true,
     }))
-  }, [])
+  }, [pages, moduleId, pageRows])
+  const pageGroups = useMemo(() => groupPages(modulePages), [modulePages])
 
-  const handlePermChange = useCallback((moduleId, pageId, perm) => {
-    setPerms(prev => ({
-      ...prev,
-      [moduleId]: {
-        ...prev[moduleId],
-        pages: {
-          ...prev[moduleId].pages,
-          [pageId]: {
-            ...prev[moduleId].pages[pageId],
-            [perm]: !prev[moduleId].pages[pageId][perm],
-          },
-        },
-      },
-    }))
-  }, [])
+  const loadRole = async (id) => {
+    setSelectedPages(new Set()); setSelectedClasses([]); setMessage(''); setError(false)
+    if (!id) { setPageRows([]); return }
+    try {
+      const rows = await apiFetch(`/master-settings/permissions/${id}`)
+      setPageRows(rows || [])
+      setSelectedPages(new Set((rows || []).filter(row => row.assigned).map(row => String(row.pageId))))
+      const classRow = (rows || []).find(row => row.assigned && row.classIds)
+      setSelectedClasses(classRow?.classIds ? String(classRow.classIds).split(',').filter(Boolean) : [])
+    } catch (e) { setError(true); setMessage(e.message) }
+  }
+  const loadStaffModule = async (id) => {
+    setModuleId(id); setSelectedPages(new Set()); setPageRows([]); setMessage(''); setError(false)
+    if (!id) return
+    try {
+      const rows = await apiFetch(`/master-settings/permissions/staff/${staffId}?moduleId=${id}`)
+      setPageRows(rows || [])
+      setSelectedPages(new Set((rows || []).filter(row => row.assigned || row.inherited).map(row => String(row.pageId))))
+      setModuleEnabled((rows || []).some(row => row.assigned || row.inherited))
+    } catch (e) { setError(true); setMessage(e.message) }
+  }
+  useEffect(() => { if (!staffMode) loadRole(roleId) }, [roleId, staffMode])
+  useEffect(() => { if (staffMode && moduleId) loadStaffModule(moduleId) }, [staffMode])
 
-  const handleSelectAllPage = useCallback((moduleId, pageId) => {
-    setPerms(prev => {
-      const current = prev[moduleId].pages[pageId]
-      const allOn = PERMISSIONS.every(p => current[p])
-      const updated = {}
-      PERMISSIONS.forEach(p => { updated[p] = !allOn })
-      return {
-        ...prev,
-        [moduleId]: {
-          ...prev[moduleId],
-          pages: { ...prev[moduleId].pages, [pageId]: updated },
-        },
-      }
-    })
-  }, [])
+  const isSelected = id => selectedPages.has(String(id))
+  const togglePage = id => setSelectedPages(old => { const next = new Set(old); const key = String(id); next.has(key) ? next.delete(key) : next.add(key); return next })
+  const toggleGroup = (items, value) => setSelectedPages(old => { const next = new Set(old); items.forEach(item => value ? next.add(String(item.pageId)) : next.delete(String(item.pageId))); return next })
+  const toggleClass = id => setSelectedClasses(old => old.includes(String(id)) ? old.filter(item => item !== String(id)) : [...old, String(id)])
+  const allClasses = classes.length > 0 && selectedClasses.length === classes.length
+  const toggleAllClasses = () => setSelectedClasses(allClasses ? [] : classes.map(item => String(item.classId)))
 
-  const handleSubmitModule = useCallback((moduleId) => {
-    if (!selectedRole) { showToast('Please select a role first.', 'error'); return }
-    const mod = availableModules.find(m => m.module_id === moduleId)
-    const rows = (mod?.pages || []).map(page => { const p = perms[moduleId]?.pages?.[page.pageid] || {}; return { pageId: Number(page.pageid), moduleId: Number(moduleId), view: !!p.View, add: !!p.Add, update: !!p.Edit, delete: !!p.Delete, classIds: selectedClasses.join(',') } })
-    setSaving(moduleId)
-    apiFetch('/master-settings/permissions', { method: 'PUT', body: JSON.stringify({ designationId: Number(selectedRole), permissions: rows }) }).then(() => showToast((mod?.module_name || 'Module') + ' permissions saved!')).catch(err => showToast(err.message, 'error')).finally(() => setSaving(null))
-  }, [selectedRole, selectedClasses, perms, availableModules])
-
-  // ── Global submit ─────────────────────────────────────────────────────────
-  const handleGlobalSubmit = () => {
-    if (!selectedRole) { showToast('Please select a role first.', 'error'); return }
-    if (selectedClasses.length === 0) { showToast('Please select at least one class.', 'error'); return }
-    const rows = availableModules.flatMap(mod => (mod.pages || []).map(page => { const p = perms[mod.module_id]?.pages?.[page.pageid] || {}; return { pageId: Number(page.pageid), moduleId: Number(mod.module_id), view: !!p.View, add: !!p.Add, update: !!p.Edit, delete: !!p.Delete, classIds: selectedClasses.join(',') } }))
-    apiFetch('/master-settings/permissions', { method: 'PUT', body: JSON.stringify({ designationId: Number(selectedRole), permissions: rows }) }).then(() => showToast('All permissions submitted successfully!')).catch(err => showToast(err.message, 'error'))
+  const roleRows = () => modules.flatMap(mod => pages.filter(page => String(page.moduleId) === String(mod.moduleId)).map(page => ({ pageId: Number(page.pageId), moduleId: Number(mod.moduleId), view: selectedPages.has(String(page.pageId)), add: selectedPages.has(String(page.pageId)), update: selectedPages.has(String(page.pageId)), delete: selectedPages.has(String(page.pageId)), classIds: selectedClasses.join(',') })))
+  const saveRole = async () => {
+    if (!roleId) { setError(true); setMessage('Please Select Role First'); return }
+    setSaving(true); setError(false); setMessage('')
+    try { await apiFetch('/master-settings/permissions', { method: 'PUT', body: JSON.stringify({ designationId: Number(roleId), permissions: roleRows() }) }); setMessage('Roles Assigned') }
+    catch (e) { setError(true); setMessage(e.message) }
+    finally { setSaving(false) }
+  }
+  const saveStaff = async () => {
+    if (!moduleId) { setError(true); setMessage('Please Select Module First'); return }
+    setSaving(true); setError(false); setMessage('')
+    try { await apiFetch('/master-settings/permissions/staff', { method: 'PUT', body: JSON.stringify({ facultyId: Number(staffId), moduleId: Number(moduleId), pageIds: [...selectedPages].map(Number), classIds: '' }) }); await loadStaffModule(moduleId); setMessage('Roles Assigned') }
+    catch (e) { setError(true); setMessage(e.message) }
+    finally { setSaving(false) }
   }
 
-  // ── Filtered modules ──────────────────────────────────────────────────────
-  const filteredModules = useMemo(() =>
-    selectedModule
-      ? availableModules.filter(m => m.module_id === selectedModule)
-      : availableModules
-  , [selectedModule])
+  const loadMobile = async () => {
+    if (!roleId) { setError(true); setMessage('Please Select Role First'); return }
+    try { const rows = await apiFetch(`/master-settings/mobile-permissions/${roleId}`); setMobilePages(rows || []); setMobileType(rows?.[0]?.userType || 'Faculty'); setMobileSelected(new Set((rows || []).filter(row => row.assigned).map(row => String(row.pageId))) ) }
+    catch (e) { setError(true); setMessage(e.message) }
+  }
+  const saveMobile = async () => {
+    if (!roleId) { setError(true); setMessage('Please Select Role First'); return }
+    setSaving(true); setError(false); setMessage('')
+    try { await apiFetch('/master-settings/mobile-permissions', { method: 'PUT', body: JSON.stringify({ designationId: Number(roleId), pageIds: [...mobileSelected].map(Number), menuType: 'SideMenu' }) }); setMessage('Mobile App Pages Assigned') }
+    catch (e) { setError(true); setMessage(e.message) }
+    finally { setSaving(false) }
+  }
 
-  const enabledModulesCount = Object.values(perms).filter(p => p.enabled).length
-
-  return (
-    <div className="space-y-4 pb-10">
-
-      {/* ── Page Title ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-        <div>
-          <h1 className="text-[20px] font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-            <Shield className="w-5 h-5 text-blue-600 dark:text-indigo-400" />
-            Assign Roles
-          </h1>
-          <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
-            Configure role-based module &amp; page permissions for staff members.
-          </p>
-        </div>
-
-        {/* Stats badges */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 text-[12px] font-semibold text-blue-700 dark:text-blue-400">
-            <Layout className="w-3.5 h-3.5" />
-            {enabledModulesCount}/{availableModules.length} Modules Active
-          </span>
-          {selectedClasses.length > 0 && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-[12px] font-semibold text-emerald-700 dark:text-emerald-400">
-              <Building2 className="w-3.5 h-3.5" />
-              {selectedClasses.length} Classes
-            </span>
-          )}
-        </div>
+  return <div className="space-y-5 pb-8">
+    <div><h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Assign Roles</h1></div>
+    <Notice value={message} error={error} />
+    <section className="rounded bg-white p-5 shadow-sm dark:bg-slate-900">
+      <div className="mb-4 flex flex-wrap items-end gap-5">
+        {!staffMode && <label className="w-full max-w-sm text-sm font-semibold text-slate-700 dark:text-slate-200">Role<select className={`${input} mt-1 block w-full`} value={roleId} onChange={e => setRoleId(e.target.value)}><option value="">Select</option>{roles.map(role => <option key={role.id} value={role.id}>{role.name || role.displayName}</option>)}</select></label>}
+        {staffMode && <label className="w-full max-w-sm text-sm font-semibold text-slate-700 dark:text-slate-200">Staff<select className={`${input} mt-1 block w-full`} disabled value={staffId}><option value={staffId}>{currentStaff?.name || staffId}</option></select></label>}
+        {staffMode && <label className="w-full max-w-sm text-sm font-semibold text-slate-700 dark:text-slate-200">Module<select className={`${input} mt-1 block w-full`} value={moduleId} onChange={e => loadStaffModule(e.target.value)}><option value="">Select</option>{modules.map(mod => <option key={mod.moduleId} value={mod.moduleId}>{mod.moduleName}</option>)}</select></label>}
+        <fieldset className="text-sm font-semibold text-slate-700 dark:text-slate-200"><legend>Page Type</legend><label className="mr-4 mt-2 inline-flex items-center gap-2 font-normal"><input type="radio" checked={!mobileMode} onChange={() => setMobileMode(false)} /> ERP Pages</label><label className="inline-flex items-center gap-2 font-normal"><input type="radio" checked={mobileMode} onChange={() => { setMobileMode(true); loadMobile() }} /> Mobile App Pages</label></fieldset>
       </div>
+      {!staffMode && !mobileMode && roleId && <div><div className="mb-2 flex items-center justify-between text-sm font-semibold text-slate-700 dark:text-slate-200"><span>Select Class</span><label className="flex items-center gap-2 font-normal"><input type="checkbox" checked={allClasses} onChange={toggleAllClasses} /> All</label></div><div className="mb-5 grid gap-2 sm:grid-cols-4 lg:grid-cols-9">{classes.map(item => <label key={item.classId} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300"><input type="checkbox" checked={selectedClasses.includes(String(item.classId))} onChange={() => toggleClass(item.classId)} />{item.className}</label>)}</div></div>}
+    </section>
+    {!mobileMode && ((staffMode && moduleId) || (!staffMode && roleId)) && <section className="rounded bg-white p-5 shadow-sm dark:bg-slate-900"><div className="mb-4 flex items-center justify-between"><h2 className="font-semibold text-slate-800 dark:text-slate-100">Pages {currentModule?.moduleName ? `- ${currentModule.moduleName}` : ''}</h2>{staffMode && <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300"><input type="checkbox" checked={moduleEnabled} onChange={e => setModuleEnabled(e.target.checked)} /> Module</label>}</div>{loading && <p className="text-sm text-slate-500">Loading...</p>}{!loading && staffMode && <>{pageGroups.map(group => <PageGroup key={group.name} group={group} selected={selectedPages} disabled={!moduleEnabled} onToggle={togglePage} onSelectAll={toggleGroup} />)}<button className="mt-2 rounded bg-emerald-600 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={saving} onClick={saveStaff}>{saving ? 'Saving...' : 'Submit'}</button></>}{!loading && !staffMode && modules.map(mod => <RoleModule key={mod.moduleId} module={mod} pages={pages} selected={selectedPages} onToggle={togglePage} onSelectAll={toggleGroup} onSubmit={saveRole} saving={saving} />)}</section>}
+    {mobileMode && !staffMode && <section className="rounded bg-white p-5 shadow-sm dark:bg-slate-900"><h2 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">Assign Mobile App Pages <span className="text-xs text-slate-500">Type: {mobileType}</span></h2><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{mobilePages.map(page => <label key={page.pageId} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300"><input type="checkbox" checked={mobileSelected.has(String(page.pageId))} onChange={() => setMobileSelected(old => { const next = new Set(old); next.has(String(page.pageId)) ? next.delete(String(page.pageId)) : next.add(String(page.pageId)); return next })} />{page.pageName}</label>)}</div><button className="mt-5 rounded bg-emerald-600 px-5 py-2 text-sm font-semibold text-white" disabled={saving} onClick={saveMobile}>SUBMIT</button></section>}
+  </div>
+}
 
-      {/* ── Mobile Tab Navigation ──────────────────────────────────────────── */}
-      <div className="flex sm:hidden gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
-        {[
-          { key: 'config', label: 'Configuration', icon: Settings2 },
-          { key: 'modules', label: 'Permissions', icon: Shield },
-        ].map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setMobileTab(key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-semibold transition-all
-              ${mobileTab === key
-                ? 'bg-white dark:bg-[#1a1f35] text-blue-700 dark:text-indigo-400 shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
-          >
-            <Icon className="w-3.5 h-3.5" />{label}
-          </button>
-        ))}
-      </div>
+function pageGroupsFor(module, pages, selected, onToggle, onSelectAll) {
+  const list = pages.filter(page => String(page.moduleId) === String(module.moduleId)).map(page => ({ pageId: page.pageId, pageName: page.displayName || page.pageName, parentId: page.parentId, parentName: page.parentName }))
+  return <>{groupPages(list).map(group => <PageGroup key={group.key} group={group} selected={selected} onToggle={onToggle} onSelectAll={onSelectAll} />)}</>
+}
 
-      {/* ── Config Section (Role + Staff + Class) ─────────────────────────── */}
-      <div className={`${mobileTab !== 'config' ? 'hidden sm:block' : ''}`}>
-        <div className="rounded-2xl border border-slate-200 dark:border-[rgba(99,102,241,0.2)] bg-white dark:bg-[#1a1f35] shadow-sm overflow-hidden">
+function groupPages(pages) {
+  const groups = {}
+  pages.forEach(page => {
+    const key = String(page.parentId || 'root')
+    if (!groups[key]) groups[key] = { key, name: page.parentName || 'Pages', pages: [] }
+    groups[key].pages.push(page)
+  })
+  return Object.values(groups)
+}
 
-          {/* Card Header */}
-          <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 dark:border-[rgba(99,102,241,0.15)] bg-slate-50/70 dark:bg-white/[0.02]">
-            <span className="w-1 h-5 rounded-full bg-blue-500 flex-shrink-0" />
-            <Settings2 className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-            <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200 flex-1">Role Configuration</span>
-            <button
-              onClick={() => setShowAddRole(p => !p)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold
-                bg-blue-600 text-white hover:bg-blue-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 transition-all"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Role
-            </button>
-          </div>
-
-          <div className="p-5 space-y-5">
-
-            {/* Row 1: Role + Staff + Module */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Field label="Role" required error={errors.role}>
-                <NativeSelect
-                  value={selectedRole}
-                  onChange={handleRoleChange}
-                  placeholder="-- Select Role --"
-                  error={errors.role}
-                >
-                  {availableRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                </NativeSelect>
-              </Field>
-
-              {selectedRole && (
-                <>
-                  <Field label="Staff">
-                    <NativeSelect
-                      value={selectedStaff}
-                      onChange={e => setSelectedStaff(e.target.value)}
-                      placeholder="-- Select Staff --"
-                    >
-                      {availableStaff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </NativeSelect>
-                  </Field>
-
-                  <Field label="Module Filter">
-                    <NativeSelect
-                      value={selectedModule}
-                      onChange={e => setSelectedModule(e.target.value)}
-                      placeholder="-- All Modules --"
-                    >
-                      {availableModules.map(m => <option key={m.module_id} value={m.module_id}>{m.module_name}</option>)}
-                    </NativeSelect>
-                  </Field>
-                </>
-              )}
-            </div>
-
-            {/* Add New Role Panel */}
-            {showAddRole && (
-              <div className="rounded-xl border border-dashed border-blue-300 dark:border-indigo-500/40 bg-blue-50/40 dark:bg-indigo-500/[0.05] p-4">
-                <p className="text-[12px] font-bold text-blue-700 dark:text-indigo-400 uppercase tracking-wide mb-3 flex items-center gap-2">
-                  <Plus className="w-3.5 h-3.5" /> New Role
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                  <Field label="Role Name" required error={errors.roleName}>
-                    <input
-                      value={newRoleName}
-                      onChange={e => { setNewRoleName(e.target.value); setErrors(p => ({ ...p, roleName: undefined })) }}
-                      placeholder="e.g. Lab Assistant"
-                      className={`w-full px-3 py-2 text-[13px] rounded-lg border outline-none transition-all
-                        bg-white text-slate-800 focus:border-blue-400 focus:ring-2 focus:ring-blue-100
-                        dark:bg-[#1e2238] dark:text-slate-200 dark:focus:border-indigo-400
-                        ${errors.roleName ? 'border-rose-400' : 'border-slate-200 dark:border-[rgba(99,102,241,0.25)]'}`}
-                    />
-                  </Field>
-                  <Field label="Code" required error={errors.roleCode}>
-                    <input
-                      value={newRoleCode}
-                      onChange={e => { setNewRoleCode(e.target.value); setErrors(p => ({ ...p, roleCode: undefined })) }}
-                      placeholder="e.g. LAB"
-                      className={`w-full px-3 py-2 text-[13px] rounded-lg border outline-none transition-all
-                        bg-white text-slate-800 focus:border-blue-400 focus:ring-2 focus:ring-blue-100
-                        dark:bg-[#1e2238] dark:text-slate-200 dark:focus:border-indigo-400
-                        ${errors.roleCode ? 'border-rose-400' : 'border-slate-200 dark:border-[rgba(99,102,241,0.25)]'}`}
-                    />
-                  </Field>
-                  <div className="flex gap-2">
-                    <button onClick={handleSaveRole} disabled={roleSaving}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[13px] font-semibold text-white
-                        bg-emerald-600 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-70">
-                      {roleSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                      Save
-                    </button>
-                    <button onClick={() => { setShowAddRole(false); setErrors({}) }}
-                      className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Class Selection */}
-            {selectedRole && (
-              <div className="rounded-xl border border-slate-200 dark:border-[rgba(99,102,241,0.15)] overflow-hidden">
-                <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-slate-50/70 dark:bg-white/[0.02] border-b border-slate-100 dark:border-[rgba(99,102,241,0.1)]">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-blue-500 dark:text-indigo-400" />
-                    <span className="text-[13px] font-bold text-slate-700 dark:text-slate-200">Select Classes</span>
-                    <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 font-semibold">
-                      {selectedClasses.length}/{availableClasses.length}
-                    </span>
-                  </div>
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none" onClick={handleAllClasses}>
-                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all
-                      ${allClasses ? 'bg-blue-600 border-blue-600 dark:bg-indigo-500 dark:border-indigo-500' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1e2238]'}`}>
-                      {allClasses && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
-                    </div>
-                    <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-300">All</span>
-                  </label>
-                </div>
-
-                {/* Class grid */}
-                <div className="p-3 grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-2">
-                  {availableClasses.map(cls => {
-                    const checked = selectedClasses.includes(cls)
-                    return (
-                      <button
-                        key={cls}
-                        onClick={() => handleClassToggle(cls)}
-                        className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold transition-all text-center leading-tight border
-                          ${checked
-                            ? 'bg-blue-600 text-white border-blue-600 dark:bg-indigo-600 dark:border-indigo-600 shadow-sm'
-                            : 'bg-white dark:bg-[#1e2238] text-slate-600 dark:text-slate-400 border-slate-200 dark:border-[rgba(99,102,241,0.2)] hover:border-blue-300 dark:hover:border-indigo-500/50'
-                          }`}
-                      >
-                        {cls.replace('Class ', 'Cls ')}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Modules & Permissions Section ─────────────────────────────────── */}
-      {selectedRole && (
-        <div className={`${mobileTab !== 'modules' ? 'hidden sm:block' : ''}`}>
-          <div className="rounded-2xl border border-slate-200 dark:border-[rgba(99,102,241,0.2)] bg-white dark:bg-[#1a1f35] shadow-sm overflow-hidden">
-
-            {/* Card Header */}
-            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 dark:border-[rgba(99,102,241,0.15)] bg-slate-50/70 dark:bg-white/[0.02]">
-              <span className="w-1 h-5 rounded-full bg-blue-500 flex-shrink-0" />
-              <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-              <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200 flex-1">Module Permissions</span>
-              <span className="text-[13px] text-slate-400 dark:text-slate-500">
-                Role: <span className="font-semibold text-slate-700 dark:text-slate-300">
-                  {availableRoles.find(r => r.id === selectedRole)?.name}
-                </span>
-              </span>
-            </div>
-
-            {/* Info hint */}
-            <div className="flex items-center gap-2 px-5 py-2 border-b border-slate-100 dark:border-[rgba(99,102,241,0.07)] bg-blue-50/20 dark:bg-blue-500/[0.03]">
-              <Info className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-              <p className="text-[12px] text-blue-700 dark:text-blue-400">
-                Toggle module to enable/disable. Configure page-level permissions. Use "All" to grant full access per sub-module.
-              </p>
-            </div>
-
-            {/* ── DESKTOP TABLE ── */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-[rgba(99,102,241,0.1)] bg-slate-50/50 dark:bg-white/[0.02]">
-                    {['#', 'Module', 'Sub-Module & Permissions', '', 'Action'].map((h, i) => (
-                      <th key={i} className="px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredModules.map(mod => (
-                    <ModuleTableRow
-                      key={mod.module_id}
-                      mod={mod}
-                      perms={perms[mod.module_id]}
-                      onToggleModule={handleToggleModule}
-                      onPermChange={handlePermChange}
-                      onSelectAllPage={handleSelectAllPage}
-                      onSubmit={handleSubmitModule}
-                      saving={saving}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* ── MOBILE CARDS ── */}
-            <div className="md:hidden p-4 space-y-3">
-              {filteredModules.map(mod => (
-                <ModuleCard
-                  key={mod.module_id}
-                  mod={mod}
-                  perms={perms[mod.module_id]}
-                  onToggleModule={handleToggleModule}
-                  onPermChange={handlePermChange}
-                  onSelectAllPage={handleSelectAllPage}
-                  onSubmit={handleSubmitModule}
-                  saving={saving}
-                />
-              ))}
-            </div>
-
-            {/* Footer — Global Submit */}
-            <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-slate-100 dark:border-[rgba(99,102,241,0.15)] bg-slate-50/50 dark:bg-white/[0.015]">
-              <p className="text-[12px] text-slate-400 dark:text-slate-500">
-                <span className="font-semibold text-slate-700 dark:text-slate-300">{enabledModulesCount}</span> of{' '}
-                <span className="font-semibold text-slate-700 dark:text-slate-300">{availableModules.length}</span> modules enabled
-              </p>
-              <button
-                onClick={handleGlobalSubmit}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white
-                  bg-blue-600 hover:bg-blue-700 dark:bg-indigo-600 dark:hover:bg-indigo-700
-                  shadow-md shadow-blue-500/20 transition-all active:scale-95"
-              >
-                <CheckSquare className="w-4 h-4" />
-                Submit All Permissions
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Empty State ───────────────────────────────────────────────────── */}
-      {!selectedRole && (
-        <div className="flex flex-col items-center justify-center py-16 gap-4 text-slate-400 dark:text-slate-600">
-          <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-            <Shield className="w-7 h-7 opacity-50" />
-          </div>
-          <div className="text-center">
-            <p className="text-[14px] font-semibold text-slate-500 dark:text-slate-400">No role selected</p>
-            <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-1">
-              Select a <strong>Role</strong> above to configure module &amp; page permissions.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Toast */}
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
-  )
+function RoleModule({ module, pages, selected, onToggle, onSelectAll, onSubmit, saving }) {
+  const modulePages = pages.filter(page => String(page.moduleId) === String(module.moduleId))
+  const enabled = modulePages.some(page => selected.has(String(page.pageId)))
+  return <div className="mb-4 rounded border p-3 dark:border-slate-700"><div className="mb-3 flex items-center justify-between"><span className="font-semibold text-slate-800 dark:text-slate-100">{module.moduleName}</span><input type="checkbox" checked={enabled} onChange={e => onSelectAll(modulePages, e.target.checked)} /></div>{pageGroupsFor(module, pages, selected, onToggle, onSelectAll)}<button className="rounded bg-emerald-600 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={saving} onClick={onSubmit}>{saving ? 'Saving...' : 'Submit'}</button></div>
 }

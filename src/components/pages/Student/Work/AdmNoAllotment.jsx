@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useStudents, fetchStudentReport } from '../../../../hooks/useStudents'
+import { useStudents } from '../../../../hooks/useStudents'
 import { apiFetch } from '../../../../lib/api'
 import {
   AlertCircle, Search, CheckCircle2, Trash2, CreditCard,
@@ -300,7 +300,10 @@ export default function AdmNoAllotment() {
   }, [studentData, session])
   useEffect(() => {
     if (!session) return
-    fetchStudentReport('registration', { session, query: searchName || searchForm }).then(async rows => {
+    const params = new URLSearchParams({ session })
+    if (searchName) params.set('name', searchName)
+    if (searchForm) params.set('formNo', searchForm)
+    apiFetch('/students/admission-allotment?' + params.toString()).then(async rows => {
       const classIds = [...new Set(rows.map(row => row.classId).filter(value => value != null))]
       const optionEntries = await Promise.all(classIds.map(async classId => {
         const params = new URLSearchParams({ session, classId: String(classId) })

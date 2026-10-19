@@ -501,7 +501,7 @@ function FilterDrawer({ open, onClose, gridSession, setGridSession, sessions = [
 export default function RegistrationOpen() {
   const { data: studentData } = useStudents()
   const sessions = studentData?.sessions?.map(row => row.session).filter(Boolean) || []
-  const classes = studentData?.classes?.map(row => ({ id: row.classId ?? row.id, name: row.className ?? row.class_name })).filter(row => row.name) || []
+  const classes = studentData?.classes?.map(row => ({ id: row.classId ?? row.id, name: row.displayClassName ?? row.className ?? row.class_name })).filter(row => row.name) || []
   const [gridData,     setGridData]     = useState(INITIAL_GRID_DATA)
   useEffect(() => { apiFetch('/student-settings/registration-open').then(setGridData).catch(error => showToast(error.message || 'Unable to load registration settings', 'error')) }, [])
   const [showForm,     setShowForm]     = useState(false)
@@ -529,8 +529,14 @@ export default function RegistrationOpen() {
       const [y = '', m = ''] = ageStr.replace(/[YM]/g, '').split(' ').filter(Boolean)
       return { year: y.trim(), month: m.trim() }
     }
-    const minParts = ageToYM(row.minAge)
-    const maxParts = ageToYM(row.maxAge)
+    const minParts = {
+      year: row.minAgeYear ?? ageToYM(row.minAge).year,
+      month: row.minAgeMonth ?? ageToYM(row.minAge).month,
+    }
+    const maxParts = {
+      year: row.maxAgeYear ?? ageToYM(row.maxAge).year,
+      month: row.maxAgeMonth ?? ageToYM(row.maxAge).month,
+    }
 
     setForm({
       session: row.session,
@@ -555,7 +561,7 @@ export default function RegistrationOpen() {
     setFormLoading(true)
     try {
       const result = await apiFetch(editId ? '/student-settings/registration-open/' + editId : '/student-settings/registration-open', { method: editId ? 'PUT' : 'POST', body: JSON.stringify({ ...form, id: editId }) })
-      const next = await apiFetch('/student-settings/registration-open'); setGridData(next); handleCancel(); showToast(result.message || 'Registration settings saved.')
+      const next = await apiFetch('/student-settings/registration-open' + (gridSession ? '?session=' + encodeURIComponent(gridSession) : '')); setGridData(next); handleCancel(); showToast(result.message || 'Registration settings saved.')
     } catch (error) { showToast(error.message || 'Registration settings save failed', 'error') } finally { setFormLoading(false) }
   }, [editId, form])
 
@@ -572,10 +578,10 @@ export default function RegistrationOpen() {
     if (search) {
       const q = search.toLowerCase()
       data = data.filter(r =>
-        r.class_name.toLowerCase().includes(q) ||
-        r.session.toLowerCase().includes(q) ||
+        String(r.class_name || '').toLowerCase().includes(q) ||
+        String(r.session || '').toLowerCase().includes(q) ||
         (r.studentType || '').toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q)
+        String(r.status || '').toLowerCase().includes(q)
       )
     }
     return data

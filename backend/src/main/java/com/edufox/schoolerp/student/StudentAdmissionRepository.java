@@ -20,6 +20,7 @@ public class StudentAdmissionRepository {
             registration = jdbc.queryForMap("""
                 SELECT TOP 1 form_no, class_id, session, Registration_date, stutype, quota
                 FROM student_reg WHERE uid=? AND school_id=?
+                ORDER BY row_id DESC
                 """, uid, schoolId);
         } catch (EmptyResultDataAccessException ex) {
             throw new IllegalArgumentException("Registration record not found");
@@ -27,11 +28,22 @@ public class StudentAdmissionRepository {
 
         String admissionNo = text(request.admissionNo());
         if (admissionNo.isBlank()) throw new IllegalArgumentException("Admission number is required");
-        Integer classId = findClassId(schoolId, request.className());
+        Integer duplicate = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM student_other_info WHERE school_id=? AND Registration_NO=? AND uid<>?",
+            Integer.class, schoolId, admissionNo, uid);
+        if (duplicate != null && duplicate > 0) throw new IllegalArgumentException("Admission number already exists");
+
+        Integer classId = request.sectionId() == null ? null : jdbc.query(
+            "SELECT TOP 1 class_id FROM TB_Class WHERE school_id=? AND sec_id=?",
+            rs -> rs.next() ? rs.getInt(1) : null, schoolId, request.sectionId());
+        if (classId == null) classId = findClassId(schoolId, request.className());
         if (classId == null) classId = (Integer) registration.get("class_id");
         Integer streamId = resolveStreamId(schoolId, request.session(), request.stream());
         Integer stuId = nextStudentId(schoolId);
         String status = text(request.status()).isBlank() ? "Registered" : text(request.status());
+        String session = text(request.session()).isBlank() ? String.valueOf(registration.get("session")) : text(request.session());
+        String feeBookNo = text(request.feeBookNo());
+        if (feeBookNo.isBlank()) feeBookNo = nextFeeBookNo(schoolId, session);
 
         Integer existing = jdbc.query(
             "SELECT TOP 1 stu_id FROM TB_StudentMaster WHERE uid=? AND school_id=?",
@@ -48,8 +60,8 @@ public class StudentAdmissionRepository {
                 uid, stuId, admissionNo, classId, request.sectionId(),
                 text(request.admissionDate()), String.valueOf(registration.get("Registration_date")),
                 status, String.valueOf(registration.get("stutype")), schoolId,
-                text(request.session()).isBlank() ? String.valueOf(registration.get("session")) : text(request.session()),
-                text(request.rollNo()), text(request.feeBookNo()),
+                session,
+                text(request.rollNo()), feeBookNo,
                 streamId == null ? text(request.stream()) : String.valueOf(streamId), text(request.optionalSubject())
             );
         } else {
@@ -60,20 +72,34 @@ public class StudentAdmissionRepository {
                 WHERE uid=? AND school_id=?
                 """,
                 admissionNo, classId, request.sectionId(), text(request.admissionDate()), status,
-                text(request.session()).isBlank() ? String.valueOf(registration.get("session")) : text(request.session()),
-                text(request.rollNo()), text(request.feeBookNo()),
+                session,
+                text(request.rollNo()), feeBookNo,
                 streamId == null ? text(request.stream()) : String.valueOf(streamId), text(request.optionalSubject()), uid, schoolId
             );
         }
 
-        jdbc.update("UPDATE student_other_info SET Registration_NO=? WHERE uid=? AND school_id=?", admissionNo, uid, schoolId);
-        jdbc.update("UPDATE student_reg SET status='Admitted' WHERE uid=? AND school_id=?", uid, schoolId);
+        jdbc.update("""
+            UPDATE student_other_info
+               SET Registration_NO=?, FeeBookNo=?, att_date=CONVERT(varchar(50),CAST(GETDATE() AS date),100),
+                   login_status=1, Student_id=?, Password=?
+             WHERE uid=? AND school_id=?
+            """, admissionNo, feeBookNo, admissionNo, admissionNo, uid, schoolId);
+        jdbc.update("UPDATE student_reg SET status='Registered', Admission_date=? WHERE uid=? AND school_id=? AND session=?",
+            text(request.admissionDate()), uid, schoolId, session);
         return new StudentAdmissionDtos.AdmissionResponse(uid, stuId, admissionNo, "Admission allotted");
     }
 
     private Integer nextStudentId(String schoolId) {
         Integer value = jdbc.queryForObject("SELECT ISNULL(MAX(stu_id),0)+1 FROM TB_StudentMaster WHERE school_id=?", Integer.class, schoolId);
         return value == null ? 1 : value;
+    }
+
+    private String nextFeeBookNo(String schoolId, String session) {
+        Integer value = jdbc.queryForObject("""
+            SELECT ISNULL(MAX(TRY_CONVERT(int, NULLIF(LTRIM(RTRIM(FeeBookNo)),''))),0)+1
+            FROM TB_StudentMaster WHERE school_id=? AND session=?
+            """, Integer.class, schoolId, session);
+        return String.valueOf(value == null ? 1 : value);
     }
 
     private Integer findClassId(String schoolId, String className) {

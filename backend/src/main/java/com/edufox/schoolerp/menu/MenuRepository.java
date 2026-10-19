@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
 
 @Repository
 @RequiredArgsConstructor
@@ -23,6 +24,17 @@ public class MenuRepository {
         List<String> values = jdbc.query("SELECT TOP (1) session FROM tb_session WHERE school_id=? AND status='Default'",
             (rs, row) -> rs.getString(1), schoolId);
         return values.isEmpty() ? "" : values.get(0);
+    }
+
+    public Map<String, Object> findSchoolProfile(String schoolId) {
+        List<Map<String, Object>> values = jdbc.queryForList("""
+            SELECT TOP (1)
+                   COALESCE(tc_add1,'') AS address1, COALESCE(tc_add2,'') AS address2,
+                   COALESCE(tc_add3,'') AS address3, COALESCE(tc_add4,'') AS address4,
+                   COALESCE(phone,mobile,'') AS phone, COALESCE(logo_path,'') AS logo
+            FROM schoolmaster WHERE school_id=? AND status=1
+            """, schoolId);
+        return values.isEmpty() ? Map.of() : values.get(0);
     }
 
     public List<ModuleRow> findStaffModules(String schoolId, String staffUid) {

@@ -19,12 +19,13 @@ import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useSessionsClasses } from '../../../../lib/useStudentReport'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
 import { studentApi as api } from '../../../../lib/studentApi'
+import { downloadExcel } from '../../../../lib/exportExcel'
 import {
   Search, Filter, RefreshCw, Eye, Save,
   AlertCircle, X, Check, Loader2, ChevronDown,
   KeyRound, Users, User, Lock, Pencil,
   FileText, SlidersHorizontal, ChevronRight,
-  ShieldCheck, Info, Hash
+  ShieldCheck, Info, Hash, FileSpreadsheet
 } from 'lucide-react'
 
 // LIVE DATA (server-driven; sessions/sections from /master, rows from
@@ -474,7 +475,7 @@ export default function StudentIDPassword() {
 
   const classes = useMemo(
     () => sections.map((s) => ({
-      id: s.secId,
+      id: s.secId ?? s.sectionId,
       label: `${s.className || ''} (${s.section || ''})`,
     })),
     [sections]
@@ -503,7 +504,7 @@ export default function StudentIDPassword() {
   const handleShow = useCallback(() => {
     const err = {}; if (!session) err.session = 'Select a session'; if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch('')
-    fetchStudentReport('id-password', { session }).then(data => { const result = (cls ? data.filter(r => r.className === cls || r.class_name === cls) : data).map((r, i) => ({ ...r, _idx: i + 1, _editing: false, student_id: r.studentId, student_name: r.name, adm_no: r.registrationNo })); setRows(result); setSnapshots({}); setLoading(false) }).catch(err => { showToast(err.message || 'Request failed', 'error'); setLoading(false) })
+    fetchStudentReport('id-password', { session, sectionId: cls || undefined }).then(data => { const result = data.map((r, i) => ({ ...r, _idx: i + 1, _editing: false, student_id: r.studentId, student_name: r.name, adm_no: r.registrationNo, adm: r.registrationNo, cls: [r.className, r.sectionName].filter(Boolean).join(' (') + (r.sectionName ? ')' : '') })); setRows(result); setSnapshots({}); setLoading(false) }).catch(err => { showToast(err.message || 'Request failed', 'error'); setLoading(false) })
   }, [session, cls])
 
   const handleReset = () => {
@@ -572,6 +573,21 @@ export default function StudentIDPassword() {
     )
   }, [rows, search])
 
+  const handleExcel = () => {
+    if (!filtered.length) { showToast('No records to export.', 'error'); return }
+    downloadExcel(`StudentIDPassword_${session}`, filtered, [
+      { key: 'adm', label: 'Adm No' },
+      { key: 'name', label: 'Name' },
+      { key: 'cls', label: 'Class / Section' },
+      { key: 'studentId', label: 'Student ID' },
+      { key: 'studentPwd', label: 'Student Password' },
+      { key: 'fatherName', label: 'Parent Name' },
+      { key: 'parentId', label: 'Parent ID' },
+      { key: 'parentPwd', label: 'Parent Password' },
+    ])
+    showToast(`${filtered.length} records exported to Excel.`)
+  }
+
   const hasResults = rows.length > 0
   const editingCount = rows.filter(r => r._editing).length
 
@@ -589,6 +605,12 @@ export default function StudentIDPassword() {
             View and manage student &amp; parent login credentials by session and class.
           </p>
         </div>
+        {hasResults && (
+          <button type="button" onClick={handleExcel}
+            className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-500/20 transition-all active:scale-95">
+            <FileSpreadsheet className="w-4 h-4" /> Excel
+          </button>
+        )}
       </div>
 
       {/* ── DESKTOP Filter Card ─────────────────────────────────────────────── */}

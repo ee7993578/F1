@@ -13,12 +13,13 @@ public class ClassRepresentativeRepository {
 
     public Map<String,Object> list(String schoolId,String session) {
         List<Map<String,Object>> classes=jdbc.queryForList("""
-          SELECT c.id AS classId,c.class_name AS className,cr.f_id AS representativeId,
-                 LTRIM(RTRIM(COALESCE(f.First_name,'')+' '+COALESCE(f.Mid_name,'')+' '+COALESCE(f.Last_name,''))) AS representativeName
-          FROM class_name c
-          LEFT JOIN class_Representative cr ON cr.class_id=c.id AND cr.school_id=c.school_id AND cr.session=?
+          SELECT c.class_id AS classId,cn.class_name AS className,cr.f_id AS representativeId,
+                 UPPER(REPLACE(LTRIM(RTRIM(COALESCE(f.First_name,'')+' '+COALESCE(f.Mid_name,'')+' '+COALESCE(f.Last_name,''))),'  ',' ')) AS representativeName
+          FROM (SELECT DISTINCT class_id,school_id FROM tb_class) c
+          LEFT JOIN class_name cn ON cn.id=c.class_id AND cn.school_id=c.school_id
+          LEFT JOIN class_Representative cr ON cr.class_id=c.class_id AND cr.school_id=c.school_id AND cr.session=?
           LEFT JOIN tb_facultymaster f ON f.f_id=cr.f_id AND f.school_id=c.school_id
-          WHERE c.school_id=? ORDER BY c.id
+          WHERE c.school_id=? ORDER BY c.class_id
           """,session,schoolId);
         List<Map<String,Object>> faculty=jdbc.queryForList("""
           SELECT DISTINCT f.f_id AS id,
@@ -36,9 +37,12 @@ public class ClassRepresentativeRepository {
         String session=request.session()==null?"":request.session().trim();
         if(session.isBlank()) throw new IllegalArgumentException("Session is required");
         if(request.assignments()!=null) for(ClassRepresentativeDtos.Assignment a:request.assignments()) {
-            if(a.classId()==null || a.facultyId()==null) continue;
+            if(a.classId()==null) continue;
             jdbc.update("DELETE FROM class_Representative WHERE class_id=? AND session=? AND school_id=?",a.classId(),session,schoolId);
-            jdbc.update("INSERT INTO class_Representative(class_id,f_id,session,school_id,staff_u_id) VALUES(?,?,?,?,?)",a.classId(),a.facultyId(),session,schoolId,staffUid);
+            if (a.facultyId()!=null) {
+                String facultyStaffUid = jdbc.queryForObject("SELECT TOP 1 staff_u_id FROM tb_facultymaster WHERE school_id=? AND f_id=?", String.class, schoolId, a.facultyId());
+                jdbc.update("INSERT INTO class_Representative(class_id,f_id,session,school_id,staff_u_id) VALUES(?,?,?,?,?)",a.classId(),a.facultyId(),session,schoolId,facultyStaffUid);
+            }
         }
         return Map.of("message","Class representatives saved","session",session);
     }

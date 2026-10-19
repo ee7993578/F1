@@ -28,4 +28,12 @@ public class StudentMutationController {
         Claims claims = (Claims) authentication.getDetails();
         return service.delete(String.valueOf(claims.get("schoolId")), uid);
     }
+
+    @PostMapping("/withdraw")
+    public StudentMutationDtos.MutationResponse updateWithdrawnReason(
+            @RequestBody StudentMutationDtos.WithdrawReasonRequest request,
+            Authentication authentication) {
+        Claims claims = (Claims) authentication.getDetails();
+        return service.updateWithdrawnReason(String.valueOf(claims.get("schoolId")), request);
+    }
 }

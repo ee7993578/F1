@@ -69,7 +69,9 @@ public class StudentService {
     public List<Map<String, Object>> report(String schoolId, String type, String query,
                                             Integer classId, Integer sectionId, String status,
                                             String session, Integer month, String studentType,
-                                            String fromDate, String toDate) {
-        return repository.report(schoolId, type, query, classId, sectionId, status, session, month, studentType, fromDate, toDate);
+                                            String fromDate, String toDate, Integer fromDay, Integer fromMonth,
+                                            Integer toDay, Integer toMonth) {
+        return repository.report(schoolId, type, query, classId, sectionId, status, session, month, studentType,
+            fromDate, toDate, fromDay, fromMonth, toDay, toMonth);
     }
 }

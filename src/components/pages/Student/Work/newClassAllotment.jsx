@@ -312,8 +312,8 @@ export default function NewClassAllotment() {
 
   useEffect(() => {
     if (!currentSession || !srcClass) { setPendingStudents([]); return }
-    apiFetch(`/students/reports/registration?session=${encodeURIComponent(currentSession)}&classId=${encodeURIComponent(srcClass)}`)
-      .then(rows => setPendingStudents((rows || []).filter(row => !row.sectionId).map(row => ({ ...row, id: row.uid || row.studentId, name: row.name, adm: row.registrationNo || '', roll: row.rollNo || '' }))))
+    apiFetch(`/students/class-allotment/students?session=${encodeURIComponent(currentSession)}&classId=${encodeURIComponent(srcClass)}`)
+      .then(rows => setPendingStudents((rows || []).map(row => ({ ...row, id: row.uid || row.studentId, name: row.name, adm: row.registrationNo || '', roll: row.rollNo || '' }))))
       .catch(() => setPendingStudents([]))
   }, [currentSession, srcClass])
 

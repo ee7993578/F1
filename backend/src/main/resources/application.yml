@@ -1,6 +1,8 @@
 server:
   port: ${SERVER_PORT:8080}
 spring:
+  profiles:
+    default: local-sqlserver
   application:
     name: school-erp-backend
   datasource:

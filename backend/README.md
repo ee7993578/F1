@@ -4,7 +4,11 @@ Spring Boot 3.4 / Java 21 backend for the React ERP.
 
 ## Configuration
 
-Set DB_URL, DB_USERNAME, DB_PASSWORD, DB_DRIVER, JWT_SECRET (at least 32 random characters), AUTH_DATABASE_READ_ONLY=true. Use SPRING_PROFILES_ACTIVE=sqlserver-readonly for the existing legacy SQL Server database.
+Current development/test target: **SQL Server localhost, database dpsbsr_edufox_net, Windows Integrated Authentication**. Do not use the old remote beta database or its Web.config credentials.
+
+Run `powershell -ExecutionPolicy Bypass -File .\start-local.ps1` from this directory. This builds/tests the backend, verifies Microsoft's native authentication DLL, and starts port 8080 with read/insert/update/delete enabled. Keep the terminal open; it preserves the Windows logon context used by native authentication and displays the backend logs. Use `-SkipBuild` only when the JAR is up to date, or `-Offline` to build with already-cached Maven dependencies.
+
+The default profile is `local-sqlserver`. The launcher pins the local datasource and write settings even if old beta environment variables exist. It uses `JWT_SECRET` when supplied; otherwise a random process-local key is generated and users must log in again after restarting. OTP delivery is disabled for this local test run; existing authentication/authorization checks still apply.
 
 Java repositories use parameterized SQL against the existing tables and do not call old stored procedures. Student writes are scoped by the signed schoolId claim and run in database transactions.
 

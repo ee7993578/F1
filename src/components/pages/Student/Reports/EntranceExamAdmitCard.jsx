@@ -19,6 +19,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { fetchStudentReport } from '../../../../hooks/useStudents'
 import { studentApi as api } from '../../../../lib/studentApi'
 import { useSchoolInfo } from '../../../../lib/useSchoolInfo'
+import { downloadExcel } from '../../../../lib/exportExcel'
 import {
   Filter, RefreshCw, Eye, AlertCircle, X, Check,
   Loader2, ChevronDown, ChevronRight, Users,
@@ -27,7 +28,7 @@ import {
   Printer, FileDown, UserCircle, Calendar,
   Hash, ClipboardCheck, CheckSquare, Square,
   BadgeCheck, Clock, School, ChevronLeft,
-  ChevronUp, ExternalLink
+  ChevronUp, ExternalLink, FileSpreadsheet
 } from 'lucide-react'
 
 const STUDENT_TYPES = [
@@ -450,7 +451,7 @@ function AdmitCardModal({ student, onClose, onPrint, schoolInfo }) {
 }
 
 // ─── FILTER DRAWER (mobile) ───────────────────────────────────────────────────
-function FilterDrawer({ open, onClose, filters, setFilter, onDownload, loading, errors }) {
+function FilterDrawer({ open, onClose, filters, setFilter, onDownload, loading, errors, sessions, classes }) {
   if (!open) return null
   return (
     <>
@@ -676,8 +677,24 @@ export default function EntranceExamAdmitCard() {
   const handleDownload = useCallback(() => {
     const err = {}; if (!filters.session) err.session = 'Please select a session'; if (!filters.cls) err.cls = 'Please select a class'; if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch(''); setSelected(new Set()); setPage(1)
-    fetchStudentReport('student-list', { session: filters.session }).then(data => { const result = data.filter(r => !filters.cls || r.className === filters.cls || r.class_name === filters.cls); setRows(result); setShownMeta({ ...filters }); setShown(true); showToast(result.length + ' admit card record(s) loaded.') }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
-  }, [filters])
+    const selectedClassId = classes.find(c => c.className === filters.cls)?.id
+    fetchStudentReport('entrance-admit-card', { session: filters.session, classId: selectedClassId, studentType: filters.studentType }).then(data => {
+      const result = data.map((r, i) => ({
+        ...r,
+        id: r.studentId || r.id || i,
+        admit_no: r.registrationNo || r.formNo || r.admitNo || '',
+        roll_no: r.rollNo || r.roll || '',
+        name: r.name || [r.firstName, r.middleName, r.lastName].filter(Boolean).join(' '),
+        father: r.fatherName || r.father || '',
+        class_name: r.className || r.class_name || '',
+        student_type: r.studentType || '',
+        exam_date: r.examDate || '',
+        exam_time: r.examTime || '',
+        exam_center: r.entryGate || '',
+      }))
+      setRows(result); setShownMeta({ ...filters }); setShown(true); showToast(result.length + ' admit card record(s) loaded.')
+    }).catch(err => showToast(err.message || 'Request failed', 'error')).finally(() => setLoading(false))
+  }, [filters, classes])
 
   const handleReset = () => {
     setFilters({ session: '', cls: '', studentType: '' })
@@ -711,6 +728,19 @@ export default function EntranceExamAdmitCard() {
   }
 
   const handlePrintOne = (students) => triggerPrint(Array.isArray(students) ? students : [students], schoolInfo)
+
+  const handleExcel = () => {
+    if (!filtered.length) { showToast('Load cards first.', 'error'); return }
+    downloadExcel(`EntranceExamAdmitCard_${filters.session}`, filtered, [
+      { key: 'admit_no', label: 'Admit No' },
+      { key: 'name', label: 'Student Name' },
+      { key: 'father', label: 'Father Name' },
+      { key: 'className', label: 'Class' },
+      { key: 'sectionName', label: 'Section' },
+      { key: 'roll_no', label: 'Roll No' },
+    ])
+    showToast(`${filtered.length} admit cards exported to Excel.`)
+  }
 
   // ── Filter + paginate ─────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -767,6 +797,10 @@ export default function EntranceExamAdmitCard() {
         </div>
         {hasResults && (
           <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+            <button type="button" onClick={handleExcel}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+              <FileSpreadsheet className="w-4 h-4" /> Excel
+            </button>
             {counts.selected > 0 && (
               <button type="button" onClick={handlePrintSelected}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold
@@ -868,6 +902,8 @@ export default function EntranceExamAdmitCard() {
         onClose={() => setFilterOpen(false)}
         filters={filters}
         setFilter={setFilter}
+        sessions={sessions}
+        classes={classes}
         onDownload={handleDownload}
         loading={loading}
         errors={errors}

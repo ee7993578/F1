@@ -362,7 +362,7 @@ function MobileCard({ row, idx }) {
 }
 
 // ─── MOBILE FILTER DRAWER ─────────────────────────────────────────────────────
-function FilterDrawer({ open, onClose, session, setSession, onShow, onExcel, loading, exporting, error }) {
+function FilterDrawer({ open, onClose, session, setSession, sessions, onShow, onExcel, loading, exporting, error }) {
   if (!open) return null
   return (
     <>
@@ -704,6 +704,7 @@ export default function AdmittedStudentReport() {
         onClose={() => setFilterOpen(false)}
         session={session}
         setSession={setSession}
+        sessions={sessions}
         onShow={handleShow}
         onExcel={handleExcel}
         loading={loading}

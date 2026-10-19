@@ -51,6 +51,15 @@ const REG_STATUS_OPTIONS = [
   { value: 'Not Select', label: 'Not Select'  },
 ]
 
+const MONTHS = [
+  { value: '1', label: 'January' }, { value: '2', label: 'February' },
+  { value: '3', label: 'March' }, { value: '4', label: 'April' },
+  { value: '5', label: 'May' }, { value: '6', label: 'June' },
+  { value: '7', label: 'July' }, { value: '8', label: 'August' },
+  { value: '9', label: 'September' }, { value: '10', label: 'October' },
+  { value: '11', label: 'November' }, { value: '12', label: 'December' },
+]
+
 // All toggleable columns
 const ALL_COLUMNS = [
   { key: 'registrationNO',  label: 'Reg No'           },
@@ -314,7 +323,7 @@ function ColumnToggle({ visible, setVisible }) {
 
 // ─── MOBILE FILTER DRAWER ─────────────────────────────────────────────────────
 
-function MobileFilterDrawer({ open, onClose, filters, setFilters, onShow, loading, errors }) {
+function MobileFilterDrawer({ open, onClose, filters, setFilters, sessions, classNames, onShow, loading, errors }) {
   if (!open) return null
   const set = (k, v) => setFilters(p => ({ ...p, [k]: v }))
 
@@ -681,7 +690,13 @@ export default function OnlineRegistrationReport() {
   const handleShow = useCallback(() => {
     const err = {}; if (!filters.session) err.session = 'Please select a session'; if (Object.keys(err).length) { setErrors(err); return }
     setErrors({}); setLoading(true); setSearch('')
-    fetchStudentReport('registration', { session: filters.session }).then(data => {
+    fetchStudentReport('online-registration', {
+      session: filters.session,
+      classId: classIdOf(filters.class),
+      month: filters.month ? Number(filters.month) : '',
+      studentType: filters.studentType,
+      status: filters.appStatus,
+    }).then(data => {
       const normalized = data.map(normalizeOnlineRegistration)
       const month = filters.month ? Number(filters.month) : 0
       const result = normalized.filter(row => {
@@ -900,6 +915,7 @@ export default function OnlineRegistrationReport() {
       <MobileFilterDrawer
         open={filterOpen} onClose={() => setFilterOpen(false)}
         filters={filters} setFilters={setFilters}
+        sessions={sessions} classNames={classNames}
         onShow={handleShow} loading={loading} errors={errors}
       />
 
