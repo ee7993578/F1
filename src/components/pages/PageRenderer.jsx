@@ -255,6 +255,7 @@ import DefineIndicatorGradePrimary from './ExamMaster/Work/DefineIndicatorGrade'
 import DefineLearnerProfileIndicator from './ExamMaster/Work/DefineLearnerProfileIndicator'
 import DefineMarksNew from './ExamMaster/Work/DefineMarks'
 import DefineMarksPrePrimary from './ExamMaster/Work/DefineMarksPrePrimary'
+import PreprimaryMarksMapping from './ExamMaster/Work/PreprimaryMarksMapping'
 import DefineReportcardCategoryRemark from './ExamMaster/Work/DefineReportcardCategoryRemark'
 import DefineStudentRemark from './ExamMaster/Work/DefineStudentRemark'
 import GreenSheet from './ExamMaster/Work/GreenSheet'
@@ -262,20 +263,7 @@ import StuHealthStatus from './ExamMaster/Work/StuHealthStatus'
 import UploadMarks from './ExamMaster/Work/UploadMarks'
 
 
-import Define_ClassSubject from './ExamMaster/Setup/Define_ClassSubject'
-import DefineAttrib from './ExamMaster/Setup/DefineAttrib'
-import DefineCategory from './ExamMaster/Setup/DefineCategory'
-import DefineHeader from './ExamMaster/Setup/DefineHeader'
-import DefineMaxMin from './ExamMaster/Setup/DefineMaxMin'
-import DefineMaxMinExam from './ExamMaster/Setup/DefineMaxMinExam'
-import DefinePrSubject from './ExamMaster/Setup/DefinePrSubject'
-import DefineSubSubject from './ExamMaster/Setup/DefineSubSubject'
-import DefineWeightage from './ExamMaster/Setup/DefineWeightage'
-import Indicator from './ExamMaster/Setup/Indicator'
-import IndicatorCategory from './ExamMaster/Setup/IndicatorCategory'
-import LearnerProfileAttributeValue from './ExamMaster/Setup/LearnerProfileAttributeValue'
-import LockUnlockStudent from './ExamMaster/Setup/LockUnlockStudent'
-import SubjectMaster from './ExamMaster/Setup/SubjectMaster'
+import { Define_ClassSubject, DefineAttrib, DefineCategory, DefineHeader, DefineMaxMin, DefineMaxMinExam, DefinePrSubject, DefineSubSubject, DefineWeightage, Indicator, IndicatorCategory, LearnerProfileAttributeValue, LockUnlockStudent, SubjectMaster, StudentChartLock, LockExam } from './ExamMaster/Setup/ExamSetupExact'
 
 
 import CumulativeSheet from './ExamMaster/Report/CumulativeSheet'
@@ -305,6 +293,7 @@ import GreenSheetSubjectWise from './ExamMaster/Report/GreenSheetSubjectWise'
 import MarksListBlank from './ExamMaster/Report/MarksListBlank'
 import MarksListJunior from './ExamMaster/Report/MarksListJunior'
 import Report_ExamResultDiscussion from './ExamMaster/Report/Report_ExamResultDiscussion'
+import ExamReportExact from './ExamMaster/Report/ExamReportExact'
 
 import DeleteMarks from './ExamMaster/Update/DeleteMarks'
 
@@ -614,6 +603,7 @@ if (pageId === 'DefineIndicatorGradePrimary') return <DefineIndicatorGradePrimar
 if (pageId === 'DefineLearnerProfileIndicator') return <DefineLearnerProfileIndicator />
 if (pageId === 'DefineMarksNew') return <DefineMarksNew />
 if (pageId === 'DefineMarksPrePrimary') return <DefineMarksPrePrimary />
+if (pageId === 'PreprimaryMarksMapping') return <PreprimaryMarksMapping />
 if (pageId === 'DefineReportcardCategoryRemark') return <DefineReportcardCategoryRemark />
 if (pageId === 'DefineStudentRemark') return <DefineStudentRemark />
 if (pageId === 'GreenSheet') return <GreenSheet />
@@ -634,9 +624,11 @@ if (pageId === 'IndicatorCategory') return <IndicatorCategory />
 if (pageId === 'LearnerProfileAttributeValue') return <LearnerProfileAttributeValue />
 if (pageId === 'LockUnlockStudent') return <LockUnlockStudent />
 if (pageId === 'SubjectMaster') return <SubjectMaster />
+if (pageId === 'StudentChartLock') return <StudentChartLock />
+if (pageId === 'LockExam') return <LockExam />
 
 
-if (pageId === 'CumulativeSheet') return <CumulativeSheet />
+if (['CumulativeSheet','GetClassSubjects','MarksLogReport','MarksStatusGraph','MarkStatusReport','OverallExaminationReport','ReportCard','ReportCardExamwise','StudentAcademicPerformance','SubjectReport','ToppersReport','CBSE_AISSE_Result','CBSE_AISSE_Result_MainSubject','CBSE_AnnualReport','Class_overall_marks','ClasswiseStudentPercentage','ExamComparativeSheet','ExamwiseGreensheet','ExpectedBoardAverageReport','ExpectedSchoolAverageReport','FailureStudentReport','GreenSheetNew','GreenSheetPrimary','GreenSheetSubjectWise','MarksListBlank','MarksListJunior','Report_ExamResultDiscussion'].includes(pageId)) return <ExamReportExact pageId={pageId} />
 if (pageId === 'GetClassSubjects') return <GetClassSubjects />
 if (pageId === 'MarksLogReport') return <MarksLogReport />
 if (pageId === 'MarksStatusGraph') return <MarksStatusGraph />

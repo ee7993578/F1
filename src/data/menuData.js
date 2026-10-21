@@ -423,6 +423,8 @@ export const MENU_DATA = [
         { id: 'IndicatorCategory', label: 'Indicator Category' },
         { id: 'LearnerProfileAttributeValue', label: 'Learner Profile Attribute Value' },
         { id: 'LockUnlockStudent', label: 'Lock Unlock Student' },
+        { id: 'StudentChartLock', label: 'Student Chart Lock' },
+        { id: 'LockExam', label: 'Lock Exam' },
       ],
     },
     {

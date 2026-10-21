@@ -1,1 +1,1 @@
-export { DefineReportcardCategoryRemark as default } from './ExamWorkCommon'
+export { DefineReportcardCategoryRemark as default, DefineReportcardCategoryRemark } from './ExamWorkExact'

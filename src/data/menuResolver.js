@@ -83,6 +83,56 @@ const legacyPageAliases = Object.fromEntries([
   ['vehiclemaster.aspx', 'VehicleMaster'],
   ['assign_transport', 'AssignTransport'],
   ['assign_transport.aspx', 'AssignTransport'],
+  // Exam Master pages are returned by the legacy menu with ASPX-era keys.
+  // Normalize them here so React never falls through to the placeholder page.
+  ['marks_status_subjectwise_(Graph)', 'MarksStatusGraph'],
+  ['marks_status_subjectwise_graph', 'MarksStatusGraph'],
+  ['define-marks_new', 'DefineMarksNew'],
+  ['preprimary_marks', 'DefineMarksPrePrimary'],
+  ['Preprimary_marks_mapping_rmps', 'PreprimaryMarksMapping'],
+  ['define_stu_remark', 'DefineStudentRemark'],
+  ['define_indicator_grade', 'DefineIndicatorGradePrimary'],
+  ['Upload-marks', 'UploadMarks'],
+  ['define_Learnerprofile_indicatorgrade', 'DefineLearnerProfileIndicator'],
+  ['defineReportcardCategoryRemark', 'DefineReportcardCategoryRemark'],
+  ['stu_health_status', 'StuHealthStatus'],
+  ['define_max_min_primary', 'DefineMaxMinExam'],
+  ['header', 'DefineHeader'],
+  ['category', 'DefineCategory'],
+  ['define-attrib', 'DefineAttrib'],
+  ['indicator', 'Indicator'],
+  ['indicator_category', 'IndicatorCategory'],
+  ['DefineWeightage_new', 'DefineWeightage'],
+  ['Define_Max_Min_new', 'DefineMaxMin'],
+  ['Lock_and_Unlock_student', 'LockUnlockStudent'],
+  ['CBSE_AISSE_Result_OVER_ALL', 'CBSE_AISSE_Result'],
+  ['CBSE_AISSE_Result_MainSubject', 'CBSE_AISSE_Result_MainSubject'],
+  ['CBSE_annual_report', 'CBSE_AnnualReport'],
+  ['Class_overall_marks', 'Class_overall_marks'],
+  ['CumulativeSheet', 'CumulativeSheet'],
+  ['GetClassSubjects', 'GetClassSubjects'],
+  ['MarksLogReport', 'MarksLogReport'],
+  ['MarkStatusReport', 'MarkStatusReport'],
+  ['overall_examination_report', 'OverallExaminationReport'],
+  ['ReportCard', 'ReportCard'],
+  ['reportcard_examwise', 'ReportCardExamwise'],
+  ['studentwise_academic_performance', 'StudentAcademicPerformance'],
+  ['subject_report', 'SubjectReport'],
+  ['ToppersReport', 'ToppersReport'],
+  ['marks_percentage_report_examwise', 'ClasswiseStudentPercentage'],
+  ['ExamComparativeSheet', 'ExamComparativeSheet'],
+  ['examwise_greensheet', 'ExamwiseGreensheet'],
+  ['Report_Expected_Board_Average', 'ExpectedBoardAverageReport'],
+  ['ExpectedSchoolAverageReport', 'ExpectedSchoolAverageReport'],
+  ['failure_student_report', 'FailureStudentReport'],
+  ['greenSheet_new', 'GreenSheetNew'],
+  ['greensheet_primary', 'GreenSheetPrimary'],
+  ['GreenSheet_SubjectWIse', 'GreenSheetSubjectWise'],
+  ['marks_list_blank', 'MarksListBlank'],
+  ['marks_list_junior', 'MarksListJunior'],
+  ['Report_ExamResultDiscussion', 'Report_ExamResultDiscussion'],
+  ['allstu_per', 'ClasswiseStudentPercentage'],
+  ['deletemarks', 'DeleteMarks'],
   // Student pages are returned by the live menu with their ASPX-era keys.
   // Keep the database key at this boundary, then render the React page below.
   ['student-registration', 'studentRegistration'],
@@ -138,6 +188,24 @@ const groupAlias = (value) => {
   return normalized
 }
 
+// Exam Master still stores its submenu parents as database rows such as
+// `Marks-Entry`, `Setting - Primary` and `Marks Edit/ Delete`.  The API
+// normalizes some of those rows to "Work", which loses the actual parent
+// identity before the React menu is built.  Keep the legacy parent IDs as the
+// source of truth for this module so ASPX page keys land in the JSX group that
+// has the corresponding workflow.
+const examLegacyGroups = {
+  '1': 'exam_report',
+  '8558': 'exam_report', // Reports-Cumulative-Sheet
+  '8555': 'exam_report', // MarkListSubSubject
+  '8560': 'exam_report', // Reports
+  '8565': 'exam_work',   // Marks-Entry / Transaction
+  '8568': 'exam_setup',  // Setting - Primary
+  '8569': 'exam_setup',  // Setting - Security
+  '8592': 'exam_setup',  // Setting - Basic
+  '8575': 'exam_update', // Marks Edit/ Delete
+}
+
 const findStaticGroup = (staticModule, group) => {
   if (!staticModule) return null
   const wanted = groupAlias(field(group, 'label', 'name', 'groupName'))
@@ -170,6 +238,11 @@ const staticGroupForPage = (staticModule, staticPage) => {
 const isReportPath = (page) => /(?:^|[\\/])reports?(?:[\\/]|$)/i.test(String(pagePath(page)))
 
 const inferStaticGroup = (staticModule, sourceGroup, page, staticPage) => {
+  if (staticModule?.id === 'examMaster') {
+    const sourceId = String(field(sourceGroup, 'id', 'groupId')).trim()
+    const groupId = examLegacyGroups[sourceId]
+    if (groupId) return staticModule.groups.find((group) => group.id === groupId) || null
+  }
   // Page identity/path wins over the old database group label. The legacy menu
   // sometimes puts Setup pages in a Transaction/Work row.
   return staticGroupForPage(staticModule, staticPage)

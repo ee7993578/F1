@@ -1,1 +1,1 @@
-export { DefineLearnerProfileIndicator as default } from './ExamWorkCommon'
+export { DefineLearnerProfileIndicator as default, DefineLearnerProfileIndicator } from './ExamWorkExact'

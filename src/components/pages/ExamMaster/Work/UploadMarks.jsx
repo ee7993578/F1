@@ -1,1 +1,1 @@
-export { UploadMarks as default } from './ExamWorkCommon'
+export { UploadMarks as default, UploadMarks } from './UploadMarksExact'

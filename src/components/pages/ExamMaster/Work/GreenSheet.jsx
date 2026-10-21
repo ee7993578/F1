@@ -1,1 +1,1 @@
-export { GreenSheet as default } from './ExamWorkCommon'
+export { GreenSheet as default, GreenSheet } from './ExamWorkExact'

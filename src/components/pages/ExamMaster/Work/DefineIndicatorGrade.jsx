@@ -1,1 +1,1 @@
-export { DefineIndicatorGrade as default } from './ExamWorkCommon'
+export { DefineIndicatorGrade as default, DefineIndicatorGrade } from './ExamWorkExact'

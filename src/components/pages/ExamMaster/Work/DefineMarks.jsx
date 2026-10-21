@@ -1,1 +1,1 @@
-export { DefineMarks as default } from './ExamWorkCommon'
+export { DefineMarks as default, DefineMarks } from './ExamWorkExact'

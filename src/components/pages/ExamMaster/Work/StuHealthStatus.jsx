@@ -1,1 +1,1 @@
-export { StuHealthStatus as default } from './ExamWorkCommon'
+export { StuHealthStatus as default, StuHealthStatus } from './ExamWorkExact'
