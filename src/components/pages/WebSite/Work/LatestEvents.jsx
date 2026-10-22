@@ -377,7 +377,8 @@ function FilterDrawer({ open, onClose, sessionFilter, setSessionFilter }) {
 }
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-export default function LatestEvents() {
+export { LatestEvents as default } from '../WebsiteModule'
+function LegacyLatestEvents() {
   // form state
   const [session, setSession] = useState('')
   const [eventName, setEventName] = useState('')

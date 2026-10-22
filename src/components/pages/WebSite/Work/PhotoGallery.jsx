@@ -607,7 +607,8 @@ function DeleteModal({ item, onConfirm, onCancel }) {
 }
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-export default function PhotoGallery() {
+export { PhotoGallery as default } from '../WebsiteModule'
+function LegacyPhotoGallery() {
   const [gallery, setGallery] = useState(INITIAL_GALLERY)
   const [filterSession, setFilterSession] = useState('')
   const [search, setSearch] = useState('')

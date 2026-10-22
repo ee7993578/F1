@@ -420,7 +420,8 @@ function StepDot({ active, done, label }) {
 }
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-export default function UploadTC() {
+export { UploadTC as default } from '../WebsiteModule'
+function LegacyUploadTC() {
   // Form state
   const [session,    setSession]    = useState('')
   const [tcNo,       setTcNo]       = useState('')

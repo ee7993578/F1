@@ -401,7 +401,9 @@ function NoticeMobileCard({ notice, idx, onDelete }) {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
-export default function UploadNotice() {
+export { UploadNotice as default } from '../WebsiteModule'
+/* legacy implementation retained below for reference; the live page is WebsiteModule.UploadNotice. */
+function LegacyUploadNotice() {
   // Form state
   const [session,     setSession]     = useState('')
   const [noticeDate,  setNoticeDate]  = useState(today())

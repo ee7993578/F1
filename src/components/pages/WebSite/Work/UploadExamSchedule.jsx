@@ -626,7 +626,8 @@ function GridCard({ record, idx, onDelete }) {
 }
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-export default function UploadExamSchedule() {
+export { UploadExamSchedule as default } from '../WebsiteModule'
+function LegacyUploadExamSchedule() {
   // ── State ───────────────────────────────────────────────────────────────────
   const emptyForm = { class_id: '', exam_id: '', title: '', file: null }
   const [form,        setForm]        = useState(emptyForm)

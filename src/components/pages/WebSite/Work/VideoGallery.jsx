@@ -673,7 +673,8 @@ function FilterDrawer({ open, onClose, filterSession, setFilterSession, search, 
 }
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
-export default function VideoGallery() {
+export { VideoGallery as default } from '../WebsiteModule'
+function LegacyVideoGallery() {
   const [videos, setVideos] = useState(INITIAL_VIDEOS)
   const [filterSession, setFilterSession] = useState('')
   const [search, setSearch] = useState('')

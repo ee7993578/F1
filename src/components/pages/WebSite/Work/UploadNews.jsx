@@ -466,7 +466,8 @@ function MobileNewsCard({ item, idx, onDelete }) {
 }
 
 // ─── MAIN PAGE COMPONENT ──────────────────────────────────────────────────────
-export default function UploadNews() {
+export { UploadNews as default } from '../WebsiteModule'
+function LegacyUploadNews() {
   // Form state
   const [form, setForm] = useState({
     session: '',

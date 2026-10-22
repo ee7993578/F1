@@ -499,7 +499,8 @@ function ResultBanner({ className, exam, count }) {
 }
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-export default function ShowUploadExamSchedule() {
+export { ShowUploadExamSchedule as default } from '../WebsiteModule'
+function LegacyShowUploadExamSchedule() {
   const [selectedClass, setSelectedClass] = useState("0");
   const [selectedExam, setSelectedExam]   = useState("0");
   const [rows, setRows]                   = useState([]);
