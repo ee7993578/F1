@@ -2,12 +2,12 @@ param([Parameter(Mandatory=$true)][string]$Token)
 $ErrorActionPreference = 'Stop'
 $listener = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction Stop | Select-Object -First 1
 $backend = Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)"
-if (-not $backend.CommandLine.Contains('--spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=dpsbsr_edufox_net;')) {
+if (-not ($backend.CommandLine -match '--spring\.datasource\.url=jdbc:sqlserver://(localhost|127\.0\.0\.1):1433;databaseName=dpsbsr_edufox_net;')) {
     throw 'Refusing write test: port 8080 is not pinned to the authorized local database. Use start-local.ps1.'
 }
 $headers = @{ Authorization = "Bearer $Token" }
 $user = (Invoke-RestMethod 'http://localhost:8080/api/auth/me' -Headers $headers -TimeoutSec 15).user
-$connection = New-Object System.Data.SqlClient.SqlConnection('Data Source=localhost;Initial Catalog=dpsbsr_edufox_net;Integrated Security=True;Connect Timeout=5;')
+$connection = New-Object System.Data.SqlClient.SqlConnection('Data Source=127.0.0.1;Initial Catalog=dpsbsr_edufox_net;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;Connect Timeout=5;')
 $connection.Open()
 $query = $connection.CreateCommand()
 $marker = 'LOCAL_SMOKE_' + [guid]::NewGuid().ToString('N')

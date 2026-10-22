@@ -160,6 +160,10 @@ const legacyPageAliases = Object.fromEntries([
   ['monthwise_transport_report', 'MonthwiseTransportReport'],
   ['feecollection_routewise', 'RouteWiseCollectionReport'],
   ['total_fee_colllection', 'RouteWiseTotalCollectionReport'],
+  ['class_activity', 'ClassActivity'],
+  ['faculty_free_lec', 'FacultyFreePeriod'],
+  ['facultywisetimetable_report', 'CompleteTimeTableReport'],
+  ['arrangement', 'ArrangementReport'],
 ].map(([legacy, reactId]) => [key(legacy), reactId]))
 
 const field = (value, ...names) => {

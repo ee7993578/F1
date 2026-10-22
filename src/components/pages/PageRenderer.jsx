@@ -30,6 +30,39 @@ const legacyStudentPageIds = {
   promotedemote: 'PromoteDemote',
 }
 
+const legacyAttendancePageIds = {
+  attreportpercentage: 'AttendanceReportPercentage',
+  attreportpercentageaspx: 'AttendanceReportPercentage',
+  attendancereportpercentage: 'AttendanceReportPercentage',
+  attendancereportin: 'AttendanceReportPercentage',
+  attendancereportinpercentage: 'AttendanceReportPercentage',
+  attendancestatus: 'AttendanceStatusReport',
+  attendancestatusaspx: 'AttendanceStatusReport',
+  checkattstatus: 'AttendanceStatusReport',
+  checkattstatusaspx: 'AttendanceStatusReport',
+  totalattendancereport: 'TotalAttendanceReport',
+  totalattendancereportaspx: 'TotalAttendanceReport',
+  classwisetotalattreport: 'TotalAttendanceReport',
+  classwisetotalattreportaspx: 'TotalAttendanceReport',
+}
+
+const legacyTimetablePageIds = {
+  alttimetable: 'AltTimetable',
+  assigntimetable: 'AssignTimeTable',
+  classactivity: 'ClassActivity',
+  createvirtualclass: 'CreateVirtualClass',
+  defineholidays: 'DefineHolidays',
+  facultysubjectmapping: 'FacultySubjectMapping',
+  lecturetimings: 'LectureTimings',
+  activityreport: 'ActivityReport',
+  arrangement: 'ArrangementReport',
+  facultyfreelec: 'FacultyFreePeriod',
+  facultywisetimetablereport: 'CompleteTimeTableReport',
+  schooltimetablereport: 'SchoolTimetableReport',
+  timetablereport: 'TimetableReport',
+  virtualclassreport: 'VirtualClassReport',
+}
+
 const resolvedPageId = (page) => {
   const values = [page?.id, page?.pageId, page?.pageKey, page?.pageName, page?.url, page?.label]
     .filter(Boolean)
@@ -37,9 +70,13 @@ const resolvedPageId = (page) => {
   for (const value of values) {
     if (legacyTransportPageIds[value]) return legacyTransportPageIds[value]
     if (legacyStudentPageIds[value]) return legacyStudentPageIds[value]
+    if (legacyAttendancePageIds[value]) return legacyAttendancePageIds[value]
+    if (legacyTimetablePageIds[value]) return legacyTimetablePageIds[value]
     const file = value.split('aspx')[0]
     if (legacyTransportPageIds[file]) return legacyTransportPageIds[file]
     if (legacyStudentPageIds[file]) return legacyStudentPageIds[file]
+    if (legacyAttendancePageIds[file]) return legacyAttendancePageIds[file]
+    if (legacyTimetablePageIds[file]) return legacyTimetablePageIds[file]
   }
   return page?.id
 }
@@ -165,6 +202,7 @@ import StoppageMaster from './Transport/Setup/StoppageMaster'
 import AltTimetable from './TimeTable/Work/AltTimetable'
 import AssignTimeTable from './TimeTable/Work/AssignTimeTable'
 import FacultySubjectMapping from './TimeTable/Work/FacultySubjectMapping'
+import ClassActivity from './TimeTable/Work/ClassActivity'
 
 
 import ActivityReport from './TimeTable/Report/ActivityReport'
@@ -186,6 +224,7 @@ import TimetableConfiguration from './TimeTable/Setup/TimetableConfiguration'
 import StudentAttendance from './Attendance/Work/StudentAttendance'
 
 import DeleteAttendance from './Attendance/Update/DeleteAttendance'
+import DeleteStudentAttendance from './Attendance/Update/DeleteStudentAttendance'
 import HolidayAttendance from './Attendance/Update/HolidayAttendance'
 
 
@@ -196,7 +235,7 @@ import TotalAttendanceReport from './Attendance/Report/TotalAttendanceReport'
 
 import RFID_CampusStudentAttendance from './Attendance/TapCard/RFID_CampusStudentAttendance'
 import RFID_TransportRouteAttendance from './Attendance/TapCard/RFID_TransportRouteAttendance'
-import RFIDAttendance from './Attendance/TapCard/RFIDAttendance'
+import RFIDAttendance from './Attendance/TapCard/RFIDAttendanceDynamic'
 import RFID_TransportStudentAttendance from './Attendance/TapCard/RFID_TransportStudentAttendance'
 import RFIDCampusAttendanceCount from './Attendance/TapCard/RFIDCampusAttendanceCount'
 
@@ -521,6 +560,7 @@ if (pageId === 'StoppageMaster') return <StoppageMaster />
 if (pageId === 'AltTimetable') return <AltTimetable />
 if (pageId === 'AssignTimeTable') return <AssignTimeTable />
 if (pageId === 'FacultySubjectMapping') return <FacultySubjectMapping />
+if (pageId === 'ClassActivity') return <ClassActivity />
 
 if (pageId === 'ActivityReport') return <ActivityReport />
 if (pageId === 'ArrangementReport') return <ArrangementReport />
@@ -540,6 +580,7 @@ if (pageId === 'TimetableConfiguration') return <TimetableConfiguration />
 if (pageId === 'StudentAttendance') return <StudentAttendance />
 
 if (pageId === 'DeleteAttendance') return <DeleteAttendance />
+if (pageId === 'DeleteStudentAttendance') return <DeleteStudentAttendance />
 if (pageId === 'HolidayAttendance') return <HolidayAttendance />
 
 if (pageId === 'AttendanceReportPercentage') return <AttendanceReportPercentage />

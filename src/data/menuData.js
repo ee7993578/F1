@@ -234,6 +234,7 @@ export const MENU_DATA = [
           { id: 'AltTimetable',    label: 'Alt Timetable' },
           { id: 'AssignTimeTable',    label: 'Assign TimeTable' },
           { id: 'FacultySubjectMapping',    label: 'Faculty Subject Mapping' },
+          { id: 'ClassActivity',    label: 'Define Class Activity' },
         
         ],
       },
@@ -242,8 +243,7 @@ export const MENU_DATA = [
         pages: [
           { id: 'CreateVirtualClass',  label: 'Create Virtual Class' },
           { id: 'DefineHolidays',  label: 'Define Holidays' },
-          { id: 'Lecture Timings',  label: 'LectureTimings' },
-          { id: 'TimetableConfiguration',  label: 'Timetable Configuration' },
+          { id: 'LectureTimings',  label: 'Lecture Timings' },
           
         ],
       },
@@ -283,6 +283,7 @@ export const MENU_DATA = [
         id: 'attedance_update', label: 'Update', icon: 'Package',
         pages: [
           { id: 'DeleteAttendance',   label: 'DeleteAttendance' },
+          { id: 'DeleteStudentAttendance', label: 'Delete Student Attendance' },
           { id: 'HolidayAttendance',   label: 'HolidayAttendance' },
        
         ],

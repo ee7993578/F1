@@ -17,7 +17,7 @@ import java.util.Map;
 public class StaffController {
     private final StaffService service;
 
-    @GetMapping("/bootstrap") public Map<String,Object> bootstrap(Authentication a,@RequestParam(required=false) String session){return service.bootstrap(school(a),session);}
+    @GetMapping("/bootstrap") public Map<String,Object> bootstrap(Authentication a,@RequestParam(required=false) String session,@RequestParam(defaultValue="false") boolean light){return service.bootstrap(school(a),session,light);}
     @GetMapping public List<Map<String,Object>> list(Authentication a,@RequestParam(required=false) String session,@RequestParam(required=false) String search,@RequestParam(defaultValue="false") boolean withdrawn){return service.list(school(a),session,search,withdrawn);}
     @GetMapping("/{id}") public Map<String,Object> find(Authentication a,@PathVariable String id){return service.find(school(a),id);}
     @PostMapping public StaffDtos.MutationResponse register(Authentication a,@RequestParam(required=false) String session,@RequestBody Map<String,Object>b){return service.register(school(a),staff(a),session,b);}
@@ -25,7 +25,11 @@ public class StaffController {
     @DeleteMapping("/{id}") public StaffDtos.MutationResponse withdraw(Authentication a,@PathVariable String id,@RequestParam String session,@RequestBody(required=false) Map<String,Object>b){return service.withdraw(school(a),id,session,b==null?"":String.valueOf(b.getOrDefault("reason","")),staff(a));}
     @PostMapping("/{id}/reregister") public StaffDtos.MutationResponse reregister(Authentication a,@PathVariable String id,@RequestParam String session){return service.reregister(school(a),id,session,staff(a));}
     @PutMapping("/{id}/credentials") public StaffDtos.MutationResponse credentials(Authentication a,@PathVariable String id,@RequestBody Map<String,Object>b){return service.credentials(school(a),id,b);}
-    @GetMapping("/reports/class-teachers") public List<Map<String,Object>> classTeachers(Authentication a,@RequestParam String session){return service.classTeachers(school(a),session);}
+    @GetMapping("/reports/class-teachers") public List<Map<String,Object>> classTeachers(Authentication a,@RequestParam String session){return service.classTeachers(school(a),session,staff(a));}
+    @GetMapping("/reports/class-teachers-view") public Map<String,Object> classTeachersView(Authentication a,@RequestParam String session){return service.classTeachersView(school(a),session,staff(a));}
+    @GetMapping("/info-columns") public Map<String,Object> infoColumns(){return service.facultyInfoColumns();}
+    @GetMapping("/info-report") public Map<String,Object> infoReport(Authentication a,@RequestParam String session,@RequestParam(required=false) String status,@RequestParam(required=false) String columns){return service.facultyInfoReport(school(a),session,status,columns,staff(a));}
+    @GetMapping("/credentials-report") public Map<String,Object> credentialsReport(Authentication a,@RequestParam String session,@RequestParam(required=false,defaultValue="regular") String type){return service.credentialsReport(school(a),session,type,staff(a));}
     @GetMapping("/class-teacher-setup") public Map<String,Object> classTeacherSetup(Authentication a,@RequestParam String session){return service.classTeacherSetup(school(a),session);}
     @PutMapping("/class-teachers") public StaffDtos.MutationResponse saveClassTeachers(Authentication a,@RequestBody StaffDtos.ClassTeacherRequest r){return service.saveClassTeachers(school(a),staff(a),r);}
     @GetMapping("/job-config") public List<Map<String,Object>> jobConfig(Authentication a,@RequestParam(required=false) String session){return service.jobConfig(school(a),session);}

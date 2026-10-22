@@ -31,9 +31,21 @@ public class AttendanceController {
     @GetMapping("/rfid/campus-student") public List<Map<String,Object>> campusStudent(@RequestParam String session,@RequestParam String date,@RequestParam(defaultValue="0") int sectionId,Authentication a){return service.rfidCampusStudent(school(claims(a)),session,date,sectionId);}
     @GetMapping("/rfid/transport-count") public List<Map<String,Object>> transportCount(@RequestParam String session,@RequestParam String date,Authentication a){return service.rfidTransportCount(school(claims(a)),session,date);}
     @GetMapping("/rfid/transport-student") public List<Map<String,Object>> transportStudent(@RequestParam String session,@RequestParam String date,@RequestParam(defaultValue="0") int routeId,Authentication a){return service.rfidTransportStudent(school(claims(a)),session,date,routeId);}
+    @GetMapping("/rfid/matrix") public Map<String,Object> rfidMatrix(@RequestParam String session,@RequestParam(defaultValue="0") int sectionId,@RequestParam(defaultValue="0") int year,@RequestParam(defaultValue="0") int month,@RequestParam(required=false,defaultValue="") String date,Authentication a){return service.rfidMatrix(school(claims(a)),session,sectionId,year,month,date);}
     @GetMapping("/reports/bootstrap") public Map<String,Object> reportBootstrap(@RequestParam(required=false,defaultValue="") String session,Authentication a){Claims c=claims(a);return service.reportBootstrap(school(c),c.get("staffUid",String.class),session);}
-    @GetMapping("/reports/percentage") public Map<String,Object> percentageReport(@RequestParam String session,@RequestParam(defaultValue="0") int sectionId,Authentication a){Claims c=claims(a);return service.percentageReport(school(c),c.get("staffUid",String.class),session,sectionId);}
-    @GetMapping("/reports/status") public Map<String,Object> statusReport(@RequestParam String session,@RequestParam(defaultValue="0") int classId,@RequestParam(required=false,defaultValue="") String date,Authentication a){Claims c=claims(a);return service.statusReport(school(c),c.get("staffUid",String.class),session,classId,date);}
+    @GetMapping("/reports/percentage") public Map<String,Object> percentageReport(@RequestParam String session,
+            @RequestParam(defaultValue="") String classIds,
+            @RequestParam(defaultValue="") String sectionIds,
+            @RequestParam(defaultValue="") String fromPer,
+            @RequestParam(defaultValue="") String toPer,
+            @RequestParam(defaultValue="") String fromDate,
+            @RequestParam(defaultValue="") String toDate,
+            Authentication a){
+        Claims c=claims(a);
+        return service.percentageReport(school(c),c.get("staffUid",String.class),session,
+            intList(classIds),intList(sectionIds),fromPer,toPer,fromDate,toDate);
+    }
+    @GetMapping("/reports/status") public Map<String,Object> statusReport(@RequestParam String session,@RequestParam(defaultValue="0") int sectionId,@RequestParam(required=false,defaultValue="") String date,Authentication a){Claims c=claims(a);return service.statusReport(school(c),c.get("staffUid",String.class),session,sectionId,date);}
     @GetMapping("/reports/total") public Map<String,Object> totalReport(@RequestParam String session,@RequestParam int sectionId,Authentication a){Claims c=claims(a);return service.totalReport(school(c),c.get("staffUid",String.class),session,sectionId);}
 
     private static Claims claims(Authentication a){if(a==null||!(a.getDetails() instanceof Claims c))throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Authenticated claims are missing");return c;}
@@ -42,4 +54,10 @@ public class AttendanceController {
     private static int integer(Map<String,Object>b,String k){try{return Integer.parseInt(str(b,k));}catch(Exception e){return 0;}}
     @SuppressWarnings("unchecked") private static List<Map<String,Object>> list(Map<String,Object>b,String k){Object v=b.get(k);return v instanceof List<?> l?(List<Map<String,Object>>)(List<?>)l:List.of();}
     private static List<Integer> intList(Object v){if(!(v instanceof List<?> l))return List.of();return l.stream().map(x->{try{return Integer.valueOf(String.valueOf(x));}catch(Exception e){return 0;}}).filter(x->x>0).toList();}
+    private static List<Integer> intList(String value){
+        if(value==null||value.isBlank()) return List.of();
+        return java.util.Arrays.stream(value.split(","))
+            .map(String::trim).filter(x->!x.isBlank()).map(x->{try{return Integer.valueOf(x);}catch(Exception e){return 0;}})
+            .filter(x->x>0).toList();
+    }
 }

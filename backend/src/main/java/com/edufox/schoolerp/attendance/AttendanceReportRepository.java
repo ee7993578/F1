@@ -46,58 +46,134 @@ public class AttendanceReportRepository {
         result.put("sessions", sessions(schoolId));
         result.put("session", session);
         result.put("attendanceType", attendanceType(schoolId));
-        result.put("percentageClasses", sections);
+        Map<Integer, Map<String, Object>> percentageClasses = new TreeMap<>();
+        for (Map<String, Object> section : sections) {
+            int classId = integer(section.get("classId"));
+            if (classId <= 0 || percentageClasses.containsKey(classId)) continue;
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("classId", classId);
+            row.put("label", text(section.get("className")));
+            percentageClasses.put(classId, row);
+        }
+        result.put("percentageClasses", new ArrayList<>(percentageClasses.values()));
+        result.put("percentageSections", sections);
         result.put("statusClasses", new ArrayList<>(classes.values()));
+        // The legacy status page binds this control to section ids even though
+        // the ASPX control is named ddlclass. Keep the old values/labels here.
+        result.put("statusSections", sections);
         result.put("totalClasses", sections);
         return result;
     }
 
-    public Map<String, Object> percentageReport(String schoolId, String staffUid, String session, int sectionId) {
+    /** Direct SQL translation of report_percentage_monthattendance_singleclass and report_percentage_daywiseattendance. */
+    public Map<String, Object> percentageReport(String schoolId, String staffUid, String session,
+                                                List<Integer> classIds, List<Integer> sectionIds,
+                                                String fromPer, String toPer, String fromDate, String toDate) {
         List<Map<String, Object>> allowed = authorizedSections(schoolId, staffUid, session);
-        Set<Integer> allowedIds = allowed.stream().map(x -> integer(x.get("sectionId"))).collect(Collectors.toSet());
-        List<Integer> selected = sectionId > 0
-            ? (allowedIds.contains(sectionId) ? List.of(sectionId) : List.of())
-            : allowed.stream().map(x -> integer(x.get("sectionId"))).filter(x -> x > 0).distinct().toList();
-        if (selected.isEmpty()) return report(List.of("registrationNo", "name", "classname"), List.of());
+        Set<Integer> allowedSections = allowed.stream().map(x -> integer(x.get("sectionId"))).filter(x -> x > 0).collect(Collectors.toSet());
+        Set<Integer> allowedClasses = allowed.stream().map(x -> integer(x.get("classId"))).filter(x -> x > 0).collect(Collectors.toSet());
+        List<Integer> selectedClasses = (classIds == null ? List.<Integer>of() : classIds).stream().filter(allowedClasses::contains).distinct().toList();
+        if (selectedClasses.isEmpty()) selectedClasses = allowedClasses.stream().sorted().toList();
+        Set<Integer> selectedClassSet = new LinkedHashSet<>(selectedClasses);
+        List<Integer> selectedSections = (sectionIds == null ? List.<Integer>of() : sectionIds).stream()
+            .filter(allowedSections::contains).filter(section -> allowed.stream().anyMatch(x -> integer(x.get("sectionId")) == section && selectedClassSet.contains(integer(x.get("classId")))))
+            .distinct().toList();
+        if (selectedSections.isEmpty()) selectedSections = allowed.stream().filter(x -> selectedClassSet.contains(integer(x.get("classId"))))
+            .map(x -> integer(x.get("sectionId"))).filter(x -> x > 0).distinct().toList();
+        if (selectedSections.isEmpty()) return reportWithColumns("percentage", List.of(), List.of());
 
-        String in = placeholders(selected.size());
-        String sql = """
-            SELECT s.registration_no AS registrationNo,
-                   LTRIM(RTRIM(COALESCE(i.first_name,'')+' '+COALESCE(i.mid_name,'')+' '+COALESCE(i.last_name,''))) AS name,
-                   cn.class_name+' ('+c.section+')' AS classname
-            FROM TB_StudentMaster s
-            LEFT JOIN student_other_info i ON i.school_id=s.school_id AND i.registration_no=s.registration_no
-            LEFT JOIN TB_Class c ON c.school_id=s.school_id AND c.sec_id=s.sec_id
-            LEFT JOIN class_name cn ON cn.school_id=c.school_id AND cn.id=c.class_id
-            WHERE s.school_id=? AND s.session=? AND LOWER(s.status)='registered'
-              AND s.sec_id IN (%s)
-              AND (SELECT COUNT(*) FROM day_attendance d WHERE d.school_id=s.school_id AND d.session=s.session AND d.stu_id=s.stu_id AND d.att_status='P') > 0
-              AND (SELECT COUNT(*) FROM day_attendance d WHERE d.school_id=s.school_id AND d.session=s.session AND d.stu_id=s.stu_id AND d.att_status IN ('A','P','L')) > 0
-              AND (SELECT COUNT(*) FROM day_attendance d WHERE d.school_id=s.school_id AND d.session=s.session AND d.stu_id=s.stu_id AND d.att_status='P') =
-                  (SELECT COUNT(*) FROM day_attendance d WHERE d.school_id=s.school_id AND d.session=s.session AND d.stu_id=s.stu_id AND d.att_status IN ('A','P','L'))
-            ORDER BY s.class_id,s.sec_id,REPLACE(COALESCE(i.first_name,''),' ',''),s.registration_no
-            """.formatted(in);
-        List<Object> args = new ArrayList<>(List.of(schoolId, session));
-        args.addAll(selected);
-        List<Map<String, Object>> raw = jdbc.queryForList(sql, args.toArray());
-        List<Map<String, Object>> rows = new ArrayList<>();
-        int serial = 1;
-        for (Map<String, Object> item : raw) {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("sno", serial++);
-            row.put("registrationNo", item.get("registrationNo"));
-            row.put("name", item.get("name"));
-            row.put("classname", item.get("classname"));
-            rows.add(row);
-        }
-        return reportWithColumns("percentage", List.of(column("sno", "S.No."), column("registrationNo", "Admission no"), column("name", "Student name"), column("classname", "Class")), rows);
+        return attendanceType(schoolId) == 2
+            ? dayPercentageReport(schoolId, session, selectedClasses, selectedSections, fromPer, toPer, fromDate, toDate)
+            : monthPercentageReport(schoolId, session, selectedClasses, selectedSections, fromPer, toPer);
     }
 
-    public Map<String, Object> statusReport(String schoolId, String staffUid, String session, int classId, String requestedDate) {
+    private Map<String, Object> monthPercentageReport(String schoolId, String session, List<Integer> classes,
+                                                      List<Integer> sections, String fromPer, String toPer) {
+        String classIn = placeholders(classes.size()), sectionIn = placeholders(sections.size());
+        String percentageClause = text(fromPer).isBlank() ? "" : " WHERE q.totalPer>=? AND q.totalPer<=? ";
+        String sql = """
+            WITH base AS (
+              SELECT s.stu_id,s.registration_no,s.class_id,s.sec_id,s.school_id,
+                     LTRIM(RTRIM(COALESCE(i.first_name,'')+' '+COALESCE(i.mid_name,'')+' '+COALESCE(i.last_name,''))) AS studentName,
+                     cn.class_name+' ('+c.section+')' AS className,
+                     COALESCE((SELECT SUM(TRY_CONVERT(decimal(18,2),m.attendance)) FROM month_attendance m WHERE m.school_id=s.school_id AND m.stu_id=s.stu_id),0) AS attendance,
+                     COALESCE((SELECT SUM(TRY_CONVERT(decimal(18,2),m.work_Day)) FROM month_attendance m WHERE m.school_id=s.school_id AND m.stu_id=s.stu_id),0) AS workingDays
+              FROM TB_StudentMaster s
+              LEFT JOIN student_other_info i ON i.school_id=s.school_id AND i.registration_no=s.registration_no
+              LEFT JOIN TB_Class c ON c.school_id=s.school_id AND c.sec_id=s.sec_id
+              LEFT JOIN class_name cn ON cn.school_id=c.school_id AND cn.id=c.class_id
+              WHERE s.school_id=? AND s.session=? AND s.status='Registered'
+                AND s.class_id IN (%s) AND s.sec_id IN (%s)
+            ), calc AS (
+              SELECT *,CAST(CASE WHEN workingDays=0 THEN 0 ELSE ROUND(attendance*100.0/workingDays,2) END AS decimal(18,2)) AS totalPer FROM base
+            )
+            SELECT registration_no AS AdmNo,studentName AS StudentName,className AS class,attendance AS Attendance,
+                   workingDays AS TotalWorkingDays,CAST(attendance AS varchar(50))+' / '+CAST(workingDays AS varchar(50)) AS Total,
+                   totalPer AS per,class_id,sec_id
+            FROM calc q%s
+            ORDER BY class_id,sec_id,REPLACE(studentName,' ','')
+            """.formatted(classIn, sectionIn, percentageClause);
+        List<Object> args = new ArrayList<>(List.of(schoolId, session)); args.addAll(classes); args.addAll(sections);
+        if (!text(fromPer).isBlank()) { args.add(decimalFilter(fromPer)); args.add(decimalFilter(toPer)); }
+        return percentageRows("month", jdbc.queryForList(sql, args.toArray()), List.of(
+            column("sno", "S.No."), column("AdmNo", "Adm No"), column("StudentName", "Student Name"),
+            column("class", "Class"), column("Attendance", "Attendance"), column("TotalWorkingDays", "Total Working Days"),
+            column("Total", "Total"), column("per", "Percentage")));
+    }
+
+    private Map<String, Object> dayPercentageReport(String schoolId, String session, List<Integer> classes,
+                                                    List<Integer> sections, String fromPer, String toPer,
+                                                    String fromDate, String toDate) {
+        String classIn = placeholders(classes.size()), sectionIn = placeholders(sections.size());
+        String dateClause = text(fromDate).isBlank() ? "" : " AND TRY_CONVERT(date,d.att_date) BETWEEN TRY_CONVERT(date,?) AND TRY_CONVERT(date,?) ";
+        String percentageClause = text(fromPer).isBlank() ? "" : " WHERE q.totalPer>=? AND q.totalPer<=? ";
+        String sql = """
+            WITH base AS (
+              SELECT s.stu_id,s.registration_no,s.class_id,s.sec_id,
+                     LTRIM(RTRIM(COALESCE(i.first_name,'')+' '+COALESCE(i.mid_name,'')+' '+COALESCE(i.last_name,''))) AS studentName,
+                     cn.class_name+' ('+c.section+')' AS className,
+                     (SELECT COUNT(*) FROM day_attendance d WHERE d.school_id=s.school_id AND d.stu_id=s.stu_id AND d.att_status='P'%s) AS presentDays,
+                     (SELECT COUNT(*) FROM day_attendance d WHERE d.school_id=s.school_id AND d.stu_id=s.stu_id AND d.att_status IN ('A','P','L')%s) AS workDays
+              FROM TB_StudentMaster s
+              LEFT JOIN student_other_info i ON i.school_id=s.school_id AND i.registration_no=s.registration_no
+              LEFT JOIN TB_Class c ON c.school_id=s.school_id AND c.sec_id=s.sec_id
+              LEFT JOIN class_name cn ON cn.school_id=c.school_id AND cn.id=c.class_id
+              WHERE s.school_id=? AND s.session=? AND s.status='Registered'
+                AND s.class_id IN (%s) AND s.sec_id IN (%s)
+            ), calc AS (
+              SELECT *,CAST(CASE WHEN presentDays=0 OR workDays=0 THEN 0 ELSE ROUND(presentDays*100.0/workDays,2) END AS decimal(18,2)) AS totalPer FROM base
+            )
+            SELECT stu_id,registration_no, className AS Class,studentName AS Name,
+                   CAST(CASE WHEN totalPer=0 THEN 0 ELSE totalPer END AS varchar(70))+'%%' AS Percentage,class_id,sec_id
+            FROM calc q%s
+            ORDER BY class_id,sec_id,REPLACE(studentName,' ','')
+            """.formatted(dateClause, dateClause, classIn, sectionIn, percentageClause);
+        List<Object> args = new ArrayList<>();
+        if (!text(fromDate).isBlank()) { args.add(fromDate); args.add(toDate); args.add(fromDate); args.add(toDate); }
+        args.add(schoolId); args.add(session); args.addAll(classes); args.addAll(sections);
+        if (!text(fromPer).isBlank()) { args.add(decimalFilter(fromPer)); args.add(decimalFilter(toPer)); }
+        return percentageRows("day", jdbc.queryForList(sql, args.toArray()), List.of(
+            column("sno", "S.No."), column("registration_no", "Registration No"), column("Class", "Class"),
+            column("Name", "Name"), column("Percentage", "Percentage")));
+    }
+
+    private Map<String, Object> percentageRows(String mode, List<Map<String, Object>> raw, List<Map<String, Object>> columns) {
+        List<Map<String, Object>> rows = new ArrayList<>(); int serial = 1;
+        for (Map<String, Object> source : raw) { Map<String, Object> row = new LinkedHashMap<>(source); row.put("sno", serial++); rows.add(row); }
+        return reportWithColumns(mode, columns, rows);
+    }
+
+    private BigDecimal decimalFilter(String value) {
+        try { return new BigDecimal(text(value).isBlank() ? "0" : text(value)); }
+        catch (Exception ignored) { throw new IllegalArgumentException("Percentage must be numeric"); }
+    }
+
+    public Map<String, Object> statusReport(String schoolId, String staffUid, String session, int sectionId, String requestedDate) {
         List<Map<String, Object>> allowed = authorizedSections(schoolId, staffUid, session);
         Set<Integer> allowedSections = allowed.stream().map(x -> integer(x.get("sectionId"))).collect(Collectors.toSet());
         if (allowedSections.isEmpty()) return reportWithColumns("month", List.of(), List.of());
-        List<Integer> sections = allowedSections.stream().filter(x -> x > 0).sorted().toList();
+        if (sectionId <= 0 || !allowedSections.contains(sectionId)) return reportWithColumns("month", List.of(), List.of());
+        List<Integer> sections = List.of(sectionId);
         String in = placeholders(sections.size());
         String date = text(requestedDate);
         boolean dayWise = attendanceType(schoolId) == 2 && !date.isBlank();
@@ -115,14 +191,12 @@ public class AttendanceReportRepository {
                 JOIN TB_StudentMaster s ON s.school_id=c.school_id AND s.sec_id=c.sec_id AND s.session=? AND LOWER(s.status)='registered'
                 CROSS JOIN tb_month m
                 LEFT JOIN month_attendance ma ON ma.school_id=s.school_id AND ma.session=s.session AND ma.stu_id=s.stu_id AND ma.month_id=m.month_id
-                WHERE c.school_id=? AND c.sec_id IN (%s) AND (?=0 OR c.class_id=?)
+                WHERE c.school_id=? AND c.sec_id IN (%s)
                 GROUP BY c.sec_id,c.class_id,c.section,cn.class_name,m.month_id,m.month_name,m.id
                 ORDER BY c.class_id,c.sec_id,m.id
                 """.formatted(in);
             List<Object> args = new ArrayList<>(List.of(session, schoolId));
             args.addAll(sections);
-            args.add(classId);
-            args.add(classId);
             List<Map<String, Object>> raw = jdbc.queryForList(sql, args.toArray());
             return monthStatus(raw, teachers);
         }
@@ -135,14 +209,12 @@ public class AttendanceReportRepository {
             JOIN TB_StudentMaster s ON s.school_id=c.school_id AND s.sec_id=c.sec_id AND s.session=? AND LOWER(s.status)='registered'
             LEFT JOIN day_attendance da ON da.school_id=s.school_id AND da.session=s.session AND da.stu_id=s.stu_id
                 AND TRY_CONVERT(date,da.att_date)=TRY_CONVERT(date,?)
-            WHERE c.school_id=? AND c.sec_id IN (%s) AND (?=0 OR c.class_id=?)
+            WHERE c.school_id=? AND c.sec_id IN (%s)
             GROUP BY c.sec_id,c.class_id,c.section,cn.class_name,COALESCE(da.att_status,'No Status')
             ORDER BY c.class_id,c.sec_id,COALESCE(da.att_status,'No Status')
             """.formatted(in);
         List<Object> args = new ArrayList<>(List.of(session, date, schoolId));
         args.addAll(sections);
-        args.add(classId);
-        args.add(classId);
         List<Map<String, Object>> raw = jdbc.queryForList(sql, args.toArray());
         return dayStatus(raw, teachers);
     }

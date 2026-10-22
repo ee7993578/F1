@@ -1,7 +1,7 @@
 spring:
   datasource:
     # Local restored database only; do not inherit beta credentials/DB_URL.
-    url: jdbc:sqlserver://127.0.0.1:1433;databaseName=dpsbsr_edufox_net;integratedSecurity=true;authenticationScheme=NativeAuthentication;encrypt=false;trustServerCertificate=true;loginTimeout=5
+    url: jdbc:sqlserver://127.0.0.1:1433;databaseName=dpsbsr_edufox_net;integratedSecurity=true;authenticationScheme=NativeAuthentication;encrypt=true;trustServerCertificate=true;loginTimeout=5
     username: ''
     password: ''
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver

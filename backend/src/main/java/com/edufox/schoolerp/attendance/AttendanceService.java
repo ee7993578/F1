@@ -28,8 +28,9 @@ public class AttendanceService {
     public List<Map<String,Object>> rfidCampusStudent(String schoolId,String session,String date,int sectionId){return repository.rfidCampusStudent(schoolId,session,date,sectionId);}
     public List<Map<String,Object>> rfidTransportCount(String schoolId,String session,String date){return repository.rfidTransportCount(schoolId,session,date);}
     public List<Map<String,Object>> rfidTransportStudent(String schoolId,String session,String date,int routeId){return repository.rfidTransportStudent(schoolId,session,date,routeId);}
+    public Map<String,Object> rfidMatrix(String schoolId,String session,int sectionId,int year,int month,String date){return repository.rfidMatrix(schoolId,session,sectionId,year,month,date);}
     public Map<String,Object> reportBootstrap(String schoolId,String staffUid,String session){return reportRepository.bootstrap(schoolId,staffUid,session);}
-    public Map<String,Object> percentageReport(String schoolId,String staffUid,String session,int sectionId){return reportRepository.percentageReport(schoolId,staffUid,session,sectionId);}
-    public Map<String,Object> statusReport(String schoolId,String staffUid,String session,int classId,String date){return reportRepository.statusReport(schoolId,staffUid,session,classId,date);}
+    public Map<String,Object> percentageReport(String schoolId,String staffUid,String session,List<Integer> classIds,List<Integer> sectionIds,String fromPer,String toPer,String fromDate,String toDate){return reportRepository.percentageReport(schoolId,staffUid,session,classIds,sectionIds,fromPer,toPer,fromDate,toDate);}
+    public Map<String,Object> statusReport(String schoolId,String staffUid,String session,int sectionId,String date){return reportRepository.statusReport(schoolId,staffUid,session,sectionId,date);}
     public Map<String,Object> totalReport(String schoolId,String staffUid,String session,int sectionId){return reportRepository.totalReport(schoolId,staffUid,session,sectionId);}
 }

@@ -38,7 +38,7 @@ if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notm
 }
 
 # Use process arguments to override stale beta DB/profile/write-mode environment settings.
-$url = 'jdbc:sqlserver://127.0.0.1:1433;databaseName=dpsbsr_edufox_net;integratedSecurity=true;authenticationScheme=NativeAuthentication;encrypt=false;trustServerCertificate=true;loginTimeout=5'
+$url = 'jdbc:sqlserver://127.0.0.1:1433;databaseName=dpsbsr_edufox_net;integratedSecurity=true;authenticationScheme=NativeAuthentication;encrypt=true;trustServerCertificate=true;loginTimeout=5'
 if (-not $env:JWT_SECRET) {
     $bytes = New-Object byte[] 48
     $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()

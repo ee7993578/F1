@@ -139,6 +139,19 @@ html.dark input:focus, html.dark select:focus, html.dark textarea:focus {
   box-shadow: 0 0 0 2px rgba(99,102,241,0.25);
 }
 
+/* Staff pages use a compact shared shell; keep legacy page-specific panels in
+   the same dark palette as the rest of the application. */
+html.dark .staff-page .bg-white:not(input):not(select):not(textarea) { background-color: #1a1f35 !important; }
+html.dark .staff-page .text-slate-800 { color: #f1f5f9 !important; }
+html.dark .staff-page .text-slate-700 { color: #e2e8f0 !important; }
+html.dark .staff-page .text-slate-600 { color: #cbd5e1 !important; }
+html.dark .staff-page .text-slate-500 { color: #94a3b8 !important; }
+html.dark .staff-page .text-slate-400 { color: #94a3b8 !important; }
+html.dark .staff-page .border-slate-200 { border-color: rgba(99,102,241,0.2) !important; }
+html.dark .staff-page .border-slate-100 { border-color: rgba(99,102,241,0.1) !important; }
+html.dark .staff-page .bg-slate-50 { background-color: rgba(255,255,255,0.03) !important; }
+html.dark .staff-page .hover\:bg-slate-50:hover { background-color: rgba(255,255,255,0.03) !important; }
+
 /* ── Button 3d press ── */
 .btn-3d {
   transform: translateY(0);

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Repository
@@ -263,11 +265,11 @@ public class AttendanceRepository {
                 AND st.stu_id=ad.stu_id AND st.session=ad.session
             LEFT JOIN student_other_info so ON so.school_id=st.school_id
                 AND so.registration_no=st.registration_no AND so.uid=st.uid
-            WHERE ad.school_id=? AND ad.session=? AND st.sec_id=?
+            WHERE ad.school_id=? AND ad.session=? AND (?=0 OR st.sec_id=?)
               AND (NULLIF(LTRIM(RTRIM(?)),'') IS NULL OR st.registration_no=?)
               AND CAST(TRY_CONVERT(date,ad.att_date) AS date) BETWEEN CAST(? AS date) AND CAST(? AS date)
             ORDER BY CAST(TRY_CONVERT(date,ad.att_date) AS date),st.registration_no
-            """, schoolId, session, sectionId, admissionNo, admissionNo, f, t);
+            """, schoolId, session, sectionId, sectionId, admissionNo, admissionNo, f, t);
     }
 
     /**
@@ -277,16 +279,16 @@ public class AttendanceRepository {
     public int deleteRows(String schoolId, String session, int sectionId, String admissionNo,
                           String from, String to, String deletedBy) {
         String f = normalizeDate(from).toString(), t = normalizeDate(to).toString();
-        Object[] args = {schoolId, session, sectionId, admissionNo, admissionNo, f, t};
+        Object[] args = {schoolId, session, sectionId, sectionId, admissionNo, admissionNo, f, t};
         Integer count = jdbc.queryForObject("""
             SELECT COUNT(*)
             FROM day_attendance ad
             JOIN TB_StudentMaster st ON st.school_id=ad.school_id
                 AND st.stu_id=ad.stu_id AND st.session=ad.session
-            WHERE ad.school_id=? AND ad.session=? AND st.sec_id=?
+            WHERE ad.school_id=? AND ad.session=? AND (?=0 OR st.sec_id=?)
               AND (NULLIF(LTRIM(RTRIM(?)),'') IS NULL OR st.registration_no=?)
               AND CAST(TRY_CONVERT(date,ad.att_date) AS date) BETWEEN CAST(? AS date) AND CAST(? AS date)
-            """, Integer.class, args);
+            """, Integer.class, schoolId, session, sectionId, sectionId, admissionNo, admissionNo, f, t);
         if (count == null || count == 0) return 0;
 
         jdbc.update("""
@@ -296,16 +298,16 @@ public class AttendanceRepository {
             FROM day_attendance ad
             JOIN TB_StudentMaster st ON st.school_id=ad.school_id
                 AND st.stu_id=ad.stu_id AND st.session=ad.session
-            WHERE ad.school_id=? AND ad.session=? AND st.sec_id=?
+            WHERE ad.school_id=? AND ad.session=? AND (?=0 OR st.sec_id=?)
               AND (NULLIF(LTRIM(RTRIM(?)),'') IS NULL OR st.registration_no=?)
               AND CAST(TRY_CONVERT(date,ad.att_date) AS date) BETWEEN CAST(? AS date) AND CAST(? AS date)
-            """, deletedBy, schoolId, session, sectionId, admissionNo, admissionNo, f, t);
+            """, deletedBy, schoolId, session, sectionId, sectionId, admissionNo, admissionNo, f, t);
         jdbc.update("""
             DELETE ad
             FROM day_attendance ad
             JOIN TB_StudentMaster st ON st.school_id=ad.school_id
                 AND st.stu_id=ad.stu_id AND st.session=ad.session
-            WHERE ad.school_id=? AND ad.session=? AND st.sec_id=?
+            WHERE ad.school_id=? AND ad.session=? AND (?=0 OR st.sec_id=?)
               AND (NULLIF(LTRIM(RTRIM(?)),'') IS NULL OR st.registration_no=?)
               AND CAST(TRY_CONVERT(date,ad.att_date) AS date) BETWEEN CAST(? AS date) AND CAST(? AS date)
             """, args);
@@ -430,6 +432,107 @@ public class AttendanceRepository {
         return jdbc.queryForList(q,args.toArray());
     }
 
+    /**
+     * Direct SQL equivalent of RFIDAttendance.aspx -> RFIDAttendance_Report.aspx.
+     * The legacy report is a student-by-day matrix, so the API returns dynamic
+     * columns for the selected month (or the selected date only).
+     */
+    public Map<String, Object> rfidMatrix(String schoolId, String session, int sectionId,
+                                          int year, int month, String requestedDate) {
+        LocalDate selectedDate = text(requestedDate).isBlank() ? null : normalizeDate(requestedDate);
+        YearMonth period = month > 0 && year > 0 ? YearMonth.of(year, month) : null;
+        LocalDate start = selectedDate != null ? selectedDate.withDayOfMonth(1)
+            : period != null ? period.atDay(1) : LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonthValue(), 1);
+        LocalDate endExclusive = selectedDate != null ? selectedDate.plusDays(1)
+            : period != null ? period.plusMonths(1).atDay(1) : start.plusMonths(1);
+        LocalDate eligibilityDate = selectedDate != null ? selectedDate
+            : period != null ? period.atEndOfMonth() : start;
+
+        String sectionClause = sectionId > 0 ? " AND s.sec_id=? " : " ";
+        String studentSql = """
+            SELECT s.stu_id AS studentId,s.registration_no AS registrationNo,
+                   LTRIM(RTRIM(COALESCE(so.first_name,'')+' '+COALESCE(so.mid_name,'')+' '+COALESCE(so.last_name,''))) AS studentName,
+                   s.class_id AS classId,s.sec_id AS sectionId,
+                   cn.class_name+' ('+c.section+')' AS className
+            FROM TB_StudentMaster s
+            LEFT JOIN student_other_info so ON so.school_id=s.school_id AND so.registration_no=s.registration_no
+            LEFT JOIN TB_Class c ON c.school_id=s.school_id AND c.sec_id=s.sec_id
+            LEFT JOIN class_name cn ON cn.school_id=c.school_id AND cn.id=c.class_id
+            WHERE s.school_id=? AND s.session=? %s
+              AND LOWER(s.status) IN ('registered','withdrawn')
+              AND ((LOWER(s.status)='withdrawn' AND TRY_CONVERT(date,s.withdrawn_date)>=?)
+                   OR (LOWER(s.status)='registered' AND TRY_CONVERT(date,s.admission_date)<=?))
+            ORDER BY s.class_id,s.sec_id,REPLACE(COALESCE(so.first_name,''),' ',''),
+                     CASE WHEN REPLACE(COALESCE(so.mid_name,''),' ','')='' THEN REPLACE(COALESCE(so.last_name,''),' ','') ELSE REPLACE(COALESCE(so.mid_name,''),' ','') END,
+                     s.registration_no
+            """.formatted(sectionClause);
+        List<Object> studentArgs = new ArrayList<>(List.of(schoolId, session));
+        if (sectionId > 0) studentArgs.add(sectionId);
+        studentArgs.add(eligibilityDate.toString());
+        studentArgs.add(eligibilityDate.toString());
+        List<Map<String, Object>> students = jdbc.queryForList(studentSql, studentArgs.toArray());
+
+        String scanSql = """
+            SELECT EntityId,AttendanceStatus,CAST(AttendanceDate AS date) AS attendanceDay,
+                   CASE WHEN CAST(AttendanceTime AS time)='00:00:00' THEN '' ELSE CONVERT(varchar(100),AttendanceTime,100) END AS attendanceTime
+            FROM (
+                SELECT EntityId,AttendanceStatus,AttendanceDate,AttendanceTime,
+                       ROW_NUMBER() OVER(PARTITION BY EntityId,AttendanceStatus,CAST(AttendanceDate AS date)
+                                         ORDER BY AttendanceTime) AS rn
+                FROM RFID_Attendance
+                WHERE school_id=? AND UserType='Student' AND AttendanceType='Campus'
+                  AND CAST(AttendanceDate AS date)>=? AND CAST(AttendanceDate AS date)<?
+            ) x WHERE rn=1
+            """;
+        List<Map<String, Object>> scans = jdbc.queryForList(scanSql, schoolId, start.toString(), endExclusive.toString());
+        Map<String, String> scanValues = new LinkedHashMap<>();
+        for (Map<String, Object> scan : scans) {
+            String entity = text(scan.get("EntityId"));
+            LocalDate day = toLocalDate(scan.get("attendanceDay"));
+            if (day == null) continue;
+            scanValues.putIfAbsent(entity + "|" + day + "|" + text(scan.get("AttendanceStatus")).toUpperCase(Locale.ROOT), text(scan.get("attendanceTime")));
+        }
+
+        int firstDay = selectedDate != null ? selectedDate.getDayOfMonth() : 1;
+        int lastDay = selectedDate != null ? selectedDate.getDayOfMonth() : endExclusive.minusDays(1).getDayOfMonth();
+        List<Map<String, Object>> columns = new ArrayList<>();
+        columns.add(column("sno", "S.No."));
+        columns.add(column("registrationNo", "Registration No"));
+        columns.add(column("studentName", "Student Name"));
+        columns.add(column("className", "Class"));
+        for (int day = firstDay; day <= lastDay; day++) {
+            columns.add(column("day_" + day + "_IN", day + " IN"));
+            columns.add(column("day_" + day + "_OUT", day + " OUT"));
+        }
+        List<Map<String, Object>> rows = new ArrayList<>();
+        int serial = 1;
+        for (Map<String, Object> student : students) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            String registration = text(student.get("registrationNo"));
+            row.put("sno", serial++);
+            row.put("registrationNo", registration);
+            row.put("studentName", student.get("studentName"));
+            row.put("className", student.get("className"));
+            for (int day = firstDay; day <= lastDay; day++) {
+                LocalDate scanDate = selectedDate != null ? selectedDate : YearMonth.of(start.getYear(), start.getMonthValue()).atDay(day);
+                row.put("day_" + day + "_IN", scanValues.getOrDefault(registration + "|" + scanDate + "|IN", ""));
+                row.put("day_" + day + "_OUT", scanValues.getOrDefault(registration + "|" + scanDate + "|OUT", ""));
+            }
+            rows.add(row);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("mode", "rfid-matrix");
+        result.put("columns", columns);
+        result.put("rows", rows);
+        result.put("schoolName", firstString("SELECT TOP 1 schoolname FROM schoolmaster WHERE school_id=?", schoolId));
+        result.put("session", session);
+        result.put("date", selectedDate == null ? "" : selectedDate.toString());
+        result.put("year", start.getYear());
+        result.put("month", start.getMonthValue());
+        result.put("monthName", start.getMonth().toString());
+        return result;
+    }
+
     private List<Map<String,Object>> months(String schoolId,String session,Integer classId,Integer selectedTerm){
         if(classId==null)return List.of();
         List<Map<String,Object>> bounds=selectedTerm==null
@@ -450,12 +553,19 @@ public class AttendanceRepository {
     private static String yearStart(String session){return session==null||session.length()<4?session:session.substring(0,4);}
     private static String yearEnd(String session){return session==null||session.length()<4?session:session.substring(session.length()-4);}
     private static String text(Object o){return o==null?"":String.valueOf(o).trim();}
+    private static Map<String,Object> column(String key,String label){Map<String,Object> value=new LinkedHashMap<>();value.put("key",key);value.put("label",label);return value;}
     private static int integer(Object o){try{return Integer.parseInt(text(o));}catch(Exception e){return 0;}}
     private static BigDecimal decimal(Object o){try{return new BigDecimal(text(o).isBlank()?"0":text(o));}catch(Exception e){throw new IllegalArgumentException("Attendance values must be numeric");}}
     private static LocalDate normalizeDate(String raw){
         if(raw==null||raw.isBlank())throw new IllegalArgumentException("Date is required");String v=raw.trim();
         for(DateTimeFormatter f:List.of(DateTimeFormatter.ISO_LOCAL_DATE,DateTimeFormatter.ofPattern("dd MMM yyyy"),DateTimeFormatter.ofPattern("d MMM yyyy"),DateTimeFormatter.ofPattern("dd/MM/yyyy"),DateTimeFormatter.ofPattern("MM/dd/yyyy"))){try{return LocalDate.parse(v,f);}catch(DateTimeParseException ignored){}}
         throw new IllegalArgumentException("Invalid date: "+raw);
+    }
+    private static LocalDate toLocalDate(Object value) {
+        if (value instanceof java.sql.Date date) return date.toLocalDate();
+        if (value instanceof java.sql.Timestamp timestamp) return timestamp.toLocalDateTime().toLocalDate();
+        String raw = text(value);
+        return raw.length() >= 10 ? LocalDate.parse(raw.substring(0, 10)) : null;
     }
     private String firstString(String sql,Object...args){List<String>r=jdbc.query(sql,(rs,n)->rs.getString(1),args);return r.isEmpty()?null:r.get(0);}
 }

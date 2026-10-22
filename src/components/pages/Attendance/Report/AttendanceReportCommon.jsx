@@ -34,15 +34,18 @@ function Notice({ message, error = false }) {
 function ReportTable({ report, title, filename }) {
   const columns = report?.columns || []
   const rows = report?.rows || []
+  const [query, setQuery] = useState('')
+  const filteredRows = useMemo(() => {
+    const value = query.trim().toLowerCase()
+    return value ? rows.filter(row => columns.some(column => String(row?.[column.key] ?? '').toLowerCase().includes(value))) : rows
+  }, [columns, rows, query])
   return <div className={`${box} overflow-hidden`}>
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700">
       <div>
         <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">{title}</h2>
-        <p className="mt-0.5 text-xs text-slate-500">{rows.length} record{rows.length === 1 ? '' : 's'}</p>
+        <p className="mt-0.5 text-xs text-slate-500">Showing {filteredRows.length} of {rows.length} record{rows.length === 1 ? '' : 's'}</p>
       </div>
-      <Button kind="secondary" disabled={!rows.length} onClick={() => downloadExcel(filename, rows, columns)}>
-        <Download className="h-4 w-4" /> Export Excel
-      </Button>
+      <div className="flex flex-wrap items-center gap-2"><input className={`${control} w-56`} value={query} onChange={event => setQuery(event.target.value)} placeholder="Search report..." aria-label="Search report" /><Button kind="secondary" disabled={!filteredRows.length} onClick={() => downloadExcel(filename, filteredRows, columns)}><Download className="h-4 w-4" /> Export Excel</Button></div>
     </div>
     <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
@@ -50,10 +53,10 @@ function ReportTable({ report, title, filename }) {
           <tr>{columns.map(column => <th key={column.key} className="whitespace-nowrap px-3 py-3">{column.label}</th>)}</tr>
         </thead>
         <tbody>
-          {rows.map((row, index) => <tr key={`${row.studentId || row.registrationNo || row.sectionId || row.className || 'row'}-${index}`} className="border-t border-slate-100 dark:border-slate-700">
+          {filteredRows.map((row, index) => <tr key={`${row.studentId || row.registrationNo || row.sectionId || row.className || 'row'}-${index}`} className="border-t border-slate-100 dark:border-slate-700">
             {columns.map(column => <td key={column.key} className={`whitespace-nowrap px-3 py-2.5 ${row.className === 'Total' ? 'font-bold' : ''}`}>{row[column.key] ?? ''}</td>)}
           </tr>)}
-          {!rows.length && <tr><td colSpan={Math.max(columns.length, 1)} className="px-4 py-10 text-center text-slate-500">No Record Found.</td></tr>}
+          {!filteredRows.length && <tr><td colSpan={Math.max(columns.length, 1)} className="px-4 py-10 text-center text-slate-500">{rows.length ? 'No matching record found.' : 'No Record Found.'}</td></tr>}
         </tbody>
       </table>
     </div>
@@ -83,32 +86,55 @@ function SessionSelect({ meta, value, onChange }) {
 
 function PercentageReport() {
   const [session, setSession] = useState('')
-  const [sectionId, setSectionId] = useState('')
+  const [classIds, setClassIds] = useState([])
+  const [sectionIds, setSectionIds] = useState([])
+  const [fromPer, setFromPer] = useState('')
+  const [toPer, setToPer] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
   const [report, setReport] = useState(null)
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const { meta, error, load } = useReportBootstrap(session)
 
-  useEffect(() => { if (meta?.session && !session) { setSession(meta.session); setSectionId('') } }, [meta, session])
+  useEffect(() => { if (meta?.session && !session) { setSession(meta.session); setClassIds([]); setSectionIds([]) } }, [meta, session])
   const classes = meta?.percentageClasses || []
-  const changeSession = async event => { const next = event.target.value; setSession(next); setSectionId(''); setReport(null); await load(next) }
+  const dayWise = Number(meta?.attendanceType) === 2
+  const sections = (meta?.percentageSections || []).filter(row => !classIds.length || classIds.includes(String(row.classId)))
+  const changeSession = async event => { const next = event.target.value; setSession(next); setClassIds([]); setSectionIds([]); setReport(null); await load(next) }
+  const toggleClass = event => {
+    const next = [...event.target.selectedOptions].map(option => option.value)
+    setClassIds(next); setSectionIds(current => current.filter(id => (meta?.percentageSections || []).some(row => next.includes(String(row.classId)) && String(row.sectionId) === id))); setReport(null)
+  }
+  const toggleSection = event => { setSectionIds([...event.target.selectedOptions].map(option => option.value)); setReport(null) }
   const show = async () => {
     setMessage(''); setReport(null)
-    if (!session || !sectionId) return setMessage('Please select session and class.')
+    if (!session || !classIds.length) return setMessage('Please select session and class.')
+    if ((fromPer && !toPer) || (!fromPer && toPer)) return setMessage('Please enter both percentage limits.')
+    if (dayWise && ((fromDate && !toDate) || (!fromDate && toDate))) return setMessage('Please enter both attendance dates.')
     setLoading(true)
-    try { setReport(await apiFetch(`/attendance/reports/percentage?${new URLSearchParams({ session, sectionId })}`)) }
+    try {
+      const params = new URLSearchParams({ session, classIds: classIds.join(','), sectionIds: sectionIds.join(','), fromPer, toPer, fromDate: dayWise ? fromDate : '', toDate: dayWise ? toDate : '' })
+      setReport(await apiFetch(`/attendance/reports/percentage?${params}`))
+    }
     catch (e) { setMessage(e.message || 'Report could not be loaded.') }
     finally { setLoading(false) }
   }
   return <Page title="100% Attendance Report" error={error} loading={loading && !meta}>
     <FilterCard>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SessionSelect meta={meta} value={session} onChange={changeSession} />
-        <Field label="Select Class" required><select className={control} value={sectionId} onChange={e => { setSectionId(e.target.value); setReport(null) }}>
-          <option value="">&lt;-select-&gt;</option>{classes.map(row => <option key={row.sectionId} value={row.sectionId}>{row.label}</option>)}
+        <Field label="Select Class" required><select multiple size={Math.min(Math.max(classes.length, 3), 8)} className={control} value={classIds} onChange={toggleClass}>
+          {classes.map(row => <option key={row.classId} value={row.classId}>{row.label}</option>)}
         </select></Field>
-        <div className="flex items-end"><Button onClick={show} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{loading ? 'Loading...' : 'Show'}</Button></div>
+        <Field label="Select Section"><select multiple size={Math.min(Math.max(sections.length, 3), 8)} className={control} value={sectionIds} onChange={toggleSection} disabled={!classIds.length}>
+          {sections.map(row => <option key={row.sectionId} value={row.sectionId}>{row.label}</option>)}
+        </select></Field>
+        <Field label="Select Percentage"><div className="flex items-center gap-2"><input inputMode="numeric" maxLength={4} placeholder="From" className={control} value={fromPer} onChange={e => setFromPer(e.target.value.replace(/[^0-9.]/g, ''))} /><span>-</span><input inputMode="numeric" maxLength={4} placeholder="To" className={control} value={toPer} onChange={e => setToPer(e.target.value.replace(/[^0-9.]/g, ''))} /></div></Field>
+        {dayWise && <Field label="Enter Date"><div className="flex items-center gap-2"><input type="date" className={control} value={fromDate} onChange={e => setFromDate(e.target.value)} /><span>-</span><input type="date" className={control} value={toDate} onChange={e => setToDate(e.target.value)} /></div></Field>}
+        <div className="flex items-end gap-2"><Button onClick={show} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{loading ? 'Loading...' : 'Show'}</Button></div>
       </div>
+      <p className="text-xs text-slate-500">Multiple classes/sections can be selected. Leave sections blank to include all sections of the selected classes.</p>
       <Notice message={message} error />
     </FilterCard>
     {report && <ReportTable report={report} title="100% Attendance Report" filename="Attendance Report (100%).xls" />}
@@ -117,7 +143,7 @@ function PercentageReport() {
 
 function StatusReport() {
   const [session, setSession] = useState('')
-  const [classId, setClassId] = useState('')
+  const [sectionId, setSectionId] = useState('')
   const [date, setDate] = useState('')
   const [report, setReport] = useState(null)
   const [message, setMessage] = useState('')
@@ -126,12 +152,12 @@ function StatusReport() {
   const dayWise = Number(meta?.attendanceType) === 2
 
   useEffect(() => { if (meta?.session && !session) setSession(meta.session) }, [meta, session])
-  const changeSession = async event => { const next = event.target.value; setSession(next); setClassId(''); setReport(null); await load(next) }
+  const changeSession = async event => { const next = event.target.value; setSession(next); setSectionId(''); setReport(null); await load(next) }
   const show = async () => {
     setMessage(''); setReport(null)
-    if (!session || !classId || (dayWise && !date)) return setMessage(dayWise ? 'Please select session, class and attendance date.' : 'Please select session and class.')
+    if (!session || !sectionId || (dayWise && !date)) return setMessage(dayWise ? 'Please select session, section and attendance date.' : 'Please select session and section.')
     setLoading(true)
-    try { setReport(await apiFetch(`/attendance/reports/status?${new URLSearchParams({ session, classId, date: dayWise ? date : '' })}`)) }
+    try { setReport(await apiFetch(`/attendance/reports/status?${new URLSearchParams({ session, sectionId, date: dayWise ? date : '' })}`)) }
     catch (e) { setMessage(e.message || 'Report could not be loaded.') }
     finally { setLoading(false) }
   }
@@ -139,8 +165,8 @@ function StatusReport() {
     <FilterCard>
       <div className="grid gap-4 md:grid-cols-4">
         <SessionSelect meta={meta} value={session} onChange={changeSession} />
-        <Field label="Select Class" required><select className={control} value={classId} onChange={e => { setClassId(e.target.value); setReport(null) }}>
-          <option value="">&lt;-select-&gt;</option>{(meta?.statusClasses || []).map(row => <option key={row.id} value={row.id}>{row.label}</option>)}
+        <Field label="Select Section" required><select className={control} value={sectionId} onChange={e => { setSectionId(e.target.value); setReport(null) }}>
+          <option value="">&lt;-select-&gt;</option>{(meta?.statusSections || []).map(row => <option key={row.sectionId} value={row.sectionId}>{row.label}</option>)}
         </select></Field>
         {dayWise && <Field label="Attendance Date" required><input type="date" className={control} value={date} onChange={e => { setDate(e.target.value); setReport(null) }} /></Field>}
         <div className="flex items-end"><Button onClick={show} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{loading ? 'Loading...' : 'show'}</Button></div>
