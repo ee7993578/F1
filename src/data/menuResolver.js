@@ -16,7 +16,7 @@ const moduleAliases = {
 const moduleIdAliases = {
   1: 'examMaster', 4: 'fee', 5: 'transport', 10: 'library', 11: 'timetable',
   14: 'certificates', 16: 'communication', 19: 'attendance', 24: 'leave',
-  28: 'canteen', 31: 'website', 32: 'masterSetting', 6: 'hostel',
+  17: 'canteen', 28: 'canteen', 31: 'website', 32: 'masterSetting', 6: 'hostel',
 }
 
 // The legacy database contains several Fee page keys that do not match the
@@ -50,6 +50,10 @@ const legacyPageAliases = Object.fromEntries([
   ['EmailReport', 'EmailReport'],
   ['smsreport_new', 'SmsReport'],
   ['sentfeesms', 'SendSMS'],
+  ['send_sms_new', 'SendSMS'],
+  ['send_sms_new.aspx', 'SendSMS'],
+  ['sendsms', 'SendSmsGroup'],
+  ['sendsms.aspx', 'SendSmsGroup'],
   ['WaveOffLateFees', 'WaveOffLateFees'],
   ['WaveOffFees', 'WaveOffFees'],
   ['AssignOptional', 'AssignOptional'],
@@ -83,6 +87,21 @@ const legacyPageAliases = Object.fromEntries([
   ['vehiclemaster.aspx', 'VehicleMaster'],
   ['assign_transport', 'AssignTransport'],
   ['assign_transport.aspx', 'AssignTransport'],
+  // Uploads module pages are stored in the live menu with their legacy ASPX
+  // keys. Normalize them before PageRenderer receives the selected page.
+  ['Academic_planner', 'UploadAcademicPlanner'],
+  ['upload_daily_hw', 'UploadDailyHomework'],
+  ['upload_holiday_homework', 'UploadHolidayHomework'],
+  ['upload_syllabus', 'UploadSyllabus'],
+  ['Assignment', 'UploadAssignment'],
+  ['academic_planner_report', 'AcademicPlannerReport'],
+  ['assignment_report', 'AssignmentReport'],
+  ['daily_homework_report', 'DailyHomeworkReport'],
+  ['MobileApp_Coverage_report', 'MobileAppCoverageReport'],
+  ['show_daily_homework', 'ShowDailyHomework'],
+  ['show_syllabus', 'ShowSyllabus'],
+  ['School_calender', 'SchoolCalendar'],
+  ['DefineActivity', 'DefineActivity'],
   // Exam Master pages are returned by the legacy menu with ASPX-era keys.
   // Normalize them here so React never falls through to the placeholder page.
   ['marks_status_subjectwise_(Graph)', 'MarksStatusGraph'],
@@ -133,6 +152,34 @@ const legacyPageAliases = Object.fromEntries([
   ['Report_ExamResultDiscussion', 'Report_ExamResultDiscussion'],
   ['allstu_per', 'ClasswiseStudentPercentage'],
   ['deletemarks', 'DeleteMarks'],
+  // Tuckshop pages are stored in the database with their short legacy names.
+  // Resolve them to the React Canteen/Tuckshop workflows at the menu boundary.
+  ['expensegroup', 'ExpenseGroupMaster'],
+  ['expense_group', 'ExpenseGroupMaster'],
+  ['expensename', 'ExpenseNameMaster'],
+  ['expense_name', 'ExpenseNameMaster'],
+  ['assignexpense', 'AssignExpense'],
+  ['assign_expense', 'AssignExpense'],
+  ['updatecreditbalance', 'UpdateCreditBalance'],
+  ['update_credit_balance', 'UpdateCreditBalance'],
+  ['assignexpensereport', 'TuckshopAssignExpenseReport'],
+  ['tuckshop_assign_expense_reports', 'TuckshopAssignExpenseReport'],
+  ['productgroup', 'ProductGroup'],
+  ['product_group', 'ProductGroup'],
+  ['productmaster', 'ProductMaster'],
+  ['product_master', 'ProductMaster'],
+  ['productissuedetail', 'TuckshopProductIssueDetail'],
+  ['tuckshop_product_issue_detail', 'TuckshopProductIssueDetail'],
+  ['productreport', 'TuckshopReport'],
+  ['tuckshop_report', 'TuckshopReport'],
+  ['printinvoice', 'PrintInvoice'],
+  ['print_invoice', 'PrintInvoice'],
+  ['debitcreditbalancereport', 'DebitCreditBalanceReport'],
+  ['debitcredit_balancereport', 'DebitCreditBalanceReport'],
+  ['remainingproductreport', 'RemainingProductReport'],
+  ['remainingproduct_report', 'RemainingProductReport'],
+  ['productbalancereport', 'ProductBalanceReport'],
+  ['product_balance_report', 'ProductBalanceReport'],
   // Student pages are returned by the live menu with their ASPX-era keys.
   // Keep the database key at this boundary, then render the React page below.
   ['student-registration', 'studentRegistration'],
@@ -164,6 +211,29 @@ const legacyPageAliases = Object.fromEntries([
   ['faculty_free_lec', 'FacultyFreePeriod'],
   ['facultywisetimetable_report', 'CompleteTimeTableReport'],
   ['arrangement', 'ArrangementReport'],
+  // Library pages retain their ASPX-era database keys; these aliases select
+  // the live React Library module and keep Report/Setup pages from falling
+  // through to GenericPage.
+  ['Book_language', 'ItemLanguage'],
+  ['item_frequency_master', 'ItemFrequencyMaster'],
+  ['lib_book_category', 'ItemCategory'],
+  ['item_type_master', 'ItemTypeMaster'],
+  ['Item_rules_master', 'ItemRulesMaster'],
+  ['publisher_category', 'PublisherCategory'],
+  ['supplier_category', 'SupplierCategory'],
+  ['Publisher_entrymaster', 'PublisherEntry'],
+  ['supplier_entrymaster', 'SupplierEntry'],
+  ['item_entry_master', 'ItemEntryMaster'],
+  ['Issue_book', 'Issue_book'],
+  ['Book_list', 'BookList'],
+  ['Books_issue_return_detail', 'BooksIssueReturnDetail'],
+  ['Defaulter_report', 'DefaulterReport'],
+  ['Issue_return_details', 'IssueReturnDetails'],
+  ['Renew_details', 'RenewDetails'],
+  ['Stu_report_return_date', 'ReturnDateReport'],
+  ['Slow_moving_stock', 'SlowMovingStock'],
+  ['Stock_in_hand', 'StockInHand'],
+  ['member_category', 'MemberCategory'],
 ].map(([legacy, reactId]) => [key(legacy), reactId]))
 
 const field = (value, ...names) => {
@@ -288,6 +358,23 @@ export function resolveMenu(serverMenu) {
     }
 
     const groups = [...buckets.values()]
+    // The old Library menu has a few report/setup pages that are present in
+    // the supplied ASPX set but absent from some schools' database menu rows.
+    // Keep those real pages visible when the Library module is loaded; they
+    // are still rendered through the same permission-gated application shell.
+    if (staticModule?.id === 'library') {
+      for (const staticGroup of staticModule.groups || []) {
+        let bucket = buckets.get(staticGroup.id)
+        if (!bucket) {
+          bucket = { ...staticGroup, pages: [] }
+          buckets.set(staticGroup.id, bucket)
+          groups.push(bucket)
+        }
+        for (const staticPage of staticGroup.pages || []) {
+          if (!bucket.pages.some((item) => item.id === staticPage.id)) bucket.pages.push({ ...staticPage })
+        }
+      }
+    }
     groups.sort((a, b) => {
       const ai = staticModule?.groups.findIndex((group) => group.id === a.id) ?? -1
       const bi = staticModule?.groups.findIndex((group) => group.id === b.id) ?? -1

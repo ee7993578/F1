@@ -1,0 +1,28 @@
+
+  VITE v6.4.3  ready in 1302 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.1.105:5173/
+11:01:28 am [vite] (client) hmr update /src/App.jsx, /src/index.css, /src/components/pages/MasterSetting/Work/DefineStaffRole.jsx
+11:24:36 am [vite] (client) hmr update /src/index.css, /src/components/pages/PageRenderer.jsx
+11:43:29 am [vite] (client) hmr update /src/components/pages/PageRenderer.jsx, /src/index.css
+11:43:31 am [vite] (client) hmr update /src/App.jsx, /src/index.css, /src/components/pages/MasterSetting/Work/DefineStaffRole.jsx
+11:43:33 am [vite] (client) hmr update /src/App.jsx, /src/index.css, /src/components/pages/MasterSetting/Work/DefineStaffRole.jsx
+11:45:30 am [vite] (client) hmr update /src/App.jsx, /src/index.css, /src/components/pages/MasterSetting/Work/DefineStaffRole.jsx
+11:58:44 am [vite] (client) hmr update /src/components/pages/Library/LibraryModule.jsx, /src/index.css
+11:59:13 am [vite] (client) hmr update /src/components/pages/Library/LibraryModule.jsx, /src/index.css
+12:25:14 pm [vite] (client) hmr update /src/components/pages/Communication/Work/SendSMS.jsx, /src/index.css
+12:25:30 pm [vite] (client) hmr update /src/components/pages/Communication/Work/SendSMS.jsx
+12:25:36 pm [vite] (client) hmr update /src/components/pages/Communication/Work/SendSmsGroup.jsx, /src/index.css
+12:25:51 pm [vite] (client) hmr update /src/components/pages/Communication/Work/SendSmsGroup.jsx
+12:25:56 pm [vite] (client) hmr update /src/components/pages/Communication/Report/EmailReport.jsx, /src/index.css
+12:26:07 pm [vite] (client) hmr update /src/components/pages/Communication/Report/EmailReport.jsx
+12:26:12 pm [vite] (client) hmr update /src/components/pages/Communication/Report/SmsReport.jsx, /src/index.css
+12:26:22 pm [vite] (client) hmr update /src/components/pages/Communication/Report/SmsReport.jsx
+12:26:27 pm [vite] (client) hmr update /src/App.jsx, /src/index.css, /src/components/pages/MasterSetting/Work/DefineStaffRole.jsx
+12:33:19 pm [vite] (client) hmr update /src/components/pages/Communication/CommunicationShared.jsx, /src/index.css
+12:33:20 pm [vite] (client) hmr invalidate /src/components/pages/Communication/CommunicationShared.jsx Could not Fast Refresh ("downloadExcel" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:33:20 pm [vite] (client) hmr update /src/index.css, /src/components/pages/Communication/Work/SendSMS.jsx, /src/components/pages/Communication/Work/SendSmsGroup.jsx, /src/components/pages/Communication/Report/EmailReport.jsx, /src/components/pages/Communication/Report/SmsReport.jsx
+12:39:41 pm [vite] (client) page reload src/components/pages/Fee/Update/FeeNotice.jsx
+12:40:04 pm [vite] (client) page reload src/components/pages/Fee/Update/FeeNotice.jsx
+1:11:44 pm [vite] (client) hmr update /src/App.jsx, /src/index.css, /src/components/pages/MasterSetting/Work/DefineStaffRole.jsx

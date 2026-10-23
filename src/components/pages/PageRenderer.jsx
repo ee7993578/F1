@@ -275,6 +275,7 @@ import ItemFrequencyMaster from './Library/Setup/ItemFrequencyMaster'
 import ItemLanguage from './Library/Setup/ItemLanguage'
 import ItemRulesMaster from './Library/Setup/ItemRulesMaster'
 import ItemTypeMaster from './Library/Setup/ItemTypeMaster'
+import LibraryModule from './Library/LibraryModule'
 
 
 //website work start from here 
@@ -286,6 +287,21 @@ import UploadTC from './WebSite/Work/UploadTC'
 import PhotoGallery from './WebSite/Work/PhotoGallery'
 import LatestEvents from './WebSite/Work/LatestEvents'
 import ShowUploadExamSchedule from './WebSite/Report/ShowUploadExamSchedule'
+
+// Uploads module
+import UploadAcademicPlanner from './Uploads/Work/AcademicPlanner'
+import UploadAssignment from './Uploads/Work/Assignment'
+import UploadDailyHomework from './Uploads/Work/UploadDailyHomework'
+import UploadHolidayHomework from './Uploads/Work/UploadHolidayHomework'
+import UploadSyllabus from './Uploads/Work/UploadSyllabus'
+import AcademicPlannerReport from './Uploads/Report/AcademicPlannerReport'
+import AssignmentReport from './Uploads/Report/AssignmentReport'
+import DailyHomeworkReport from './Uploads/Report/DailyHomeworkReport'
+import MobileAppCoverageReport from './Uploads/Report/MobileAppCoverageReport'
+import ShowDailyHomework from './Uploads/Report/ShowDailyHomework'
+import ShowSyllabus from './Uploads/Report/ShowSyllabus'
+import SchoolCalendar from './Uploads/Setup/SchoolCalendar'
+import DefineActivity from './Uploads/Setup/DefineActivity'
 
 
 //ExamMaster start from here 
@@ -606,6 +622,7 @@ if (pageId === 'TC_Report') return <TC_Report />
 if (pageId === 'TCReport') return <TCReport />
 
 //Library work start from here 
+if (['Issue_book','ItemEntryMaster','PublisherEntry','SupplierEntry','BookList','BookReturnReport','BooksIssueReturnDetail','DefaulterReport','RenewDetails','ReturnDateReport','IssueReturnDetails','LibraryCategoryReport','SlowMovingStock','StockInHand','SupplierCategory','PublisherCategory','ItemCategory','ItemFrequencyMaster','ItemLanguage','ItemRulesMaster','ItemTypeMaster','MemberCategory'].includes(pageId)) return <LibraryModule pageId={pageId} />
 if (pageId === 'Issue_book') return <Issue_book />
 if (pageId === 'ItemEntryMaster') return <ItemEntryMaster />
 if (pageId === 'PublisherEntry') return <PublisherEntry />
@@ -637,6 +654,21 @@ if (pageId === 'PhotoGallery') return <PhotoGallery />
 if (pageId === 'LatestEvents') return <LatestEvents />
 
 if (pageId === 'ShowUploadExamSchedule') return <ShowUploadExamSchedule />
+
+// Uploads module
+if (pageId === 'UploadAcademicPlanner') return <UploadAcademicPlanner />
+if (pageId === 'UploadAssignment') return <UploadAssignment />
+if (pageId === 'UploadDailyHomework') return <UploadDailyHomework />
+if (pageId === 'UploadHolidayHomework') return <UploadHolidayHomework />
+if (pageId === 'UploadSyllabus') return <UploadSyllabus />
+if (pageId === 'AcademicPlannerReport') return <AcademicPlannerReport />
+if (pageId === 'AssignmentReport') return <AssignmentReport />
+if (pageId === 'DailyHomeworkReport') return <DailyHomeworkReport />
+if (pageId === 'MobileAppCoverageReport') return <MobileAppCoverageReport />
+if (pageId === 'ShowDailyHomework') return <ShowDailyHomework />
+if (pageId === 'ShowSyllabus') return <ShowSyllabus />
+if (pageId === 'SchoolCalendar') return <SchoolCalendar />
+if (pageId === 'DefineActivity') return <DefineActivity />
 
 //ExamMaster work start from here 
 

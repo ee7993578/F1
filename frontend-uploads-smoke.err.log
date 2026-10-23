@@ -1,0 +1,12 @@
+npm notice run school-erp@1.0.0 dev
+npm notice run vite --host 0.0.0.0
+10:41:42 am [vite] (client) warning: Duplicate "color" attribute in JSX element
+634|              value={`₹${totals.charges.toLocaleString('en-IN')}`}
+635|              color="orange"
+636|              color="amber" />
+   |              ^
+637|            
+638|              <SummaryCard
+
+  Plugin: vite:esbuild
+  File: D:/Kachra/Codex/New/src/components/pages/Canteen/Report/TuckshopAssignExpenseReport.jsx

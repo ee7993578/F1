@@ -344,6 +344,11 @@ export const MENU_DATA = [
     { id: 'BooksIssueReturnDetail', label: 'Books Issue Return Detail' },
     { id: 'DefaulterReport', label: 'Defaulter Report' },
     { id: 'RenewDetails', label: 'Renew Details' },
+    { id: 'ReturnDateReport', label: 'Student Report Return Date' },
+    { id: 'IssueReturnDetails', label: 'Issue Return Details' },
+    { id: 'LibraryCategoryReport', label: 'Library Book Category' },
+    { id: 'SlowMovingStock', label: 'Slow Moving Stock' },
+    { id: 'StockInHand', label: 'Stock In Hand' },
   ],
 },{
   id: 'library_setup',
@@ -357,6 +362,7 @@ export const MENU_DATA = [
     { id: 'ItemLanguage', label: 'Item Language' },
     { id: 'ItemRulesMaster', label: 'Item Rules Master' },
     { id: 'ItemTypeMaster', label: 'Item Type Master' },
+    { id: 'MemberCategory', label: 'Member Category' },
   ],
 }
   ],
@@ -388,6 +394,47 @@ export const MENU_DATA = [
     },
   ],
 },
+
+  {
+    id: 'uploads',
+    label: 'Uploads',
+    groups: [
+      {
+        id: 'uploads_work',
+        label: 'Work',
+        icon: 'FilePlus',
+        pages: [
+          { id: 'UploadAcademicPlanner', label: 'Upload Academic Planner' },
+          { id: 'UploadHolidayHomework', label: 'Upload Holiday Homework' },
+          { id: 'UploadSyllabus', label: 'Upload Syllabus' },
+          { id: 'UploadDailyHomework', label: 'Upload Daily Homework' },
+          { id: 'UploadAssignment', label: 'Upload Assignment' },
+        ],
+      },
+      {
+        id: 'uploads_report',
+        label: 'Reports',
+        icon: 'FileText',
+        pages: [
+          { id: 'ShowSyllabus', label: 'Show Syllabus' },
+          { id: 'AcademicPlannerReport', label: 'Academic Planner Report' },
+          { id: 'MobileAppCoverageReport', label: 'MobileApp Coverage Report' },
+          { id: 'ShowDailyHomework', label: 'Daily Home Work' },
+          { id: 'AssignmentReport', label: 'Assignment Report' },
+          { id: 'DailyHomeworkReport', label: 'Class Wise Daily Homework' },
+        ],
+      },
+      {
+        id: 'uploads_setup',
+        label: 'Setup',
+        icon: 'CheckSquare',
+        pages: [
+          { id: 'SchoolCalendar', label: 'Calender' },
+          { id: 'DefineActivity', label: 'Activity' },
+        ],
+      },
+    ],
+  },
 
   //May be incorrect
 {
