@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { resolveMenu } from '../data/menuResolver'
-import { apiFetch } from '../lib/api'
+import { apiFetch, setLoaderBranding } from '../lib/api'
 import { useAuth } from '../auth/AuthContext'
 
 const DEFAULT_MODULE = 'dashboard'
@@ -17,6 +17,15 @@ const canonicalPageToken = (value) => {
 const pageMatches = (page, activePage) => {
   const active = canonicalPageToken(activePage)
   return [page?.id, page?.pageKey, page?.pageName, page?.url, page?.label].some((value) => canonicalPageToken(value) === active)
+}
+
+const isStudentDashboardPage = (page) => {
+  const values = [page?.id, page?.pageId, page?.pageKey, page?.pageName, page?.url, page?.label]
+    .filter(Boolean)
+    .map((value) => pageToken(value))
+  return values.some((value) => [
+    'student', 'studentaspx', 'studentdashboard', 'studentportaldashboard', 'dashboardstudent',
+  ].includes(value) || /student.*dashboard|dashboard.*student/.test(value))
 }
 
 export function useERP() {
@@ -40,12 +49,13 @@ export function useERP() {
         if (!mounted) return
         const resolved = resolveMenu(response)
         setMenuData(resolved)
-        setMenuMeta({ schoolName: response.schoolName || '', session: response.session || '' })
+        setMenuMeta({ schoolName: response.schoolName || '', schoolLogo: response.schoolLogo || response.logo || '', session: response.session || '' })
+        setLoaderBranding({ schoolName: response.schoolName, logoPath: response.schoolLogo || response.logo })
         const portalUser = ['S', 'P'].includes(String(user?.typeStatus || '').toUpperCase())
         if (portalUser) {
           const studentModule = resolved.find(module => module.id === 'student') || resolved[0]
-          const studentGroup = studentModule?.groups?.[0]
-          const studentPage = studentGroup?.pages?.[0]
+          const studentGroup = studentModule?.groups?.find(group => group.pages?.some(isStudentDashboardPage)) || studentModule?.groups?.[0]
+          const studentPage = studentGroup?.pages?.find(isStudentDashboardPage) || studentGroup?.pages?.[0]
           if (studentModule) {
             setActiveModuleState(studentModule.id)
             setActiveGroupState(studentGroup?.id || '')

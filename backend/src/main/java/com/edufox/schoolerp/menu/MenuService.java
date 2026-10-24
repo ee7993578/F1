@@ -35,7 +35,15 @@ public class MenuService {
     private MenuDtos.MenuResponse studentMenu(String schoolId, String role, String schoolName, String session,
                                                String address, String phone, String logo) {
         String userType = "parent".equals(role) ? "P" : "S";
-        List<MenuDtos.Page> pages = repository.findStudentPages(schoolId, userType).stream()
+        List<MenuRepository.StudentPageRow> configuredPages = repository.findStudentPages(schoolId, userType);
+        // Some legacy schools store the common portal catalogue only under the
+        // student user type.  GroupMaster exposed that same catalogue to a
+        // parent login as well, so retain that fallback instead of returning an
+        // empty Work group for parents.
+        if (configuredPages.isEmpty() && "P".equals(userType)) {
+            configuredPages = repository.findStudentPages(schoolId, "S");
+        }
+        List<MenuDtos.Page> pages = configuredPages.stream()
             .map(p -> new MenuDtos.Page(numericId(p.pageId()), pageKey(p.pageUrl(), p.pageId()), p.pageName(),
                 p.pageUrl(), "", p.priority(), "student", "student")).toList();
         return new MenuDtos.MenuResponse(schoolName, session, address, phone, logo,

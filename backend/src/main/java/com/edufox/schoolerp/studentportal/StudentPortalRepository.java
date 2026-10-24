@@ -59,9 +59,10 @@ public class StudentPortalRepository {
     public StudentContext resolve(String school, String session, String staffUid, String subject, String role, String requestedStudent) {
         String selected = s(requestedStudent);
         if (selected.isBlank() || "0".equals(selected)) selected = s(staffUid);
-        String relation = "parent".equalsIgnoreCase(role) ? "so.Parent_id=?" : "(so.Student_id=? OR CAST(st.stu_id AS varchar(50))=?)";
+        String relation = "parent".equalsIgnoreCase(role) ? "(so.Mobile=? OR so.Parent_id=?)" : "(so.Student_id=? OR CAST(st.stu_id AS varchar(50))=?)";
         List<Object> params = new ArrayList<>(List.of(school, session, selected));
         if ("parent".equalsIgnoreCase(role)) {
+            params.add(subject);
             params.add(subject);
         } else {
             params.add(subject);
@@ -83,9 +84,9 @@ public class StudentPortalRepository {
     }
 
     public List<Map<String, Object>> studentsForLogin(String school, String session, String staffUid, String subject, String role) {
-        String relation = "parent".equalsIgnoreCase(role) ? "so.Parent_id=?" : "(so.Student_id=? OR CAST(st.stu_id AS varchar(50))=?)";
+        String relation = "parent".equalsIgnoreCase(role) ? "(so.Mobile=? OR so.Parent_id=?)" : "(so.Student_id=? OR CAST(st.stu_id AS varchar(50))=?)";
         List<Object> params = new ArrayList<>(List.of(school, session));
-        if ("parent".equalsIgnoreCase(role)) params.add(subject); else { params.add(subject); params.add(staffUid); }
+        if ("parent".equalsIgnoreCase(role)) { params.add(subject); params.add(subject); } else { params.add(subject); params.add(staffUid); }
         return jdbc.queryForList("""
             SELECT DISTINCT st.stu_id AS studentId,st.registration_no AS registrationNo,
               UPPER(LTRIM(RTRIM(CONCAT(COALESCE(so.first_name,''),' ',COALESCE(so.mid_name,''),' ',COALESCE(so.last_name,''))))) AS studentName,
