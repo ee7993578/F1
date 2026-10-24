@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
-import { MENU_DATA } from '../data/menuData'
 import { resolveMenu } from '../data/menuResolver'
 import { apiFetch } from '../lib/api'
+import { useAuth } from '../auth/AuthContext'
 
 const DEFAULT_MODULE = 'dashboard'
 const DEFAULT_GROUP = 'allDashboard'
@@ -20,8 +20,11 @@ const pageMatches = (page, activePage) => {
 }
 
 export function useERP() {
-  const [menuData, setMenuData] = useState(MENU_DATA)
+  const { user } = useAuth()
+  const [menuData, setMenuData] = useState([])
   const [menuMeta, setMenuMeta] = useState({ schoolName: '', session: '' })
+  const [menuLoading, setMenuLoading] = useState(true)
+  const [menuError, setMenuError] = useState('')
   const [activeModule, setActiveModuleState] = useState(DEFAULT_MODULE)
   const [activeGroup, setActiveGroupState] = useState(DEFAULT_GROUP)
   const [activePage, setActivePageState] = useState(null)
@@ -30,15 +33,41 @@ export function useERP() {
 
   useEffect(() => {
     let mounted = true
+    setMenuLoading(true)
+    setMenuError('')
     apiFetch('/menu')
       .then((response) => {
         if (!mounted) return
-        setMenuData(resolveMenu(response))
+        const resolved = resolveMenu(response)
+        setMenuData(resolved)
         setMenuMeta({ schoolName: response.schoolName || '', session: response.session || '' })
+        const portalUser = ['S', 'P'].includes(String(user?.typeStatus || '').toUpperCase())
+        if (portalUser) {
+          const studentModule = resolved.find(module => module.id === 'student') || resolved[0]
+          const studentGroup = studentModule?.groups?.[0]
+          const studentPage = studentGroup?.pages?.[0]
+          if (studentModule) {
+            setActiveModuleState(studentModule.id)
+            setActiveGroupState(studentGroup?.id || '')
+            setActivePageState(studentPage?.id || null)
+            setIsDashboard(false)
+          }
+        } else if (!resolved.some(module => module.id === activeModule)) {
+          setActiveModuleState(resolved[0]?.id || '')
+          setActiveGroupState(resolved[0]?.groups?.[0]?.id || '')
+          setActivePageState(null)
+        }
       })
-      .catch(() => {})
+      .catch((cause) => {
+        if (!mounted) return
+        setMenuData([])
+        setMenuError(cause.message || 'Unable to load the permitted menu.')
+      })
+      .finally(() => {
+        if (mounted) setMenuLoading(false)
+      })
     return () => { mounted = false }
-  }, [])
+  }, [user?.schoolId, user?.typeStatus])
 
   const moduleData = menuData.find((m) => m.id === activeModule) || menuData[0]
   const setModule = useCallback((moduleId) => {
@@ -72,7 +101,7 @@ export function useERP() {
   const currentPage = currentGroup?.pages.find((p) => p.id === activePage || pageMatches(p, activePage)) || null
 
   return {
-    menuData, menuMeta, activeModule, activeGroup, activePage, moduleData, currentGroup, currentPage,
+    menuData, menuMeta, menuLoading, menuError, activeModule, activeGroup, activePage, moduleData, currentGroup, currentPage,
     isDrawerOpen, isDashboard, setModule, setGroup, setPage, goHome, toggleDrawer, closeDrawer,
   }
 }

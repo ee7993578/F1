@@ -4,7 +4,7 @@ $backendRoot = $PSScriptRoot
 $javaExe = (Get-Command java.exe -ErrorAction Stop).Source
 $jar = Join-Path $backendRoot 'target\school-erp-backend-0.1.0-SNAPSHOT.jar'
 $nativeDir = Join-Path $backendRoot '.local\native'
-$dll = Join-Path $nativeDir 'mssql-jdbc_auth-12.8.1.x64.dll'
+$dll = Join-Path $nativeDir 'mssql-jdbc_auth-12.6.4.x64.dll'
 
 if (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue) {
     throw 'Port 8080 is occupied. Identify and stop the existing project backend before starting this one.'
@@ -30,7 +30,7 @@ if (-not (Test-Path -LiteralPath $jar)) { throw 'Backend JAR not found. Run with
 
 if (-not (Test-Path -LiteralPath $dll)) {
     New-Item -ItemType Directory -Path $nativeDir -Force | Out-Null
-    Invoke-WebRequest -UseBasicParsing -Uri 'https://repo.maven.apache.org/maven2/com/microsoft/sqlserver/mssql-jdbc_auth/12.8.1.x64/mssql-jdbc_auth-12.8.1.x64.dll' -OutFile $dll -TimeoutSec 30
+    Invoke-WebRequest -UseBasicParsing -Uri 'https://repo.maven.apache.org/maven2/com/microsoft/sqlserver/mssql-jdbc_auth/12.6.4.x64/mssql-jdbc_auth-12.6.4.x64.dll' -OutFile $dll -TimeoutSec 30
 }
 $signature = Get-AuthenticodeSignature -LiteralPath $dll
 if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {

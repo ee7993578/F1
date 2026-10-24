@@ -596,6 +596,12 @@ export const MENU_DATA = [
         { id: 'HostelFees', label: 'Hostel Fees' },
       ],
     },
+    {
+      id: 'hostel_report', label: 'Reports', icon: 'FileText',
+      pages: [
+        { id: 'HostelAssignedReport', label: 'Assigned Hostel Report' },
+      ],
+    },
   ],
 },
 {

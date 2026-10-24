@@ -328,6 +328,22 @@ const pageIdentity = (page) => page.id || page.pageId || page.page_id || pageFil
 
 export function resolveMenu(serverMenu) {
   const modules = (serverMenu?.modules || []).map((module) => {
+    // Student/parent portal menus are already permission-filtered by the API.
+    // Do not merge them with the staff Student/Uploads static catalogue: keys
+    // such as show_syllabus intentionally exist in both areas.
+    const isStudentPortal = key(module.id) === 'student'
+      && (module.groups || []).some(group => (group.pages || []).some(page => page.type === 'student' || /studentportal|dashboard[\\/]student/i.test(String(page.url || ''))))
+    if (isStudentPortal) {
+      return {
+        ...module,
+        id: 'student',
+        label: 'Student',
+        groups: (module.groups || []).map(group => ({
+          ...group,
+          pages: (group.pages || []).map(page => ({ ...page, id: page.id || page.pageId, label: page.label || 'Page' })),
+        })),
+      }
+    }
     const staticModule = findStaticModule(module)
     const buckets = new Map()
 

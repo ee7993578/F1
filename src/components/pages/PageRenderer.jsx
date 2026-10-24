@@ -1,4 +1,5 @@
 import GenericPage from './GenericPage'
+import StudentPortalExact from './StundentPages/StudentPortalExact'
 
 // The legacy menu returns ASPX file names in different fields depending on
 // the school/menu record. Resolve those names at render time as a second line
@@ -63,6 +64,47 @@ const legacyTimetablePageIds = {
   virtualclassreport: 'VirtualClassReport',
 }
 
+const legacyLeavePageIds = {
+  leavetype: 'LeaveType',
+  wingincharge: 'WingIncharge',
+  leaveallocation: 'LeaveAllocation',
+  leaveapplyform: 'LeaveApplyForm',
+  leaveform: 'LeaveForm',
+  leavestaffapproval: 'LeaveStaffApproval',
+  facultytotalleave: 'FacultyTotalLeave',
+  leaveapproval: 'LeaveApproval',
+  leaveapprovalbyprincipal: 'LeaveApprovalByPrincipal',
+  leavereport: 'LeaveReport',
+  indentform: 'IndentForm',
+  indentformlist: 'IndentFormList',
+  indentformapproval: 'IndentFormApproval',
+  indentformapprovalprincipal: 'IndentFormApprovalPrincipal',
+}
+
+const legacyHostelPageIds = {
+  assignhostel: 'AssignHostel',
+  assignhostelaspx: 'AssignHostel',
+  hostelfees: 'HostelFees',
+  hostelfeesaspx: 'HostelFees',
+  hostelassignedreport: 'HostelAssignedReport',
+  hostelassignedreportaspx: 'HostelAssignedReport',
+}
+
+const legacyStudentPortalPageIds = {
+  student: 'StudentPortalDashboard',
+  studentaspx: 'StudentPortalDashboard',
+  showsyllabus: 'StudentPortalSyllabus',
+  showcircular: 'StudentPortalCirculars',
+  holidayhomework: 'StudentPortalHolidayHomework',
+  dailyhomework: 'StudentPortalDailyHomework',
+  showassignment: 'StudentPortalAssignments',
+  initiatestudentpayment: 'StudentPortalFees',
+  attendancereport: 'StudentPortalAttendance',
+  timetable: 'StudentPortalTimetable',
+  examschedule: 'StudentPortalExamSchedule',
+  acedmicperformance: 'StudentPortalAcademicPerformance',
+}
+
 const resolvedPageId = (page) => {
   const values = [page?.id, page?.pageId, page?.pageKey, page?.pageName, page?.url, page?.label]
     .filter(Boolean)
@@ -72,11 +114,17 @@ const resolvedPageId = (page) => {
     if (legacyStudentPageIds[value]) return legacyStudentPageIds[value]
     if (legacyAttendancePageIds[value]) return legacyAttendancePageIds[value]
     if (legacyTimetablePageIds[value]) return legacyTimetablePageIds[value]
+    if (legacyLeavePageIds[value]) return legacyLeavePageIds[value]
+    if (legacyHostelPageIds[value]) return legacyHostelPageIds[value]
+    if (legacyStudentPortalPageIds[value]) return legacyStudentPortalPageIds[value]
     const file = value.split('aspx')[0]
     if (legacyTransportPageIds[file]) return legacyTransportPageIds[file]
     if (legacyStudentPageIds[file]) return legacyStudentPageIds[file]
     if (legacyAttendancePageIds[file]) return legacyAttendancePageIds[file]
     if (legacyTimetablePageIds[file]) return legacyTimetablePageIds[file]
+    if (legacyLeavePageIds[file]) return legacyLeavePageIds[file]
+    if (legacyHostelPageIds[file]) return legacyHostelPageIds[file]
+    if (legacyStudentPortalPageIds[file]) return legacyStudentPortalPageIds[file]
   }
   return page?.id
 }
@@ -354,21 +402,8 @@ import DeleteMarks from './ExamMaster/Update/DeleteMarks'
 
 
 //May be incorrect 
-//Canteen work start from here
-import AssignExpense from './Canteen/Work/AssignExpense'
-import ExpenseGroupMaster from './Canteen/Work/ExpenseGroupMaster'
-import ExpenseNameMaster from './Canteen/Work/ExpenseNameMaster'
-import ProductMaster from './Canteen/Work/ProductMaster'
-import ProductGroup from './Canteen/Work/Product_Group'
-import UpdateCreditBalance from './Canteen/Work/UpdateCreditBalance'
-
-import DebitCreditBalanceReport from './Canteen/Report/DebitCreditBalanceReport'
-import PrintInvoice from './Canteen/Report/PrintInvoice'
-import ProductBalanceReport from './Canteen/Report/ProductBalanceReport'
-import RemainingProductReport from './Canteen/Report/RemainingProductReport'
-import TuckshopAssignExpenseReport from './Canteen/Report/TuckshopAssignExpenseReport'
-import TuckshopProductIssueDetail from './Canteen/Report/TuckshopProductIssueDetail'
-import TuckshopReport from './Canteen/Report/TuckshopReport'
+// Canteen work and reports
+import CanteenModulePage from './Canteen/CanteenModulePage'
 
 //Communication work start from here
 import SendSMS from './Communication/Work/SendSMS'
@@ -378,8 +413,7 @@ import EmailReport from './Communication/Report/EmailReport'
 import SmsReport from './Communication/Report/SmsReport'
 
 //Hostel work start from here
-import AssignHostel from './Hostel/Work/AssignHostel'
-import HostelFees from './Hostel/Work/HostelFees'
+import HostelModulePage from './Hostel/HostelModulePage'
 
 //MasterSetting work start from here
 import ChangeSectionName from './MasterSetting/Work/Change_Section_Name'
@@ -407,6 +441,7 @@ import LeaveApproval from './Leave/Work/LeaveApproval'
 import LeaveApprovalByPrincipal from './Leave/Work/LeaveApprovalByPrincipal'
 import LeaveForm from './Leave/Work/LeaveForm'
 import LeaveStaffApproval from './Leave/Work/LeaveStaffApproval'
+import LeaveModulePage from './Leave/LeaveModulePage'
 
 /**
  * Maps specific page IDs to dedicated components.
@@ -433,6 +468,18 @@ export default function PageRenderer({ moduleData, currentGroup, currentPage, on
 
   //Dashboard
   
+  if (pageId === 'StudentPortalDashboard') return <StudentPortalExact mode="dashboard" />
+  if (pageId === 'StudentPortalSyllabus') return <StudentPortalExact mode="syllabus" />
+  if (pageId === 'StudentPortalCirculars') return <StudentPortalExact mode="circulars" />
+  if (pageId === 'StudentPortalHolidayHomework') return <StudentPortalExact mode="holidayHomework" />
+  if (pageId === 'StudentPortalDailyHomework') return <StudentPortalExact mode="dailyHomework" />
+  if (pageId === 'StudentPortalAssignments') return <StudentPortalExact mode="assignments" />
+  if (pageId === 'StudentPortalFees') return <StudentPortalExact mode="fees" />
+  if (pageId === 'StudentPortalAttendance') return <StudentPortalExact mode="attendance" />
+  if (pageId === 'StudentPortalTimetable') return <StudentPortalExact mode="timetable" />
+  if (pageId === 'StudentPortalExamSchedule') return <StudentPortalExact mode="examSchedule" />
+  if (pageId === 'StudentPortalAcademicPerformance') return <StudentPortalExact mode="academicPerformance" />
+
 
   if (pageId === 'AdminDashboard') return <AdminDashboard />
   if (pageId === 'AdminDashboardAttendance') return <AdminDashboardAttendance />
@@ -732,21 +779,23 @@ if (pageId === 'Report_ExamResultDiscussion') return <Report_ExamResultDiscussio
 if (pageId === 'DeleteMarks') return <DeleteMarks />
 
 //May be inorrect 
-//Canteen render lines
-if (pageId === 'AssignExpense') return <AssignExpense />
-if (pageId === 'ExpenseGroupMaster') return <ExpenseGroupMaster />
-if (pageId === 'ExpenseNameMaster') return <ExpenseNameMaster />
-if (pageId === 'ProductMaster') return <ProductMaster />
-if (pageId === 'ProductGroup') return <ProductGroup />
-if (pageId === 'UpdateCreditBalance') return <UpdateCreditBalance />
+// Canteen (legacy Tuckshop) pages.  All of them use the same dynamic
+// repository-backed implementation; the old ASPX page id only selects the
+// workflow variant.
+if (['AssignExpense', 'assign_expense'].includes(pageId)) return <CanteenModulePage mode="assign" />
+if (['ExpenseGroupMaster', 'Expense_group'].includes(pageId)) return <CanteenModulePage mode="groups" />
+if (['ExpenseNameMaster', 'Expense_name'].includes(pageId)) return <CanteenModulePage mode="names" />
+if (['ProductMaster', 'product_master'].includes(pageId)) return <CanteenModulePage mode="products" />
+if (['ProductGroup', 'Product_Group'].includes(pageId)) return <CanteenModulePage mode="productGroups" />
+if (['UpdateCreditBalance', 'update_credit_balance'].includes(pageId)) return <CanteenModulePage mode="credits" />
 
-if (pageId === 'DebitCreditBalanceReport') return <DebitCreditBalanceReport />
-if (pageId === 'PrintInvoice') return <PrintInvoice />
-if (pageId === 'ProductBalanceReport') return <ProductBalanceReport />
-if (pageId === 'RemainingProductReport') return <RemainingProductReport />
-if (pageId === 'TuckshopAssignExpenseReport') return <TuckshopAssignExpenseReport />
-if (pageId === 'TuckshopProductIssueDetail') return <TuckshopProductIssueDetail />
-if (pageId === 'TuckshopReport') return <TuckshopReport />
+if (['DebitCreditBalanceReport', 'debitcredit_balancereport'].includes(pageId)) return <CanteenModulePage mode="debitCredit" />
+if (['PrintInvoice', 'print_invoice'].includes(pageId)) return <CanteenModulePage mode="invoice" />
+if (['ProductBalanceReport', 'Product_balance_report'].includes(pageId)) return <CanteenModulePage mode="productBalance" />
+if (['RemainingProductReport', 'remainingproductreport'].includes(pageId)) return <CanteenModulePage mode="remaining" />
+if (['TuckshopAssignExpenseReport', 'tuckshop_assign_expense_reports'].includes(pageId)) return <CanteenModulePage mode="assignReport" />
+if (['TuckshopProductIssueDetail', 'tuckshop_product_issue_detail'].includes(pageId)) return <CanteenModulePage mode="issues" />
+if (['TuckshopReport', 'tuckshop_report'].includes(pageId)) return <CanteenModulePage mode="productReport" />
 
 //Communication render lines
 if (pageId === 'SendSMS') return <SendSMS />
@@ -756,8 +805,9 @@ if (pageId === 'EmailReport') return <EmailReport />
 if (pageId === 'SmsReport') return <SmsReport />
 
 //Hostel render lines
-if (pageId === 'AssignHostel') return <AssignHostel />
-if (pageId === 'HostelFees') return <HostelFees />
+if (pageId === 'AssignHostel') return <HostelModulePage mode="assign" />
+if (pageId === 'HostelFees') return <HostelModulePage mode="fees" />
+if (pageId === 'HostelAssignedReport') return <HostelModulePage mode="report" />
 
 //MasterSetting render lines
 if (pageId === 'ChangeSectionName') return <ChangeSectionName />
@@ -773,6 +823,11 @@ if (pageId === 'SwitchSession') return <SwitchSession />
 if (pageId === 'ViewProfile') return <ViewProfile />
 
 //Leave render lines
+if (pageId === 'LeaveType') return <LeaveModulePage mode="type" />
+if (pageId === 'FacultyTotalLeave') return <LeaveModulePage mode="allocation" />
+if (pageId === 'LeaveForm') return <LeaveModulePage mode="apply" />
+if (pageId === 'LeaveApproval') return <LeaveModulePage mode="headApproval" />
+if (pageId === 'LeaveApprovalByPrincipal') return <LeaveModulePage mode="principalApproval" />
 if (pageId === 'FacultyLeaveList') return <FacultyLeaveList />
 if (pageId === 'FacultyTotalLeave') return <FacultyTotalLeave />
 if (pageId === 'IndentForm') return <IndentForm />

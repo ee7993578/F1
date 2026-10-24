@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -59,6 +60,7 @@ public class MenuService {
                                      Set<String> allowed) {
         Map<String, GroupBuilder> groups = new LinkedHashMap<>();
         Map<String, MenuRepository.PageRow> pageByNewId = new LinkedHashMap<>();
+        Set<String> seenPages = new HashSet<>();
         rows.forEach(row -> pageByNewId.put(String.valueOf(row.newPageId()), row));
 
         for (MenuRepository.PageRow row : rows) {
@@ -67,13 +69,16 @@ public class MenuService {
             if (!permitted) continue;
             String parentId = row.isReport() ? "1" : safe(row.parentId());
             if ("0".equals(parentId) || parentId.isBlank()) parentId = "direct";
+            String normalizedPageKey = pageKey(row.pageUrl(), String.valueOf(row.pageId()));
+            String dedupeKey = parentId + "|" + normalizedPageKey.toLowerCase(Locale.ROOT);
+            if (!seenPages.add(dedupeKey)) continue;
             MenuRepository.PageRow parent = pageByNewId.get(parentId);
             String groupLabel = parent == null ? (row.isReport() ? "Reports" : "Work") : parent.efoxLabel();
             String groupIcon = parent == null ? "Folder" : safe(parent.icon());
             int groupPriority = parent == null ? row.efoxPriority() : parent.efoxPriority();
             GroupBuilder group = groups.computeIfAbsent(parentId,
                 key -> new GroupBuilder(key, normalizeGroupName(groupLabel), groupIcon, groupPriority));
-            group.pages.add(new MenuDtos.Page(row.pageId(), pageKey(row.pageUrl(), String.valueOf(row.pageId())),
+            group.pages.add(new MenuDtos.Page(row.pageId(), normalizedPageKey,
                 row.isReport() ? row.reportLabel() : row.efoxLabel(), row.pageUrl(), safe(row.icon()),
                 row.isReport() ? row.reportPriority() : row.efoxPriority(), parentId,
                 row.isReport() ? "reports" : safe(row.type())));
