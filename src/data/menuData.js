@@ -646,6 +646,45 @@ export const MENU_DATA = [
       ],
     },
   ],
-}
+},
+{
+  id: 'ptm', label: 'PTM',
+  groups: [
+    {
+      id: 'ptm_work', label: 'Work', icon: 'CalendarDays',
+      pages: [
+        { id: 'PTMMaster', label: 'PTM Master' },
+      ],
+    },
+    {
+      id: 'ptm_report', label: 'Reports', icon: 'FileText',
+      pages: [
+        { id: 'PTMAllReport', label: 'Report' },
+        { id: 'PTMFacultySummary', label: 'Faculty-wise PTM' },
+        { id: 'PTMAdminDashboard', label: 'PTM Dashboard' },
+      ],
+    },
+  ],
+},
+{
+  id: 'visitor', label: 'Visitor',
+  groups: [
+    {
+      id: 'visitor_work', label: 'Work', icon: 'Users',
+      pages: [
+        { id: 'VisitorConfig', label: 'Approval Settings' },
+        { id: 'VisitorAppointment', label: 'Visitor Appointment' },
+        { id: 'VisitorApproval', label: 'Approval' },
+      ],
+    },
+    {
+      id: 'visitor_report', label: 'Reports', icon: 'FileText',
+      pages: [
+        { id: 'VisitorDashboard', label: 'Dashboard' },
+        { id: 'VisitorHistory', label: 'Visitor Report' },
+      ],
+    },
+  ],
+},
 
 ]

@@ -1,5 +1,7 @@
 import GenericPage from './GenericPage'
 import StudentPortalExact from './StundentPages/StudentPortalExact'
+import { PTMMaster, PTMAllReport, PTMFacultySummary, PTMAdminDashboard } from './PTM/PTMModule'
+import { VisitorAppointment, VisitorApproval, VisitorConfig, VisitorDashboard, VisitorHistory } from './Visitor/VisitorModule'
 
 // The legacy menu returns ASPX file names in different fields depending on
 // the school/menu record. Resolve those names at render time as a second line
@@ -105,6 +107,13 @@ const legacyStudentPortalPageIds = {
   acedmicperformance: 'StudentPortalAcademicPerformance',
 }
 
+const legacyPtmPageIds = {
+  ptmmaster: 'PTMMaster',
+  ptmallreport: 'PTMAllReport',
+  ptmfacultysummary: 'PTMFacultySummary',
+  ptmadmindashboard: 'PTMAdminDashboard',
+}
+
 const resolvedPageId = (page) => {
   const values = [page?.id, page?.pageId, page?.pageKey, page?.pageName, page?.url, page?.label]
     .filter(Boolean)
@@ -117,6 +126,7 @@ const resolvedPageId = (page) => {
     if (legacyLeavePageIds[value]) return legacyLeavePageIds[value]
     if (legacyHostelPageIds[value]) return legacyHostelPageIds[value]
     if (legacyStudentPortalPageIds[value]) return legacyStudentPortalPageIds[value]
+    if (legacyPtmPageIds[value]) return legacyPtmPageIds[value]
     const file = value.split('aspx')[0]
     if (legacyTransportPageIds[file]) return legacyTransportPageIds[file]
     if (legacyStudentPageIds[file]) return legacyStudentPageIds[file]
@@ -125,6 +135,7 @@ const resolvedPageId = (page) => {
     if (legacyLeavePageIds[file]) return legacyLeavePageIds[file]
     if (legacyHostelPageIds[file]) return legacyHostelPageIds[file]
     if (legacyStudentPortalPageIds[file]) return legacyStudentPortalPageIds[file]
+    if (legacyPtmPageIds[file]) return legacyPtmPageIds[file]
   }
   return page?.id
 }
@@ -458,7 +469,9 @@ export default function PageRenderer({ moduleData, currentGroup, currentPage, on
     )
   }
 
-  const pageId      = resolvedPageId(currentPage)
+  const isPtmReportLabel = String(moduleData.label || '').trim().toLowerCase() === 'ptm'
+    && String(currentPage.label || '').trim().toLowerCase() === 'report'
+  const pageId      = isPtmReportLabel ? 'PTMAllReport' : resolvedPageId(currentPage)
   const pageLabel   = currentPage.label
   const groupLabel  = currentGroup.label
   const moduleLabel = moduleData.label
@@ -479,6 +492,17 @@ export default function PageRenderer({ moduleData, currentGroup, currentPage, on
   if (pageId === 'StudentPortalTimetable') return <StudentPortalExact mode="timetable" />
   if (pageId === 'StudentPortalExamSchedule') return <StudentPortalExact mode="examSchedule" />
   if (pageId === 'StudentPortalAcademicPerformance') return <StudentPortalExact mode="academicPerformance" />
+
+  if (pageId === 'PTMMaster') return <PTMMaster />
+  if (pageId === 'PTMAllReport') return <PTMAllReport />
+  if (pageId === 'PTMFacultySummary') return <PTMFacultySummary />
+  if (pageId === 'PTMAdminDashboard') return <PTMAdminDashboard />
+
+  if (pageId === 'VisitorConfig') return <VisitorConfig />
+  if (pageId === 'VisitorAppointment') return <VisitorAppointment onPageClick={onPageClick} />
+  if (pageId === 'VisitorApproval') return <VisitorApproval />
+  if (pageId === 'VisitorDashboard') return <VisitorDashboard onPageClick={onPageClick} />
+  if (pageId === 'VisitorHistory') return <VisitorHistory />
 
 
   if (pageId === 'AdminDashboard') return <AdminDashboard />

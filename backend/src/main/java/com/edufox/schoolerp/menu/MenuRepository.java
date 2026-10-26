@@ -81,7 +81,13 @@ public class MenuRepository {
             schoolId, staffUid, schoolId, schoolId, staffUid));
     }
 
-    public List<PageRow> findSchoolPages(String schoolId) {
+    public List<PageRow> findSchoolPages(String schoolId, Set<String> allowedPageIds) {
+        List<Object> args = new java.util.ArrayList<>(List.of(schoolId, schoolId, schoolId));
+        String pageIds = placeholders(allowedPageIds, args);
+        String reportPageIds = placeholders(allowedPageIds, args);
+        String permissionFilter = pageIds.isBlank()
+            ? "1=0"
+            : "(CAST(p.PageId AS varchar(50)) IN (" + pageIds + ") OR (LOWER(COALESCE(p.type,''))='reports' AND CAST(p.newpageid AS varchar(50)) IN (" + reportPageIds + ")))";
         String sql = """
             SELECT p.module_id, p.PageId, p.newpageid, p.Page_Name, p.Pageurl, p.icon,
                    p.parent_id, p.type, p.TypeDashboard,
@@ -98,14 +104,15 @@ public class MenuRepository {
                  AND em.ModuleId=p.module_id AND em.School_id=? AND em.Status=1
             LEFT JOIN PageSchoolMapping rm ON rm.PageId=p.newpageid
                  AND rm.ModuleId=p.module_id AND rm.School_id=? AND rm.Status=1
-            WHERE p.status=1
+            WHERE p.status=1 AND
+            """ + permissionFilter + """
             ORDER BY p.module_id, TRY_CONVERT(int,p.Priority), p.PageId
             """;
         return jdbc.query(sql, (rs, row) -> new PageRow(rs.getInt("module_id"), rs.getInt("PageId"),
             rs.getInt("newpageid"), rs.getString("Page_Name"), rs.getString("Pageurl"), rs.getString("icon"),
             rs.getString("parent_id"), rs.getString("type"), rs.getString("TypeDashboard"),
             rs.getString("efox_label"), intValue(rs, "efox_priority"), rs.getString("report_label"),
-            intValue(rs, "report_priority"), rs.getString("module_name")), schoolId, schoolId, schoolId);
+            intValue(rs, "report_priority"), rs.getString("module_name")), args.toArray());
     }
 
     public List<StudentPageRow> findStudentPages(String schoolId, String userType) {
@@ -122,6 +129,13 @@ public class MenuRepository {
     private static int intValue(ResultSet rs, String column) {
         try { Integer value = (Integer) rs.getObject(column); return value == null ? 0 : value; }
         catch (Exception ignored) { return 0; }
+    }
+
+    private static String placeholders(Set<String> values, List<Object> args) {
+        if (values == null || values.isEmpty()) return "";
+        java.util.List<String> result = new java.util.ArrayList<>();
+        for (String value : values) { result.add("?"); args.add(value); }
+        return String.join(",", result);
     }
 
     public record ModuleRow(int moduleId, String moduleName, String icon, String redirectUrl, int priority) {}

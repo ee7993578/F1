@@ -55,7 +55,7 @@ public class MenuService {
                                              String address, String phone, String logo) {
         List<MenuRepository.ModuleRow> moduleRows = repository.findStaffModules(schoolId, staffUid);
         Set<String> allowed = repository.findAllowedPageIds(schoolId, staffUid);
-        List<MenuRepository.PageRow> pageRows = repository.findSchoolPages(schoolId);
+        List<MenuRepository.PageRow> pageRows = repository.findSchoolPages(schoolId, allowed);
         List<MenuDtos.Module> modules = new ArrayList<>();
         for (MenuRepository.ModuleRow module : moduleRows) {
             List<MenuRepository.PageRow> rows = pageRows.stream().filter(p -> p.moduleId() == module.moduleId()).toList();

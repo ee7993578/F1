@@ -11,12 +11,15 @@ const moduleAliases = {
   schooladmin: 'masterSetting',
   expense: 'canteen',
   tuckshop: 'canteen',
+  ptm: 'ptm',
+  visitor: 'visitor',
+  visitormanagement: 'visitor',
 }
 
 const moduleIdAliases = {
   1: 'examMaster', 4: 'fee', 5: 'transport', 10: 'library', 11: 'timetable',
   14: 'certificates', 16: 'communication', 19: 'attendance', 24: 'leave',
-  17: 'canteen', 28: 'canteen', 31: 'website', 32: 'masterSetting', 6: 'hostel',
+  17: 'canteen', 28: 'canteen', 31: 'website', 32: 'masterSetting', 6: 'hostel', 34: 'ptm', 13: 'visitor',
 }
 
 // The legacy database contains several Fee page keys that do not match the
@@ -234,6 +237,15 @@ const legacyPageAliases = Object.fromEntries([
   ['Slow_moving_stock', 'SlowMovingStock'],
   ['Stock_in_hand', 'StockInHand'],
   ['member_category', 'MemberCategory'],
+  ['PTMMaster', 'PTMMaster'],
+  ['PTMAllReport', 'PTMAllReport'],
+  ['PTMFacultySummary', 'PTMFacultySummary'],
+  ['PTMAdminDashboard', 'PTMAdminDashboard'],
+  ['VMSSchoolConfig', 'VisitorConfig'],
+  ['VisitorAppointment', 'VisitorAppointment'],
+  ['VisitorApproval', 'VisitorApproval'],
+  ['VisitorHistory', 'VisitorHistory'],
+  ['visitor_dashboard', 'VisitorDashboard'],
 ].map(([legacy, reactId]) => [key(legacy), reactId]))
 
 const field = (value, ...names) => {
