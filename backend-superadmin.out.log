@@ -1,0 +1,29 @@
+Starting backend: target=127.0.0.1/dpsbsr_edufox_net; Windows authentication; read/write enabled.
+Check http://localhost:8080/actuator/health. If a new JWT key was generated, log in again.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.4.5)
+
+2026-10-26T15:12:44.761+05:30  INFO 8944 --- [school-erp-backend] [           main] c.edufox.schoolerp.SchoolErpApplication  : Starting SchoolErpApplication v0.1.0-SNAPSHOT using Java 21.0.12.1 with PID 8944 (D:\Kachra\Codex\New\backend\target\school-erp-backend-0.1.0-SNAPSHOT.jar started by schoo in D:\Kachra\Codex\New\backend)
+2026-10-26T15:12:44.764+05:30  INFO 8944 --- [school-erp-backend] [           main] c.edufox.schoolerp.SchoolErpApplication  : The following 1 profile is active: "local-sqlserver"
+2026-10-26T15:12:52.027+05:30  INFO 8944 --- [school-erp-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-10-26T15:12:52.059+05:30  INFO 8944 --- [school-erp-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-26T15:12:52.059+05:30  INFO 8944 --- [school-erp-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.40]
+2026-10-26T15:12:52.139+05:30  INFO 8944 --- [school-erp-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-10-26T15:12:52.143+05:30  INFO 8944 --- [school-erp-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 7269 ms
+2026-10-26T15:13:00.253+05:30  INFO 8944 --- [school-erp-backend] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-10-26T15:13:01.996+05:30  INFO 8944 --- [school-erp-backend] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-10-26T15:13:03.178+05:30  INFO 8944 --- [school-erp-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-10-26T15:13:03.218+05:30  INFO 8944 --- [school-erp-backend] [           main] c.edufox.schoolerp.SchoolErpApplication  : Started SchoolErpApplication in 19.759 seconds (process running for 21.174)
+2026-10-26T15:13:08.726+05:30  INFO 8944 --- [school-erp-backend] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-10-26T15:13:08.726+05:30  INFO 8944 --- [school-erp-backend] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-10-26T15:13:08.726+05:30  INFO 8944 --- [school-erp-backend] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2026-10-26T15:13:09.713+05:30  INFO 8944 --- [school-erp-backend] [nio-8080-exec-2] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-26T15:13:10.915+05:30  INFO 8944 --- [school-erp-backend] [nio-8080-exec-2] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection ConnectionID:1 ClientConnectionId: 0ba4d798-e5af-4ea6-9fc3-8581064d0f50
+2026-10-26T15:13:10.930+05:30  INFO 8944 --- [school-erp-backend] [nio-8080-exec-2] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.

@@ -1,4 +1,4 @@
-import { Component } from 'react'
+import { Component, useState } from 'react'
 import { useERP } from './hooks/useERP'
 import { useTheme } from './hooks/useTheme'
 import { useAuth } from './auth/AuthContext'
@@ -10,6 +10,11 @@ import MobileDrawer from './components/layout/MobileDrawer'
 import Breadcrumb from './components/layout/Breadcrumb'
 import Dashboard from './components/dashboard/Dashboard'
 import PageRenderer from './components/pages/PageRenderer'
+import SuperAdminLogin from './components/superadmin/SuperAdminLogin'
+import SchoolSetup from './components/superadmin/SchoolSetup'
+import { getSuperAdminPage, SuperAdminDashboard, SuperAdminModulePage, SuperAdminSchoolList, SuperAdminShell } from './components/superadmin/SuperAdminShell'
+import SuperAdminPageMapping from './components/superadmin/SuperAdminPageMapping'
+import { SUPER_ADMIN_TOKEN_KEY } from './lib/superAdminApi'
 
 class PageErrorBoundary extends Component {
   state = { error: null }
@@ -44,4 +49,26 @@ function ERPApp() {
     <MobileDrawer menuData={menuData} schoolName={user?.schoolName || menuMeta?.schoolName} logoPath={user?.logoPath} isOpen={isDrawerOpen} onClose={closeDrawer} activeModule={activeModule} activeGroup={activeGroup} activePage={activePage} onModuleClick={setModule} onPageClick={setPage} />
   </div>
 }
-export default function App() { const { user, loading } = useAuth(); if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-500">Loading...</div>; return user ? <ERPApp /> : <Login /> }
+function SuperAdminApp() {
+  const [user, setUser] = useState(() => { try { return JSON.parse(localStorage.getItem('schoolErp.superAdminUser') || 'null') } catch { return null } })
+  const [activeKey, setActiveKey] = useState(() => window.location.pathname.split('/')[2] || 'dashboard')
+  const loggedIn = Boolean(localStorage.getItem(SUPER_ADMIN_TOKEN_KEY))
+  if (!loggedIn || !user) return <SuperAdminLogin onSuccess={next => { localStorage.setItem('schoolErp.superAdminUser', JSON.stringify(next)); setUser(next); setActiveKey('dashboard'); window.history.replaceState({}, '', '/superadmin/dashboard') }} />
+  function navigate(key) { const page = getSuperAdminPage(key); setActiveKey(page.key); window.history.replaceState({}, '', `/superadmin/${page.key}`) }
+  function logout() { localStorage.removeItem(SUPER_ADMIN_TOKEN_KEY); localStorage.removeItem('schoolErp.superAdminUser'); setUser(null); setActiveKey('dashboard'); window.history.replaceState({}, '', '/superadmin') }
+  const page = getSuperAdminPage(activeKey)
+  return <SuperAdminShell user={user} activeKey={page.key} onNavigate={navigate} onLogout={logout}>
+    {page.key === 'dashboard' && <SuperAdminDashboard onNavigate={navigate} />}
+    {page.key === 'school-setup' && <SchoolSetup user={user} embedded />}
+    {page.key === 'school-list' && <SuperAdminSchoolList />}
+    {page.key === 'page-mapping' && <SuperAdminPageMapping />}
+    {!['dashboard', 'school-setup', 'school-list', 'page-mapping'].includes(page.key) && <SuperAdminModulePage page={page} />}
+  </SuperAdminShell>
+}
+
+export default function App() {
+  const { user, loading } = useAuth()
+  if (window.location.pathname.startsWith('/superadmin')) return <SuperAdminApp />
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-500">Loading...</div>
+  return user ? <ERPApp /> : <Login />
+}

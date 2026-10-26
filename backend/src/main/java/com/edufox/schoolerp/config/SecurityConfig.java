@@ -18,7 +18,7 @@ public class SecurityConfig {
  private final JwtAuthenticationFilter jwtFilter; private final AppProperties props;
  @Bean SecurityFilterChain filterChain(HttpSecurity http)throws Exception{
   http.csrf(c->c.disable()).cors(c->c.configurationSource(cors())).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-   .authorizeHttpRequests(a->a.requestMatchers("/api/auth/login","/api/auth/otp/**","/actuator/health","/error").permitAll().requestMatchers(HttpMethod.OPTIONS,"/**").permitAll().anyRequest().authenticated())
+   .authorizeHttpRequests(a->a.requestMatchers("/api/auth/login","/api/auth/otp/**","/api/superadmin/login","/actuator/health","/error").permitAll().requestMatchers(HttpMethod.OPTIONS,"/**").permitAll().anyRequest().authenticated())
    .addFilterBefore(jwtFilter,UsernamePasswordAuthenticationFilter.class);return http.build();
  }
  @Bean UserDetailsService userDetailsService(){ return new InMemoryUserDetailsManager(); }

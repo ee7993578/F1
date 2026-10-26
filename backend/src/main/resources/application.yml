@@ -17,6 +17,9 @@ spring:
   jackson:
     default-property-inclusion: non_null
 app:
+  super-admin:
+    identifier: ${SUPERADMIN_IDENTIFIER:7830402482}
+    password: ${SUPERADMIN_PASSWORD:Raza@123}
   auth:
     jwt-secret: ${JWT_SECRET}
     access-token-minutes: ${JWT_ACCESS_TOKEN_MINUTES:30}

@@ -194,9 +194,9 @@ function StudentCard({ student: s, selected, onToggle, onUpdate, idx }) {
             <Field label="Admission No." required>
               <Input
                 value={s.adm_no}
-                onChange={e => onUpdate('adm_no', e.target.value.replace(/\D/g, ''))}
-                placeholder="e.g. 5001"
-                maxLength={10}
+                onChange={e => onUpdate('adm_no', e.target.value)}
+                placeholder="e.g. 23-13158"
+                maxLength={50}
               />
             </Field>
             <Field label="Fee Book No.">

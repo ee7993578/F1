@@ -1,5 +1,7 @@
 package com.edufox.schoolerp.student;
 
+import com.edufox.schoolerp.student.shared.student_core.StudentRepository;
+import com.edufox.schoolerp.student.shared.student_core.StudentService;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.server.ResponseStatusException;
